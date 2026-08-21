@@ -1,0 +1,201 @@
+{
+	"info": {
+		"_postman_id": "14a660cf-69dd-46f5-9e81-b43d0bed3e6b",
+		"name": "API-Automation",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "32728073",
+		"_collection_link": "https://orbital-module-astronaut-22111168-s-team.postman.co/workspace/Integarion-API-Automation~d10b68ac-3dbb-4e07-96db-46bbca3c6fb7/collection/32728073-14a660cf-69dd-46f5-9e81-b43d0bed3e6b?action=share&source=collection_link&creator=32728073"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "get-access-token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const jsonResponse = pm.response.json();",
+									"",
+									"const tokenSchema = pm.collectionVariables.get(\"tokenSchema\");",
+									"const tokenSchemaJson = JSON.parse(tokenSchema);",
+									"",
+									"const accessToken = jsonResponse.access_token;",
+									"const expires_in = jsonResponse.expires_in;",
+									"const token_type = jsonResponse.token_type;",
+									"const scope = jsonResponse.scope;",
+									"",
+									"pm.test(\"Access token is available\", function () {",
+									"    pm.expect(accessToken, \"access_token\").to.be.a(\"string\").and.not.empty;",
+									"    pm.environment.set(\"accessToken\",accessToken)",
+									"});",
+									"",
+									"pm.test(\"Validate the access code for success response\", function() {",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"pm.test(\"Validate the response time\", function () {",
+									"     pm.expect(pm.response.responseTime).to.be.below(5000);",
+									"});",
+									"",
+									"pm.test(\"Validate the response schema\", function () {",
+									"    pm.response.to.have.jsonSchema(tokenSchemaJson);",
+									"});",
+									"",
+									"pm.test(\"Validate availability of properties\", function() {",
+									"    pm.expect(jsonResponse).to.have.property(\"access_token\");",
+									"    pm.expect(jsonResponse).to.have.property(\"expires_in\");",
+									"    pm.expect(jsonResponse).to.have.property(\"token_type\");",
+									"    pm.expect(jsonResponse).to.have.property(\"scope\");",
+									"})",
+									"",
+									"pm.test(\"Validate values in response body\", function() {",
+									"   pm.expect(jsonResponse.expires_in).to.be.eql(3600);",
+									"   pm.expect(jsonResponse.token_type).to.be.eql(\"Bearer\");",
+									"   pm.expect(jsonResponse.scope).to.be.eql(\"public private\");",
+									"})",
+									"",
+									"pm.test(\"Content-Type is application/json\", function () {",
+									"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"client_id\": \"APIAutomation\",\n  \"client_secret\": \"af44ad79c1f14abe4327fa6b1cfdb21d\",\n  \"grant_type\": \"client_credentials\",\n  \"username\": \"_ohrmSysAdmin_\",\n  \"password\": \"admin@OHRM123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/oauth/issueToken",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"oauth",
+								"issueToken"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "PIM",
+			"item": [
+				{
+					"name": "create-employee",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"",
+									"",
+									"pm.test(\"Validate the response for a success employee add\", function() {",
+									"    console.log()",
+									"    pm.response.to.have.status(201)",
+									"",
+									"})",
+									"",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/employees",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"employees"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "tokenSchema",
+			"value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"access_token\": {\n      \"type\": \"string\"\n    },\n    \"expires_in\": {\n      \"type\": \"number\"\n    },\n    \"token_type\": {\n      \"type\": \"string\"\n    },\n    \"scope\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"access_token\",\n    \"expires_in\",\n    \"token_type\",\n    \"scope\"\n  ]\n}",
+			"type": "string"
+		}
+	]
+}

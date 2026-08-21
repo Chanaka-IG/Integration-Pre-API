@@ -1,0 +1,4 @@
+"firstName","middleName","lastName","employeeId","locationId","joinedDate","chkLogin","autoGenerateEmployeeId"
+"Jona","Emmanuel","Trotsky","JN0001",2,"2022-05-02","false","false"
+"John","Michael","Smith","JN0002",3,"2023-01-15","true","false"
+"David","James","Perera","JN0003",2,"2024-06-20","false","true"
