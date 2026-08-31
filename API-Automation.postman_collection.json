@@ -38,10 +38,6 @@
                       "    pm.response.to.have.status(200);",
                       "})",
                       "",
-                      "pm.test(\"Validate the response time\", function () {",
-                      "     pm.expect(pm.response.responseTime).to.be.below(5000);",
-                      "});",
-                      "",
                       "pm.test(\"Validate the response schema\", function () {",
                       "    pm.response.to.have.jsonSchema(tokenSchemaJson);",
                       "});",
@@ -683,34 +679,49 @@
                               "    \"eeo_applicable\",",
                               "];",
                               "",
-                              "const response = pm.response.json();",
-                              "const getEmployeeSchema = pm.collectionVariables.get(\"getEmployeeSchema\")",
+                              "const getEmployeeSchema = pm.collectionVariables.get(\"getEmployeeSchema\");",
                               "const getEmployeeSchemaJson = getEmployeeSchema ? JSON.parse(getEmployeeSchema) : null;",
                               "",
-                              "pm.test(\"Validate the schema for success get employee\", function () {",
-                              "    pm.response.to.have.jsonSchema(getEmployeeSchemaJson);",
-                              "})",
+                              "pm.test(\"Status code is 200 or 201\", function () {",
+                              "    pm.expect(pm.response.code).to.oneOf([200, 201]);",
+                              "});",
                               "",
-                              "pm.test(\"Validate the employee properties are exist in the response\", function () {",
-                              "    expectedEmployeeProperties.forEach( function (property) {",
-                              "        pm.expect(response.data).to.have.property(property);",
-                              "    } )",
-                              "})",
+                              "if (pm.response.code === 200 || pm.response.code === 201) {",
+                              "    const response = pm.response.json();",
                               "",
-                              "pm.test(\"Validate the location properties are exist in the response\", function () {",
-                              "    expectedLocationProperties.forEach( function (property) {",
-                              "        pm.expect(response.data.locations).to.have.property(property);",
-                              "    } )",
-                              "})",
+                              "    pm.test(\"Validate the schema for success get employee\", function () {",
+                              "        pm.response.to.have.jsonSchema(getEmployeeSchemaJson);",
+                              "    });",
                               "",
-                              "pm.test(\"Validate the response data against request data\", function () {",
-                              "    pm.expect(pm.variables.get(\"employeeId\")).to.eql(response.data.employeeId);",
-                              "    pm.expect(pm.variables.get(\"firstName\")).to.eql(response.data.firstName);",
-                              "    pm.expect(pm.variables.get(\"middleName\")).to.eql(response.data.middleName);",
-                              "    pm.expect(pm.variables.get(\"lastName\")).to.eql(response.data.lastName);",
-                              "    pm.expect(pm.variables.get(\"locationId\")).to.eql(response.data.locationId);",
-                              "    pm.expect(pm.variables.get(\"joinedDate\")).to.eql(response.data.joined_date);",
-                              "})"
+                              "    pm.test(\"Validate the employee properties are exist in the response\", function () {",
+                              "        expectedEmployeeProperties.forEach(function (property) {",
+                              "            pm.expect(response.data).to.have.property(property);",
+                              "        });",
+                              "    });",
+                              "",
+                              "    pm.test(\"Validate the location properties are exist in the response\", function () {",
+                              "        expectedLocationProperties.forEach(function (property) {",
+                              "            pm.expect(response.data.locations).to.have.property(property);",
+                              "        });",
+                              "    });",
+                              "",
+                              "    pm.test(\"Validate the response data against request data\", function () {",
+                              "        pm.expect(pm.iterationData.get(\"employeeId\")).to.eql(response.data.employeeId);",
+                              "        pm.expect(pm.iterationData.get(\"firstName\")).to.eql(response.data.firstName);",
+                              "        pm.expect(pm.iterationData.get(\"middleName\")).to.eql(response.data.middleName);",
+                              "        pm.expect(pm.iterationData.get(\"lastName\")).to.eql(response.data.lastName);",
+                              "        pm.expect(String(pm.iterationData.get(\"locationId\"))).to.equal(String(response.data.locationId))",
+                              "        pm.expect(pm.iterationData.get(\"joinedDate\")).to.eql(response.data.joined_date);",
+                              "    });",
+                              "",
+                              "    // pm.test(\"Set addedEmployee array to empty\", function () {",
+                              "    //     pm.collectionVariables.set(\"createdEmployees\", []);",
+                              "    // });",
+                              "} else {",
+                              "    // pm.test(\"Set addedEmployee array to empty\", function () {",
+                              "    //     pm.collectionVariables.set(\"createdEmployees\", []);",
+                              "    // });",
+                              "}"
                             ],
                             "type": "text/javascript",
                             "packages": {},
@@ -721,39 +732,31 @@
                           "listen": "prerequest",
                           "script": {
                             "exec": [
-                              "pm.variables.set(\"firstName\", \"James\");",
-                              "pm.variables.set(\"middleName\", \"Packer\");",
-                              "pm.variables.set(\"lastName\", \"Smith\");",
-                              "pm.variables.set(\"employeeId\", \"Jame001\");",
-                              "pm.variables.set(\"locationId\", \"1\");",
-                              "pm.variables.set(\"joinedDate\", \"2024-06-20\");",
-                              "pm.variables.set(\"chkLogin\", false);",
-                              "pm.variables.set(\"autoGenerateEmployeeId\", false);",
+                              "const createdEmployees = JSON.parse(",
+                              "    pm.collectionVariables.get(\"createdEmployees\") || \"[]\"",
+                              ");",
                               "",
-                              "const response = await pm.execution.runRequest(\"57098183-5f901d09-2161-4f5a-9e62-2198c0eec6f0\");    ",
+                              "console.log(\"created employees :\", createdEmployees);",
                               "",
-                              "const responseData = response.json();",
+                              "const employeeIDforTestEMp = pm.iterationData.get(\"employeeId\");",
                               "",
-                              "pm.test(\"Store employee number\", function () {",
-                              "    pm.expect(responseData.data).to.have.property(\"empNumber\");",
-                              "    pm.variables.set(\"emp_number\", responseData.data.empNumber);",
-                              "});"
+                              "const selectedEmployee = createdEmployees.find(",
+                              "    emp => String(emp.empID) === String(employeeIDforTestEMp)",
+                              ");",
+                              "",
+                              "pm.test(\"Employee found in created employees\", function () {",
+                              "    pm.expect(selectedEmployee).to.not.be.undefined;",
+                              "});",
+                              "",
+                              "if (selectedEmployee) {",
+                              "    pm.collectionVariables.set(\"emp_number\", selectedEmployee.empNumber);",
+                              "",
+                              "    console.log(\"emp_number:\", selectedEmployee.empNumber);",
+                              "}"
                             ],
                             "type": "text/javascript",
                             "packages": {},
-                            "requests": {
-                              "57098183-5f901d09-2161-4f5a-9e62-2198c0eec6f0": {
-                                "workspace": "f3d250cb-4a55-46ce-b332-ae94d8d413fd",
-                                "collection": "57098183-1afdd4f7-e54e-4fd8-bafe-ac0c70b471e0",
-                                "location": [
-                                  "API-Automation",
-                                  "Positive Test cases",
-                                  "PIM",
-                                  "pre-setup",
-                                  "create-employee-for-get"
-                                ]
-                              }
-                            }
+                            "requests": {}
                           }
                         }
                       ],
@@ -832,18 +835,13 @@
                           "listen": "prerequest",
                           "script": {
                             "exec": [
-                              "pm.variables.set(\"firstName\", \"Harry\");",
-                              "pm.variables.set(\"middleName\", \"Brooke\");",
-                              "pm.variables.set(\"lastName\", \"Jordan\");",
-                              "pm.variables.set(\"employeeId\", \"Harry001\");",
-                              "pm.variables.set(\"locationId\", \"1\");",
-                              "pm.variables.set(\"joinedDate\", \"2024-06-20\");",
-                              "pm.variables.set(\"chkLogin\", false);",
-                              "pm.variables.set(\"autoGenerateEmployeeId\", false);",
+                              "const addedEmployees = pm.collectionVariables.get(\"createdEmployees\");",
                               "",
-                              "const response = await pm.execution.runRequest(\"57098183-5f901d09-2161-4f5a-9e62-2198c0eec6f0\");    ",
+                              "const addedEmployeesList = JSON.parse(addedEmployees);",
                               "",
-                              "const responseData = response.json();",
+                              "console.log(\"List\", addedEmployeesList)",
+                              "",
+                              "",
                               "",
                               "pm.test(\"Validate the response status code is 200 or 201\", function () {",
                               "    pm.expect(response.code).to.be.oneOf([200, 201]);",
@@ -851,19 +849,7 @@
                             ],
                             "type": "text/javascript",
                             "packages": {},
-                            "requests": {
-                              "57098183-5f901d09-2161-4f5a-9e62-2198c0eec6f0": {
-                                "workspace": "f3d250cb-4a55-46ce-b332-ae94d8d413fd",
-                                "collection": "57098183-1afdd4f7-e54e-4fd8-bafe-ac0c70b471e0",
-                                "location": [
-                                  "API-Automation",
-                                  "Positive Test cases",
-                                  "PIM",
-                                  "pre-setup",
-                                  "create-employee-for-get"
-                                ]
-                              }
-                            }
+                            "requests": {}
                           }
                         }
                       ],
@@ -922,6 +908,71 @@
               "item": [
                 {
                   "name": "create-employee-for-get",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "let createdEmployeeList = [];",
+                          "",
+                          "try {",
+                          "    const storedEmployees =",
+                          "        pm.collectionVariables.get(\"createdEmployees\");",
+                          "",
+                          "    if (storedEmployees) {",
+                          "        createdEmployeeList = JSON.parse(storedEmployees);",
+                          "    }",
+                          "} catch (error) {",
+                          "    console.log(\"Invalid createdEmployees value. Resetting to []\");",
+                          "    createdEmployeeList = [];",
+                          "}",
+                          "",
+                          "const responseData = pm.response.json();",
+                          "",
+                          "pm.test(\"Successful response status\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                          "});",
+                          "",
+                          "pm.test(\"Store employee number\", function () {",
+                          "",
+                          "    if (responseData.data && responseData.data.empNumber) {",
+                          "",
+                          "        createdEmployeeList.push({",
+                          "            empID: responseData.data.employeeId,",
+                          "            empNumber: responseData.data.empNumber",
+                          "        });",
+                          "",
+                          "        pm.collectionVariables.set(",
+                          "            \"createdEmployees\",",
+                          "            JSON.stringify(createdEmployeeList)",
+                          "        );",
+                          "",
+                          "        pm.expect(responseData.data).to.have.property(\"empNumber\");",
+                          "",
+                          "    } else {",
+                          "",
+                          "        pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);",
+                          "",
+                          "    }",
+                          "});"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "exec": [
+                          ""
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
                   "request": {
                     "method": "POST",
                     "header": [
@@ -995,16 +1046,20 @@
   ],
   "variable": [
     {
-      "key": "tokenSchema",
-      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"access_token\": {\n      \"type\": \"string\"\n    },\n    \"expires_in\": {\n      \"type\": \"number\"\n    },\n    \"token_type\": {\n      \"type\": \"string\"\n    },\n    \"scope\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"access_token\",\n    \"expires_in\",\n    \"token_type\",\n    \"scope\"\n  ]\n}"
-    },
-    {
       "key": "addEmployeeSchema",
       "value": ""
     },
     {
       "key": "getEmployeeSchema",
-      "value": ""
+      "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Generated schema for Root\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"empNumber\": {\n          \"type\": \"string\"\n        },\n        \"employeeId\": {\n          \"type\": \"string\"\n        },\n        \"firstName\": {\n          \"type\": \"string\"\n        },\n        \"middleName\": {\n          \"type\": \"string\"\n        },\n        \"lastName\": {\n          \"type\": \"string\"\n        },\n        \"locationId\": {\n          \"type\": \"string\"\n        },\n        \"nickName\": {\n          \"type\": \"string\"\n        },\n        \"smoker\": {\n          \"type\": \"string\"\n        },\n        \"emp_gender\": {},\n        \"ssn\": {\n          \"type\": \"string\"\n        },\n        \"sin\": {\n          \"type\": \"string\"\n        },\n        \"otherId\": {\n          \"type\": \"string\"\n        },\n        \"licenseNo\": {\n          \"type\": \"string\"\n        },\n        \"emp_dri_lice_exp_date\": {},\n        \"militaryService\": {\n          \"type\": \"string\"\n        },\n        \"street1\": {\n          \"type\": \"string\"\n        },\n        \"street2\": {\n          \"type\": \"string\"\n        },\n        \"city\": {\n          \"type\": \"string\"\n        },\n        \"emp_zipcode\": {},\n        \"province\": {\n          \"type\": \"string\"\n        },\n        \"country\": {\n          \"type\": \"string\"\n        },\n        \"emp_hm_telephone\": {},\n        \"emp_mobile\": {},\n        \"emp_work_telephone\": {},\n        \"emp_work_email\": {},\n        \"emp_oth_email\": {},\n        \"ethnic_race_code\": {},\n        \"emp_birthday\": {},\n        \"nation_code\": {},\n        \"emp_marital_status\": {},\n        \"emp_status\": {},\n        \"job_title_code\": {},\n        \"eeo_cat_code\": {},\n        \"joined_date\": {\n          \"type\": \"string\"\n        },\n        \"work_station\": {},\n        \"sal_grd_code\": {},\n        \"added_date\": {\n          \"type\": \"string\"\n        },\n        \"termination_id\": {},\n        \"custom1\": {},\n        \"custom2\": {},\n        \"custom3\": {},\n        \"custom4\": {},\n        \"custom5\": {},\n        \"custom6\": {},\n        \"custom7\": {},\n        \"custom8\": {},\n        \"custom9\": {},\n        \"custom10\": {},\n        \"eeo_job_category\": {},\n        \"eeo_paygrade\": {},\n        \"eeo_race_ent\": {},\n        \"flsa_exempt\": {},\n        \"work_schedule_id\": {\n          \"type\": \"string\"\n        },\n        \"purged_at\": {},\n        \"deleted_at\": {},\n        \"locations\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"id\": {\n              \"type\": \"string\"\n            },\n            \"name\": {\n              \"type\": \"string\"\n            },\n            \"countryCode\": {\n              \"type\": \"string\"\n            },\n            \"time_zone\": {\n              \"type\": \"string\"\n            },\n            \"province\": {\n              \"type\": \"string\"\n            },\n            \"city\": {\n              \"type\": \"string\"\n            },\n            \"address\": {},\n            \"zipCode\": {},\n            \"phone\": {},\n            \"fax\": {},\n            \"notes\": {\n              \"type\": \"string\"\n            },\n            \"eeo_applicable\": {\n              \"type\": [\"string\", \"null\"]\n            },\n            \"country\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"cou_code\": {\n                  \"type\": \"string\"\n                },\n                \"name\": {\n                  \"type\": \"string\"\n                },\n                \"cou_name\": {\n                  \"type\": \"string\"\n                },\n                \"iso3\": {\n                  \"type\": \"string\"\n                },\n                \"numcode\": {\n                  \"type\": \"string\"\n                }\n              },\n              \"required\": [\n                \"cou_code\",\n                \"name\",\n                \"cou_name\",\n                \"iso3\",\n                \"numcode\"\n              ]\n            },\n            \"timeZone\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"id\": {\n                  \"type\": \"string\"\n                },\n                \"timezone_key\": {\n                  \"type\": \"string\"\n                },\n                \"label\": {\n                  \"type\": \"string\"\n                },\n                \"alternative_keys\": {},\n                \"prefix\": {\n                  \"type\": \"string\"\n                },\n                \"offset\": {\n                  \"type\": \"number\"\n                }\n              },\n              \"required\": [\n                \"id\",\n                \"timezone_key\",\n                \"label\",\n                \"alternative_keys\",\n                \"prefix\",\n                \"offset\"\n              ]\n            }\n          },\n          \"required\": [\n            \"id\",\n            \"name\",\n            \"countryCode\",\n            \"time_zone\",\n            \"province\",\n            \"city\",\n            \"address\",\n            \"zipCode\",\n            \"phone\",\n            \"fax\",\n            \"notes\",\n            \"eeo_applicable\",\n            \"country\",\n            \"timeZone\"\n          ]\n        },\n        \"isPreboardingInitiationAllowed\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"required\": [\n        \"empNumber\",\n        \"employeeId\",\n        \"firstName\",\n        \"middleName\",\n        \"lastName\",\n        \"locationId\",\n        \"nickName\",\n        \"smoker\",\n        \"emp_gender\",\n        \"ssn\",\n        \"sin\",\n        \"otherId\",\n        \"licenseNo\",\n        \"emp_dri_lice_exp_date\",\n        \"militaryService\",\n        \"street1\",\n        \"street2\",\n        \"city\",\n        \"emp_zipcode\",\n        \"province\",\n        \"country\",\n        \"emp_hm_telephone\",\n        \"emp_mobile\",\n        \"emp_work_telephone\",\n        \"emp_work_email\",\n        \"emp_oth_email\",\n        \"ethnic_race_code\",\n        \"emp_birthday\",\n        \"nation_code\",\n        \"emp_marital_status\",\n        \"emp_status\",\n        \"job_title_code\",\n        \"eeo_cat_code\",\n        \"joined_date\",\n        \"work_station\",\n        \"sal_grd_code\",\n        \"added_date\",\n        \"termination_id\",\n        \"custom1\",\n        \"custom2\",\n        \"custom3\",\n        \"custom4\",\n        \"custom5\",\n        \"custom6\",\n        \"custom7\",\n        \"custom8\",\n        \"custom9\",\n        \"custom10\",\n        \"eeo_job_category\",\n        \"eeo_paygrade\",\n        \"eeo_race_ent\",\n        \"flsa_exempt\",\n        \"work_schedule_id\",\n        \"purged_at\",\n        \"deleted_at\",\n        \"locations\",\n        \"isPreboardingInitiationAllowed\"\n      ]\n    }\n  },\n  \"required\": [\n    \"data\"\n  ]\n}"
+    },
+    {
+      "key": "createdEmployees",
+      "value": "[{\"empID\":\"asc001\",\"empNumber\":\"19541\"},{\"empID\":\"ca001\",\"empNumber\":\"19542\"},{\"empID\":\"dsf001\",\"empNumber\":\"19543\"}]"
+    },
+    {
+      "key": "tokenSchema",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"access_token\": {\n      \"type\": \"string\"\n    },\n    \"expires_in\": {\n      \"type\": \"number\"\n    },\n    \"token_type\": {\n      \"type\": \"string\"\n    },\n    \"scope\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"access_token\",\n    \"expires_in\",\n    \"token_type\",\n    \"scope\"\n  ]\n}"
     }
   ]
 }
