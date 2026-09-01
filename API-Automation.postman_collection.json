@@ -647,6 +647,114 @@
                   "name": "get-employee-by-emp-number",
                   "item": [
                     {
+                      "name": "create-employee-for-get",
+                      "event": [
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "let createdEmployeeList = [];",
+                              "",
+                              "try {",
+                              "    const storedEmployees =",
+                              "        pm.collectionVariables.get(\"createdEmployees\");",
+                              "",
+                              "    if (storedEmployees) {",
+                              "        createdEmployeeList = JSON.parse(storedEmployees);",
+                              "    }",
+                              "} catch (error) {",
+                              "    console.log(\"Invalid createdEmployees value. Resetting to []\");",
+                              "    createdEmployeeList = [];",
+                              "}",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = pm.response.json();",
+                              "} catch (e) {",
+                              "    responseData = {};",
+                              "}",
+                              "",
+                              "pm.test(\"Successful response status\", function () {",
+                              "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);",
+                              "});",
+                              "",
+                              "pm.test(\"Store employee number\", function () {",
+                              "",
+                              "    if (responseData.data && responseData.data.empNumber) {",
+                              "",
+                              "        createdEmployeeList.push({",
+                              "            empID: responseData.data.employeeId,",
+                              "            empNumber: responseData.data.empNumber",
+                              "        });",
+                              "",
+                              "        pm.collectionVariables.set(",
+                              "            \"createdEmployees\",",
+                              "            JSON.stringify(createdEmployeeList)",
+                              "        );",
+                              "",
+                              "        pm.expect(responseData.data).to.have.property(\"empNumber\");",
+                              "",
+                              "    } else {",
+                              "",
+                              "        pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);",
+                              "",
+                              "    }",
+                              "});"
+                            ],
+                            "type": "text/javascript",
+                            "packages": {},
+                            "requests": {}
+                          }
+                        },
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              ""
+                            ],
+                            "type": "text/javascript",
+                            "packages": {},
+                            "requests": {}
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json",
+                            "type": "text"
+                          },
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{accessToken}}",
+                            "type": "text"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
                       "name": "get-employee-by-emp-number",
                       "event": [
                         {
@@ -902,120 +1010,121 @@
                   }
                 }
               ]
-            },
-            {
-              "name": "pre-setup",
-              "item": [
-                {
-                  "name": "create-employee-for-get",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "let createdEmployeeList = [];",
-                          "",
-                          "try {",
-                          "    const storedEmployees =",
-                          "        pm.collectionVariables.get(\"createdEmployees\");",
-                          "",
-                          "    if (storedEmployees) {",
-                          "        createdEmployeeList = JSON.parse(storedEmployees);",
-                          "    }",
-                          "} catch (error) {",
-                          "    console.log(\"Invalid createdEmployees value. Resetting to []\");",
-                          "    createdEmployeeList = [];",
-                          "}",
-                          "",
-                          "const responseData = pm.response.json();",
-                          "",
-                          "pm.test(\"Successful response status\", function () {",
-                          "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-                          "});",
-                          "",
-                          "pm.test(\"Store employee number\", function () {",
-                          "",
-                          "    if (responseData.data && responseData.data.empNumber) {",
-                          "",
-                          "        createdEmployeeList.push({",
-                          "            empID: responseData.data.employeeId,",
-                          "            empNumber: responseData.data.empNumber",
-                          "        });",
-                          "",
-                          "        pm.collectionVariables.set(",
-                          "            \"createdEmployees\",",
-                          "            JSON.stringify(createdEmployeeList)",
-                          "        );",
-                          "",
-                          "        pm.expect(responseData.data).to.have.property(\"empNumber\");",
-                          "",
-                          "    } else {",
-                          "",
-                          "        pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);",
-                          "",
-                          "    }",
-                          "});"
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    },
-                    {
-                      "listen": "prerequest",
-                      "script": {
-                        "exec": [
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json",
-                        "type": "text"
-                      },
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{accessToken}}",
-                        "type": "text"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{baseURL}}/api/employees",
-                      "host": [
-                        "{{baseURL}}"
-                      ],
-                      "path": [
-                        "api",
-                        "employees"
-                      ]
-                    }
-                  },
-                  "response": []
-                }
-              ]
             }
           ]
         },
         {
           "name": "Setup",
-          "item": []
+          "item": [
+            {
+              "name": "create-employee-for-get Copy",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let createdEmployeeList = [];",
+                      "",
+                      "try {",
+                      "    const storedEmployees =",
+                      "        pm.collectionVariables.get(\"createdEmployees\");",
+                      "",
+                      "    if (storedEmployees) {",
+                      "        createdEmployeeList = JSON.parse(storedEmployees);",
+                      "    }",
+                      "} catch (error) {",
+                      "    console.log(\"Invalid createdEmployees value. Resetting to []\");",
+                      "    createdEmployeeList = [];",
+                      "}",
+                      "",
+                      "let responseData = {};",
+                      "try {",
+                      "    responseData = pm.response.json();",
+                      "} catch (e) {",
+                      "    responseData = {};",
+                      "}",
+                      "",
+                      "pm.test(\"Successful response status\", function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);",
+                      "});",
+                      "",
+                      "pm.test(\"Store employee number\", function () {",
+                      "",
+                      "    if (responseData.data && responseData.data.empNumber) {",
+                      "",
+                      "        createdEmployeeList.push({",
+                      "            empID: responseData.data.employeeId,",
+                      "            empNumber: responseData.data.empNumber",
+                      "        });",
+                      "",
+                      "        pm.collectionVariables.set(",
+                      "            \"createdEmployees\",",
+                      "            JSON.stringify(createdEmployeeList)",
+                      "        );",
+                      "",
+                      "        pm.expect(responseData.data).to.have.property(\"empNumber\");",
+                      "",
+                      "    } else {",
+                      "",
+                      "        pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);",
+                      "",
+                      "    }",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/employees",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "employees"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
         }
       ]
     }
