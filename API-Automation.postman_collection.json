@@ -1,99 +1,99 @@
 {
   "info": {
-    "_postman_id": "1afdd4f7-e54e-4fd8-bafe-ac0c70b471e0",
+    "_postman_id": "c4f7657c-4d8c-4c56-867c-817a689cbe36",
     "name": "API-Automation",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "57098183",
-    "_collection_link": "https://go.postman.co/collection/57098183-1afdd4f7-e54e-4fd8-bafe-ac0c70b471e0?source=collection_link"
+    "_exporter_id": "16056352",
+    "_collection_link": "https://go.postman.co/collection/16056352-c4f7657c-4d8c-4c56-867c-817a689cbe36?source=collection_link"
   },
   "item": [
     {
-      "name": "Positive Test cases",
+      "name": "Authentication",
       "item": [
         {
-          "name": "Authentication",
-          "item": [
+          "name": "get-access-token",
+          "event": [
             {
-              "name": "get-access-token",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "const jsonResponse = pm.response.json();",
-                      "const tokenSchema = pm.collectionVariables.get(\"tokenSchema\");",
-                      "const tokenSchemaJson = tokenSchema ? JSON.parse(tokenSchema) : null;",
-                      "",
-                      "const accessToken = jsonResponse.access_token || \"\";",
-                      "const expires_in = jsonResponse.expires_in || \"\";",
-                      "const token_type = jsonResponse.token_type || \"\";",
-                      "const scope = jsonResponse.scope || \"public private\";",
-                      "",
-                      "pm.test(\"Access token is available\", function () {",
-                      "    pm.expect(accessToken, \"access_token\").to.be.a(\"string\").and.not.empty;",
-                      "    pm.environment.set(\"accessToken\",accessToken)",
-                      "});",
-                      "",
-                      "pm.test(\"Validate the access code for success response\", function() {",
-                      "    pm.response.to.have.status(200);",
-                      "})",
-                      "",
-                      "pm.test(\"Validate the response schema\", function () {",
-                      "    pm.response.to.have.jsonSchema(tokenSchemaJson);",
-                      "});",
-                      "",
-                      "pm.test(\"Validate availability of properties\", function() {",
-                      "    pm.expect(jsonResponse).to.have.property(\"access_token\");",
-                      "    pm.expect(jsonResponse).to.have.property(\"expires_in\");",
-                      "    pm.expect(jsonResponse).to.have.property(\"token_type\");",
-                      "    pm.expect(jsonResponse).to.have.property(\"scope\");",
-                      "})",
-                      "",
-                      "pm.test(\"Validate values in response body\", function() {",
-                      "   pm.expect(jsonResponse.expires_in).to.be.eql(3600);",
-                      "   pm.expect(jsonResponse.token_type).to.be.eql(\"Bearer\");",
-                      "   pm.expect(jsonResponse.scope).to.be.eql(\"public private\");",
-                      "})",
-                      "",
-                      "pm.test(\"Content-Type is application/json\", function () {",
-                      "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
-                      "});",
-                      "",
-                      ""
-                    ],
-                    "type": "text/javascript",
-                    "packages": {},
-                    "requests": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"client_id\": \"APIAutomation\",\n  \"client_secret\": \"af44ad79c1f14abe4327fa6b1cfdb21d\",\n  \"grant_type\": \"client_credentials\",\n  \"username\": \"_ohrmSysAdmin_\",\n  \"password\": \"admin@OHRM123\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/oauth/issueToken",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "oauth",
-                    "issueToken"
-                  ]
-                }
-              },
-              "response": []
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const jsonResponse = pm.response.json();",
+                  "const tokenSchema = pm.collectionVariables.get(\"tokenSchema\");",
+                  "const tokenSchemaJson = tokenSchema ? JSON.parse(tokenSchema) : null;",
+                  "",
+                  "const accessToken = jsonResponse.access_token || \"\";",
+                  "const expires_in = jsonResponse.expires_in || \"\";",
+                  "const token_type = jsonResponse.token_type || \"\";",
+                  "const scope = jsonResponse.scope || \"public private\";",
+                  "",
+                  "pm.test(\"Access token is available\", function () {",
+                  "    pm.expect(accessToken, \"access_token\").to.be.a(\"string\").and.not.empty;",
+                  "    pm.environment.set(\"accessToken\",accessToken)",
+                  "});",
+                  "",
+                  "pm.test(\"Validate the access code for success response\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "})",
+                  "",
+                  "pm.test(\"Validate the response schema\", function () {",
+                  "    pm.response.to.have.jsonSchema(tokenSchemaJson);",
+                  "});",
+                  "",
+                  "pm.test(\"Validate availability of properties\", function() {",
+                  "    pm.expect(jsonResponse).to.have.property(\"access_token\");",
+                  "    pm.expect(jsonResponse).to.have.property(\"expires_in\");",
+                  "    pm.expect(jsonResponse).to.have.property(\"token_type\");",
+                  "    pm.expect(jsonResponse).to.have.property(\"scope\");",
+                  "})",
+                  "",
+                  "pm.test(\"Validate values in response body\", function() {",
+                  "   pm.expect(jsonResponse.expires_in).to.be.eql(3600);",
+                  "   pm.expect(jsonResponse.token_type).to.be.eql(\"Bearer\");",
+                  "   pm.expect(jsonResponse.scope).to.be.eql(\"public private\");",
+                  "})",
+                  "",
+                  "pm.test(\"Content-Type is application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
             }
-          ]
-        },
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": \"APIAutomation\",\n  \"client_secret\": \"af44ad79c1f14abe4327fa6b1cfdb21d\",\n  \"grant_type\": \"client_credentials\",\n  \"username\": \"_ohrmSysAdmin_\",\n  \"password\": \"admin@OHRM123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/oauth/issueToken",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "oauth",
+                "issueToken"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Positive Test cases",
+      "item": [
         {
           "name": "PIM",
           "item": [
@@ -1131,6 +1131,116 @@
                   }
                 }
               ]
+            },
+            {
+              "name": "Terminate-Employee",
+              "item": [
+                {
+                  "name": "create-employee-for-terminate",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "let createdEmployeeList = [];\n\ntry {\n    const storedEmployees =\n        pm.collectionVariables.get(\"createdEmployees\");\n\n    if (storedEmployees) {\n        createdEmployeeList = JSON.parse(storedEmployees);\n    }\n} catch (error) {\n    console.log(\"Invalid createdEmployees value. Resetting to []\");\n    createdEmployeeList = [];\n}\n\nlet responseData = {};\n    try {\n        responseData = pm.response.json();\n    } catch (e) {\n        responseData = {};\n    }\n\nfunction setcreatedEmployeesToNull() {\n     pm.collectionVariables.set(\"createdEmployees\", []);\n}\n\npm.test(\"Successful response status\", function () {\n    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);\n});\n\npm.test(\"Store employee number\", function () {\n\n    if (responseData.data && responseData.data.empNumber) {\n\n        setcreatedEmployeesToNull();\n\n        createdEmployeeList.push({\n            empID: responseData.data.employeeId,\n            empNumber: responseData.data.empNumber\n        });\n\n        pm.collectionVariables.set(\n            \"createdEmployees\",\n            JSON.stringify(createdEmployeeList)\n        );\n\n        console.log(\"Created list before passing to test :\", pm.collectionVariables.get(\"createdEmployees\"));\n\n        pm.expect(responseData.data).to.have.property(\"empNumber\");\n\n    } else {\n\n        pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);\n\n    }\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{accessToken}}"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseURL}}/api/employees",
+                      "host": [
+                        "{{baseURL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "employees"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "terminate-employee-by-empNumber",
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const createdEmployees = JSON.parse(\n    pm.collectionVariables.get(\"createdEmployees\") || \"[]\"\n);\n\nconsole.log(\"created employees :\", createdEmployees);\n\nconst employeeIDforTestEMp = pm.iterationData.get(\"employeeId\");\n\nconst selectedEmployee = createdEmployees.find(\n    emp => String(emp.empID) === String(employeeIDforTestEMp)\n);\n\npm.test(\"Employee found in created employees\", function () {\n    pm.expect(selectedEmployee).to.not.be.undefined;\n});\n\nif (selectedEmployee) {\n    pm.collectionVariables.set(\"emp_number\", selectedEmployee.empNumber);\n    console.log(\"emp_number:\", selectedEmployee.empNumber);\n}"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "\nconst responseJson = pm.response.json();\nconsole.log(responseJson);\n\npm.test (\"validate the response for a terminated employee\", function (){\n    pm.expect(pm.response.code).be.oneOf([200,201]);\n})"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "authorization",
+                        "value": "Bearer {{accessToken}}"
+                      },
+                      {
+                        "key": "content-type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"date\" : \"{{terminationDate}}\",\n    \"flaged\" : {{flagvalue}},\n    \"note\" : \"{{terminationNote}}\",\n    \"reason\" : \"{{terminationReason}}\",\n    \"time\" : \"{{time}}\",\n    \"timezone\" : \"{{timezone}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseURL}}/api/employees/{{emp_number}}/termination-record",
+                      "host": [
+                        "{{baseURL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "employees",
+                        "{{emp_number}}",
+                        "termination-record"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
             }
           ]
         }
@@ -1172,11 +1282,15 @@
     },
     {
       "key": "createdEmployees",
-      "value": "[{\"empID\":\"asc001\",\"empNumber\":\"19541\"},{\"empID\":\"ca001\",\"empNumber\":\"19542\"},{\"empID\":\"dsf001\",\"empNumber\":\"19543\"}]"
+      "value": ""
     },
     {
       "key": "tokenSchema",
       "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"access_token\": {\n      \"type\": \"string\"\n    },\n    \"expires_in\": {\n      \"type\": \"number\"\n    },\n    \"token_type\": {\n      \"type\": \"string\"\n    },\n    \"scope\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"access_token\",\n    \"expires_in\",\n    \"token_type\",\n    \"scope\"\n  ]\n}"
+    },
+    {
+      "key": "emp_number",
+      "value": ""
     }
   ]
 }

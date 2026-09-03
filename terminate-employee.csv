@@ -1,0 +1,2 @@
+"firstName","middleName","lastName","employeeId","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"Bret","Lee","Lewis","Bret0013",2,"2024-06-20","false","false",2026-09-01,0,"employee terminated thorugh API",1,23:55,"Asia/Kolkata"
