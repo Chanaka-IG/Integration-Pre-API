@@ -1,0 +1,4 @@
+"firstName","middleName","lastName","employeeId","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","terminationDate","flagValue","terminationNote","terminationReason","time","timezone","responseCode","responseMessage"
+"Bret","Lee","Lewis","Bret0026",2,"2024-06-20","false","false",2026-09-01,1,"employee terminated thorugh API",1,"23:55","Asia/Kolkata","“200”,”201”","Successfully Saved"
+"Bret","Lee","Lewis","Bret0027",2,"2024-06-20","false","false",2026-09-01,1,"employee terminated thorugh API",1,"23:55","Asia/Kolkata","“200”,”201”","Successfully Saved"
+"Bret","Lee","Lewis","Bret0028",2,"2024-06-20","false","false",2026-09-01,1,"employee terminated thorugh API",1,"23:55","Asia/Kolkata","“200”,”201”","Successfully Saved"
