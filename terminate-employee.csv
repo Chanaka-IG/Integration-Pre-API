@@ -1,2 +1,0 @@
-"firstName","middleName","lastName","employeeId","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","terminationDate","flagValue","terminationNote","terminationReason","time","timezone","responseCode","responseMessage"
-"Bret","Lee","Lewis","Bret0025",2,"2024-06-20","false","false",2026-09-01,1,"employee terminated thorugh API",1,"23:55","Asia/Kolkata","“200”,”201”","Successfully Saved"
