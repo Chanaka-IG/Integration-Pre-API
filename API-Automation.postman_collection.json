@@ -28,7 +28,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"client_id\": \"APIAutomation\",\n  \"client_secret\": \"9fd4a3656900c0d062f45dddfa1caaff\",\n  \"grant_type\": \"client_credentials\",\n  \"username\": \"_ohrmSysAdmin_\",\n  \"password\": \"admin@OHRM123\"\n}",
+              "raw": "{\n  \"client_id\": \"{{clientID}}\",\n  \"client_secret\": \"{{clientSecret}}\",\n  \"grant_type\": \"{{grantType}}\",\n  \"username\": \"{{userName}}\",\n  \"password\": \"{{password}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -611,69 +611,10 @@
                         {
                           "listen": "test",
                           "script": {
-                            "exec": [
-                              "let createdEmployeeList = [];",
-                              "",
-                              "try {",
-                              "    const storedEmployees =",
-                              "        pm.collectionVariables.get(\"createdEmployees\");",
-                              "",
-                              "    if (storedEmployees) {",
-                              "        createdEmployeeList = JSON.parse(storedEmployees);",
-                              "    }",
-                              "} catch (error) {",
-                              "    console.log(\"Invalid createdEmployees value. Resetting to []\");",
-                              "    createdEmployeeList = [];",
-                              "}",
-                              "",
-                              "let responseData = {};",
-                              "try {",
-                              "    responseData = pm.response.json();",
-                              "} catch (e) {",
-                              "    responseData = {};",
-                              "}",
-                              "",
-                              "pm.test(\"Successful response status\", function () {",
-                              "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);",
-                              "});",
-                              "",
-                              "pm.test(\"Store employee number\", function () {",
-                              "",
-                              "    if (responseData.data && responseData.data.empNumber) {",
-                              "",
-                              "        createdEmployeeList.push({",
-                              "            empID: responseData.data.employeeId,",
-                              "            empNumber: responseData.data.empNumber",
-                              "        });",
-                              "",
-                              "        pm.collectionVariables.set(",
-                              "            \"createdEmployees\",",
-                              "            JSON.stringify(createdEmployeeList)",
-                              "        );",
-                              "",
-                              "        pm.expect(responseData.data).to.have.property(\"empNumber\");",
-                              "",
-                              "    } else {",
-                              "",
-                              "        pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);",
-                              "",
-                              "    }",
-                              "});"
-                            ],
                             "type": "text/javascript",
-                            "packages": {},
-                            "requests": {}
-                          }
-                        },
-                        {
-                          "listen": "prerequest",
-                          "script": {
                             "exec": [
-                              ""
-                            ],
-                            "type": "text/javascript",
-                            "packages": {},
-                            "requests": {}
+                              "let createdEmployeeList = [];\n\ntry {\n    const storedEmployees =\n        pm.collectionVariables.get(\"createdEmployees\");\n\n    if (storedEmployees) {\n        createdEmployeeList = JSON.parse(storedEmployees);\n    }\n} catch (error) {\n    console.log(\"Invalid createdEmployees value. Resetting to []\");\n    createdEmployeeList = [];\n}\n\nlet responseData = {};\ntry {\n    responseData = pm.response.json();\n} catch (e) {\n    responseData = {};\n}\n\npm.test(\"Store employee number\", function () {\n\n    if (responseData.data && responseData.data.empNumber) {\n\n        createdEmployeeList.push({\n            empID: responseData.data.employeeId,\n            empNumber: responseData.data.empNumber\n        });\n\n        pm.collectionVariables.set(\n            \"createdEmployees\",\n            JSON.stringify(createdEmployeeList)\n        );\n\n        pm.expect(responseData.data).to.have.property(\"empNumber\");\n\n    } else {\n        pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);\n    }\n});"
+                            ]
                           }
                         }
                       ],
@@ -682,13 +623,11 @@
                         "header": [
                           {
                             "key": "Content-Type",
-                            "value": "application/json",
-                            "type": "text"
+                            "value": "application/json"
                           },
                           {
                             "key": "Authorization",
-                            "value": "Bearer {{accessToken}}",
-                            "type": "text"
+                            "value": "Bearer {{accessToken}}"
                           }
                         ],
                         "body": {
@@ -719,111 +658,19 @@
                         {
                           "listen": "test",
                           "script": {
-                            "exec": [
-                              "const expectedEmployeeProperties = [",
-                              "    \"empNumber\",",
-                              "    \"employeeId\",",
-                              "    \"firstName\",",
-                              "    \"middleName\",",
-                              "    \"lastName\",",
-                              "    \"locations\"",
-                              "];",
-                              "",
-                              "const expectedLocationProperties = [",
-                              "    \"id\",",
-                              "    \"name\",",
-                              "    \"countryCode\",",
-                              "    \"time_zone\",",
-                              "    \"province\",",
-                              "    \"city\",",
-                              "    \"address\",",
-                              "    \"zipCode\",",
-                              "    \"phone\",",
-                              "    \"fax\",",
-                              "    \"notes\",",
-                              "    \"country\",",
-                              "    \"timeZone\",",
-                              "    \"eeo_applicable\",",
-                              "];",
-                              "",
-                              "const getEmployeeSchema = pm.collectionVariables.get(\"getEmployeeSchema\");",
-                              "const getEmployeeSchemaJson = getEmployeeSchema ? JSON.parse(getEmployeeSchema) : null;",
-                              "",
-                              "pm.test(\"Status code is 200 or 201\", function () {",
-                              "    pm.expect(pm.response.code).to.oneOf([200, 201]);",
-                              "});",
-                              "",
-                              "if (pm.response.code === 200 || pm.response.code === 201) {",
-                              "    const response = pm.response.json();",
-                              "",
-                              "    pm.test(\"Validate the schema for success get employee\", function () {",
-                              "        pm.response.to.have.jsonSchema(getEmployeeSchemaJson);",
-                              "    });",
-                              "",
-                              "    pm.test(\"Validate the employee properties are exist in the response\", function () {",
-                              "        expectedEmployeeProperties.forEach(function (property) {",
-                              "            pm.expect(response.data).to.have.property(property);",
-                              "        });",
-                              "    });",
-                              "",
-                              "    pm.test(\"Validate the location properties are exist in the response\", function () {",
-                              "        expectedLocationProperties.forEach(function (property) {",
-                              "            pm.expect(response.data.locations).to.have.property(property);",
-                              "        });",
-                              "    });",
-                              "",
-                              "    pm.test(\"Validate the response data against request data\", function () {",
-                              "        pm.expect(pm.iterationData.get(\"employeeId\")).to.eql(response.data.employeeId);",
-                              "        pm.expect(pm.iterationData.get(\"firstName\")).to.eql(response.data.firstName);",
-                              "        pm.expect(pm.iterationData.get(\"middleName\")).to.eql(response.data.middleName);",
-                              "        pm.expect(pm.iterationData.get(\"lastName\")).to.eql(response.data.lastName);",
-                              "        pm.expect(String(pm.iterationData.get(\"locationId\"))).to.equal(String(response.data.locationId))",
-                              "        pm.expect(pm.iterationData.get(\"joinedDate\")).to.eql(response.data.joined_date);",
-                              "    });",
-                              "",
-                              "    pm.test(\"Set addedEmployee array to empty\", function () {",
-                              "        pm.collectionVariables.set(\"createdEmployees\", []);",
-                              "    });",
-                              "} else {",
-                              "    pm.test(\"Set addedEmployee array to empty\", function () {",
-                              "        pm.collectionVariables.set(\"createdEmployees\", []);",
-                              "    });",
-                              "}"
-                            ],
                             "type": "text/javascript",
-                            "packages": {},
-                            "requests": {}
+                            "exec": [
+                              "const expectedEmployeeProperties = [\n    \"empNumber\",\n    \"employeeId\",\n    \"firstName\",\n    \"middleName\",\n    \"lastName\",\n    \"locations\"\n];\n\nconst expectedLocationProperties = [\n    \"id\",\n    \"name\",\n    \"countryCode\",\n    \"time_zone\",\n    \"province\",\n    \"city\",\n    \"address\",\n    \"zipCode\",\n    \"phone\",\n    \"fax\",\n    \"notes\",\n    \"country\",\n    \"timeZone\",\n    \"eeo_applicable\",\n];\n\nconst getEmployeeSchema = pm.collectionVariables.get(\"getEmployeeSchema\");\nconst getEmployeeSchemaJson = getEmployeeSchema ? JSON.parse(getEmployeeSchema) : null;\n\npm.test(\"Status code is 200 or 201\", function () {\n    pm.expect(pm.response.code).to.oneOf([200, 201]);\n});\n\nif (pm.response.code === 200 || pm.response.code === 201) {\n    const response = pm.response.json();\n\n    pm.test(\"Validate the schema for success get employee\", function () {\n        pm.response.to.have.jsonSchema(getEmployeeSchemaJson);\n    });\n\n    pm.test(\"Validate the employee properties are exist in the response\", function () {\n        expectedEmployeeProperties.forEach(function (property) {\n            pm.expect(response.data).to.have.property(property);\n        });\n    });\n\n    pm.test(\"Validate the location properties are exist in the response\", function () {\n        expectedLocationProperties.forEach(function (property) {\n            pm.expect(response.data.locations).to.have.property(property);\n        });\n    });\n\n    pm.test(\"Validate the response data against request data\", function () {\n        pm.expect(pm.iterationData.get(\"employeeId\")).to.eql(response.data.employeeId);\n        pm.expect(pm.iterationData.get(\"firstName\")).to.eql(response.data.firstName);\n        pm.expect(pm.iterationData.get(\"middleName\")).to.eql(response.data.middleName);\n        pm.expect(pm.iterationData.get(\"lastName\")).to.eql(response.data.lastName);\n        pm.expect(String(pm.iterationData.get(\"locationId\"))).to.equal(String(response.data.locationId));\n        pm.expect(pm.iterationData.get(\"joinedDate\")).to.eql(response.data.joined_date);\n    });\n}"
+                            ]
                           }
                         },
                         {
                           "listen": "prerequest",
                           "script": {
-                            "exec": [
-                              "const createdEmployees = JSON.parse(",
-                              "    pm.collectionVariables.get(\"createdEmployees\") || \"[]\"",
-                              ");",
-                              "",
-                              "console.log(\"created employees :\", createdEmployees);",
-                              "",
-                              "const employeeIDforTestEMp = pm.iterationData.get(\"employeeId\");",
-                              "",
-                              "const selectedEmployee = createdEmployees.find(",
-                              "    emp => String(emp.empID) === String(employeeIDforTestEMp)",
-                              ");",
-                              "",
-                              "pm.test(\"Employee found in created employees\", function () {",
-                              "    pm.expect(selectedEmployee).to.not.be.undefined;",
-                              "});",
-                              "",
-                              "if (selectedEmployee) {",
-                              "    pm.collectionVariables.set(\"emp_number\", selectedEmployee.empNumber);",
-                              "",
-                              "    console.log(\"emp_number:\", selectedEmployee.empNumber);",
-                              "}"
-                            ],
                             "type": "text/javascript",
-                            "packages": {},
-                            "requests": {}
+                            "exec": [
+                              "const createdEmployees = JSON.parse(\n    pm.collectionVariables.get(\"createdEmployees\") || \"[]\"\n);\n\nconsole.log(\"created employees :\", createdEmployees);\n\nconst employeeIDforTestEMp = pm.iterationData.get(\"employeeId\");\n\nconst selectedEmployee = createdEmployees.find(\n    emp => String(emp.empID) === String(employeeIDforTestEMp)\n);\n\npm.test(\"Employee found in created employees\", function () {\n    pm.expect(selectedEmployee).to.not.be.undefined;\n});\n\nif (selectedEmployee) {\n    pm.collectionVariables.set(\"emp_number\", selectedEmployee.empNumber);\n\n    console.log(\"emp_number:\", selectedEmployee.empNumber);\n}"
+                            ]
                           }
                         }
                       ],
@@ -832,8 +679,7 @@
                         "header": [
                           {
                             "key": "Authorization",
-                            "value": "Bearer {{accessToken}}",
-                            "type": "text"
+                            "value": "Bearer {{accessToken}}"
                           }
                         ],
                         "url": {
@@ -856,74 +702,15 @@
                   "name": "get-all-employees",
                   "item": [
                     {
-                      "name": "create-employee-for-get Copy",
+                      "name": "create-employee-for-get-all",
                       "event": [
                         {
                           "listen": "test",
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "let createdEmployeeList = [];",
-                              "",
-                              "try {",
-                              "    const storedEmployees =",
-                              "        pm.collectionVariables.get(\"createdEmployees\");",
-                              "",
-                              "    if (storedEmployees) {",
-                              "        createdEmployeeList = JSON.parse(storedEmployees);",
-                              "    }",
-                              "} catch (error) {",
-                              "    console.log(\"Invalid createdEmployees value. Resetting to []\");",
-                              "    createdEmployeeList = [];",
-                              "}",
-                              "",
-                              "let responseData = {};",
-                              "try {",
-                              "    responseData = pm.response.json();",
-                              "} catch (e) {",
-                              "    responseData = {};",
-                              "}",
-                              "",
-                              "pm.test(\"Successful response status\", function () {",
-                              "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);",
-                              "});",
-                              "",
-                              "pm.test(\"Store employee number\", function () {",
-                              "",
-                              "    pm.collectionVariables.set(\"createdEmployees\", JSON.stringify([]));",
-                              "",
-                              "    if (responseData.data && responseData.data.empNumber) {",
-                              "",
-                              "        createdEmployeeList.push({",
-                              "            empID: responseData.data.employeeId,",
-                              "            empNumber: responseData.data.empNumber",
-                              "        });",
-                              "",
-                              "        pm.collectionVariables.set(",
-                              "            \"createdEmployees\",",
-                              "            JSON.stringify(createdEmployeeList)",
-                              "        );",
-                              "",
-                              "        pm.expect(responseData.data).to.have.property(\"empNumber\");",
-                              "",
-                              "    } else {",
-                              "",
-                              "        pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);",
-                              "",
-                              "    }",
-                              "});"
+                              "let createdEmployeeList = [];\n\ntry {\n    const storedEmployees =\n        pm.collectionVariables.get(\"createdEmployees\");\n\n    if (storedEmployees) {\n        createdEmployeeList = JSON.parse(storedEmployees);\n    }\n} catch (error) {\n    console.log(\"Invalid createdEmployees value. Resetting to []\");\n    createdEmployeeList = [];\n}\n\nlet responseData = {};\ntry {\n    responseData = pm.response.json();\n} catch (e) {\n    responseData = {};\n}\n\npm.test(\"Store employee number\", function () {\n\n    pm.collectionVariables.set(\"createdEmployees\", JSON.stringify([]));\n\n    if (responseData.data && responseData.data.empNumber) {\n\n        createdEmployeeList.push({\n            empID: responseData.data.employeeId,\n            empNumber: responseData.data.empNumber\n        });\n\n        pm.collectionVariables.set(\n            \"createdEmployees\",\n            JSON.stringify(createdEmployeeList)\n        );\n\n        pm.expect(responseData.data).to.have.property(\"empNumber\");\n\n    } else {\n        pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);\n    }\n});"
                             ]
-                          }
-                        },
-                        {
-                          "listen": "prerequest",
-                          "script": {
-                            "exec": [
-                              ""
-                            ],
-                            "type": "text/javascript",
-                            "packages": {},
-                            "requests": {}
                           }
                         }
                       ],
@@ -932,13 +719,11 @@
                         "header": [
                           {
                             "key": "Content-Type",
-                            "value": "application/json",
-                            "type": "text"
+                            "value": "application/json"
                           },
                           {
                             "key": "Authorization",
-                            "value": "Bearer {{accessToken}}",
-                            "type": "text"
+                            "value": "Bearer {{accessToken}}"
                           }
                         ],
                         "body": {
@@ -1105,7 +890,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "let createdEmployeeList = [];\npm.collectionVariables.set(\"createdEmployees\", JSON.stringify([]));\n// Get existing employees from collection variable\ntry {\n    const storedEmployees = pm.collectionVariables.get(\"createdEmployees\");\n\n    if (storedEmployees) {\n        createdEmployeeList = JSON.parse(storedEmployees);\n\n        // Make sure it is actually an array\n        if (!Array.isArray(createdEmployeeList)) {\n            createdEmployeeList = [];\n        }\n    }\n} catch (error) {\n    console.log(\"Invalid createdEmployees value. Resetting to []\");\n    createdEmployeeList = [];\n}\n\n\n// Parse response\nlet responseData = {};\n\ntry {\n    responseData = pm.response.json();\n} catch (e) {\n    responseData = {};\n}\n\n\n// Tests\npm.test(\"Successful response status\", function () {\n    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);\n});\n\n\npm.test(\"Store employee number\", function () {\n\n    if (responseData.data && responseData.data.empNumber) {\n\n        // Add new employee to existing array\n        createdEmployeeList.push({\n            empID: responseData.data.employeeId,\n            empNumber: responseData.data.empNumber\n        });\n\n        // Store updated array\n        pm.collectionVariables.set(\n            \"createdEmployees\",\n            JSON.stringify(createdEmployeeList)\n        );\n\n        console.log(\n            \"Created employees:\",\n            pm.collectionVariables.get(\"createdEmployees\")\n        );\n\n        pm.expect(responseData.data).to.have.property(\"empNumber\");\n\n    } else {\n\n        pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);\n\n    }\n});"
+                              "let createdEmployeeList = [];\n\n\npm.collectionVariables.set(\"createdEmployees\", JSON.stringify([]));\n\nfunction readList(key) {\n    try {\n        const v = JSON.parse(pm.collectionVariables.get(key) || \"[]\");\n        return Array.isArray(v) ? v : [];\n    } catch { return []; }\n}\n\n// Get existing employees from collection variable\ntry {\n    const storedEmployees = readList(\"createdEmployees\");\n\n    if (storedEmployees) {\n        createdEmployeeList = JSON.parse(storedEmployees);\n\n        // Make sure it is actually an array\n        if (!Array.isArray(createdEmployeeList)) {\n            createdEmployeeList = [];\n        }\n    }\n} catch (error) {\n    console.log(\"Invalid createdEmployees value. Resetting to []\");\n    createdEmployeeList = [];\n}\n\n\n// Parse response\nlet responseData = {};\n\ntry {\n    responseData = pm.response.json();\n} catch (e) {\n    responseData = {};\n}\n\n\n// Tests\npm.test(\"Successful response status\", function () {\n    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);\n});\n\n\npm.test(\"Store employee number\", function () {\n\n    if (responseData.data && responseData.data.empNumber) {\n\n        // Add new employee to existing array\n        createdEmployeeList.push({\n            empID: responseData.data.employeeId,\n            empNumber: responseData.data.empNumber\n        });\n\n        // Store updated array\n        pm.collectionVariables.set(\n            \"createdEmployees\",\n            JSON.stringify(createdEmployeeList)\n        );\n\n        console.log(\n            \"Created employees:\",\n            pm.collectionVariables.get(\"createdEmployees\")\n        );\n\n        pm.expect(responseData.data).to.have.property(\"empNumber\");\n\n    } else {\n        pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);\n    }\n});"
                             ]
                           }
                         }
@@ -1161,7 +946,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const expectedEmployeeProperties = [\n    \"date\",\n    \"flaged\",\n    \"note\",\n    \"reason\",\n    \"time\",\n    \"timezone\"\n];\n\nconst terminateEmpSchema = pm.collectionVariables.get(\"terminateEmployeeSchema\");\nconst terminateEmpSchemaJson = terminateEmpSchema ? JSON.parse(terminateEmpSchema) : null;\nconst responseJson = pm.response.json();\nconst responseData = responseJson.data; \nconst successMsg = responseJson.messages;\nconsole.log(\"Success Message : \" ,successMsg.success);\n\npm.test (\"validate the response for a terminated employee\", function (){\n    pm.expect(pm.response.code).be.oneOf([200,201]);\n})\n\npm.test (\"validate the success response message\", function (){\n    pm.expect(successMsg.success).to.eql(\"Successfully Saved\");\n})\n\npm.test(\"validate the json schema for the response\", function () {\n    pm.response.to.have.jsonSchema(terminateEmpSchemaJson);\n})\n\npm.test(\"Validate the response body against the request body\", function () { \n    pm.expect(responseData.date).to.eql(pm.iterationData.get(\"terminationDate\"));\n    pm.expect(responseData.note).to.eql(pm.iterationData.get(\"terminationNote\"));\n    pm.expect(Number(responseData.flaged)).to.eql(pm.iterationData.get(\"flagValue\"));\n    pm.expect(responseData.termination_time).to.include(pm.iterationData.get(\"time\"));\n    pm.expect(responseData.terminationTimeZoneName).to.include(pm.iterationData.get(\"timezone\"));\n})"
+                              "const expectedEmployeeProperties = [\n    \"date\",\n    \"flaged\",\n    \"note\",\n    \"reason\",\n    \"time\",\n    \"timezone\"\n];\n\nconst terminateEmpSchema = pm.collectionVariables.get(\"terminateEmployeeSchema\");\nconst terminateEmpSchemaJson = terminateEmpSchema ? JSON.parse(terminateEmpSchema) : null;\nconst responseJson = pm.response.json();\nconst responseData = responseJson.data; \nconst successMsg = responseJson.messages;\nconsole.log(\"Success Message : \" ,successMsg.success);\n\npm.test (\"validate the terminated employee has the termination status\", function (){\n    pm.expect(pm.response.termination_id).not.to.be.null;\n})\n\npm.test (\"validate the success response message\", function (){\n    pm.expect(successMsg.success).to.eql(\"Successfully Saved\");\n})\n\npm.test(\"validate the json schema for the response\", function () {\n    pm.response.to.have.jsonSchema(terminateEmpSchemaJson);\n})\n\npm.test(\"Validate the response body against the request body\", function () { \n    pm.expect(responseData.date).to.eql(pm.iterationData.get(\"terminationDate\"));\n    pm.expect(responseData.note).to.eql(pm.iterationData.get(\"terminationNote\"));\n    pm.expect(Number(responseData.flaged)).to.eql(pm.iterationData.get(\"flagValue\"));\n    pm.expect(responseData.termination_time).to.include(pm.iterationData.get(\"time\"));\n    pm.expect(responseData.terminationTimeZoneName).to.include(pm.iterationData.get(\"timezone\"));\n})"
                             ]
                           }
                         }
@@ -1205,7 +990,7 @@
                   ]
                 },
                 {
-                  "name": "With-different-termination-dates",
+                  "name": "With-different-termination-dates-and-times",
                   "item": [
                     {
                       "name": "create-employee-for-today",
@@ -1383,7 +1168,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const date = new Date();\ndate.setMonth(date.getMonth() - 1);\nconst oneMonthAgo = date.toISOString().split('T')[0];\nlet selectedEmployee;\n\nconst employeeListForTermination = JSON.parse(\n    pm.collectionVariables.get(\"terminateEmployeesList\") || \"[]\"\n);\n\nif (employeeListForTermination.length > 0) {\n    selectedEmployee = employeeListForTermination[0];\n    console.log(\"Selected employee for the past date termination : \", selectedEmployee.firstName)\n}\n\nif (selectedEmployee){\n    pm.environment.set(\"emp_number\", selectedEmployee.empNumber);\n    pm.variables.set(\"terminationDate\", oneMonthAgo);\n    pm.environment.set(\"flagValue\", 0);\n    pm.environment.set(\"terminationNote\", \"Terminate for past date\");\n    pm.environment.set(\"terminationReason\", 1);\n    pm.environment.set(\"time\", \"23:55\");\n    pm.environment.set(\"timezone\", \"Asia/Kolkata\");\n} else {\n    throw new Error(\"No employee selected for termination\");\n}"
+                              "const date = new Date();\nconst todayDate = date.toISOString().split('T')[0];\nlet selectedEmployee;\n\nconst employeeListForTermination = JSON.parse(\n    pm.collectionVariables.get(\"terminateEmployeesList\") || \"[]\"\n);\n\nif (employeeListForTermination.length > 0) {\n    selectedEmployee = employeeListForTermination[0];\n    console.log(\"Selected employee for the past date termination : \", selectedEmployee.firstName)\n}\n\nif (selectedEmployee){\n    pm.collectionVariables.set(\"emp_number\", selectedEmployee.empNumber);\n    pm.variables.set(\"terminationDate\", todayDate);\n    pm.variables.set(\"flagValue\", 0);\n    pm.variables.set(\"terminationNote\", \"Terminate for past date\");\n    pm.variables.set(\"terminationReason\", 1);\n    pm.variables.set(\"time\", \"23:55\");\n    pm.variables.set(\"timezone\", \"Asia/Kolkata\");\n} else {\n    throw new Error(\"No employee selected for termination\");\n}"
                             ]
                           }
                         },
@@ -1392,7 +1177,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const date = new Date();\ndate.setMonth(date.getMonth() - 1);\n\nconst oneMonthAgo = date.toISOString().split('T')[0];\n\nconst storedEmployees =\n    pm.collectionVariables.get(\"terminateEmployeesList\");\n\nconsole.log(\"RAW:\", storedEmployees);\n\nconst employeeListForTermination =\n    JSON.parse(storedEmployees || \"[]\");\n\nconsole.log(\"Employee list:\", employeeListForTermination);\n\n// Past employee = index 2\nconst selectedEmployee = employeeListForTermination[0];\n\nif (!selectedEmployee) {\n    throw new Error(\"Past termination employee not found\");\n}\n\nconsole.log(\n    \"Selected employee:\",\n    selectedEmployee.firstName,\n    selectedEmployee.empNumber\n);\n\npm.environment.set(\"emp_number\", selectedEmployee.empNumber);\npm.variables.set(\"terminationDate\", oneMonthAgo);\npm.environment.set(\"flagValue\", 0);\npm.environment.set(\"terminationNote\", \"Terminate for past date\");\npm.environment.set(\"terminationReason\", 1);\npm.environment.set(\"time\", \"23:55\");\npm.environment.set(\"timezone\", \"Asia/Kolkata\");\n\npm.test(\"Response time should be less than 10000ms\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(10000);\n});\n\npm.test(\"Response should be JSON\", function () {\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\n});\n\npm.test(\"Validate the success response\", function () {\n    pm.expect(pm.response.code).to.be.oneOf([200, 201]);\n});"
+                              "\nconst storedEmployees =\n    pm.collectionVariables.get(\"terminateEmployeesList\");\n\nconsole.log(\"RAW:\", storedEmployees);\n\nconst employeeListForTermination =\n    JSON.parse(storedEmployees || \"[]\");\n\nconsole.log(\"Employee list:\", employeeListForTermination);\n\n// Past employee = index 2\nconst selectedEmployee = employeeListForTermination[0];\n\nif (!selectedEmployee) {\n    throw new Error(\"Past termination employee not found\");\n}\n\nconsole.log(\n    \"Selected employee:\",\n    selectedEmployee.firstName,\n    selectedEmployee.empNumber\n);\n\npm.test (\"validate the terminated employee has the termination status\", function (){\n    pm.expect(pm.response.termination_id).not.to.be.null;\n})\n\npm.test(\"Response time should be less than 10000ms\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(10000);\n});\n\npm.test(\"Response should be JSON\", function () {\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\n});\n\npm.test(\"Validate the success response\", function () {\n    pm.expect(pm.response.code).to.be.oneOf([200, 201]);\n});"
                             ]
                           }
                         }
@@ -1441,7 +1226,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const date = new Date();\ndate.setMonth(date.getMonth() - 1);\nconst oneMonthAgo = date.toISOString().split('T')[0];\nlet selectedEmployee;\n\nconst employeeListForTermination = JSON.parse(\n    pm.collectionVariables.get(\"terminateEmployeesList\") || \"[]\"\n);\n\nif (employeeListForTermination.length > 0) {\n    selectedEmployee = employeeListForTermination[2];\n    console.log(\"Selected employee for the past date termination : \", selectedEmployee.firstName)\n}\n\nif (selectedEmployee){\n    pm.environment.set(\"emp_number\", selectedEmployee.empNumber);\n    pm.variables.set(\"terminationDate\", oneMonthAgo);\n    pm.environment.set(\"flagValue\", 0);\n    pm.environment.set(\"terminationNote\", \"Terminate for past date\");\n    pm.environment.set(\"terminationReason\", 1);\n    pm.environment.set(\"time\", \"23:55\");\n    pm.environment.set(\"timezone\", \"Asia/Kolkata\");\n} else {\n    throw new Error(\"No employee selected for termination\");\n}"
+                              "const date = new Date();\ndate.setMonth(date.getMonth() - 1);\nconst oneMonthAgo = date.toISOString().split('T')[0];\nlet selectedEmployee;\n\nconst employeeListForTermination = JSON.parse(\n    pm.collectionVariables.get(\"terminateEmployeesList\") || \"[]\"\n);\n\nif (employeeListForTermination.length > 0) {\n    selectedEmployee = employeeListForTermination[2];\n    console.log(\"Selected employee for the past date termination : \", selectedEmployee.firstName)\n}\n\nif (selectedEmployee){\n    pm.collectionVariables.set(\"emp_number\", selectedEmployee.empNumber);\n    pm.variables.set(\"terminationDate\", oneMonthAgo);\n    pm.variables.set(\"flagValue\", 0);\n    pm.variables.set(\"terminationNote\", \"Terminate for past date\");\n    pm.variables.set(\"terminationReason\", 1);\n    pm.variables.set(\"time\", \"23:55\");\n    pm.variables.set(\"timezone\", \"Asia/Kolkata\");\n} else {\n    throw new Error(\"No employee selected for termination\");\n}"
                             ]
                           }
                         },
@@ -1450,7 +1235,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "let selectedEmployee;\nconst employeeListForTermination = JSON.parse(pm.collectionVariables.get(\"terminateEmployeesList\") || \"[]\");\nconsole.log(employeeListForTermination)\n;\nif (employeeListForTermination.length > 0) {\n    selectedEmployee = employeeListForTermination[2];\n}\nconst dataProperties = [\n        \"id\",\n        \"empNumber\",\n        \"reasonId\",\n        \"date\",\n        \"termination_time\",\n        \"terminationTimeZoneName\",\n        \"termination_performed_user_id\",\n        \"termination_job_record_history_id\",\n        \"reactivationDate\",\n        \"reactivation_time\",\n        \"reactivationTimeZoneName\",\n        \"reactivation_performed_user_id\",\n        \"reactivation_job_record_history_id\",\n        \"reactivated\",\n        \"update_joined_date\",\n        \"reactivation_failed\",\n        \"note\",\n        \"flaged\",\n        \"terminateinfuture\"\n];\n\nconst terminateEmpSchema = pm.collectionVariables.get(\"terminateEmployeeSchema\");\nconst terminateEmpSchemaJson = terminateEmpSchema ? JSON.parse(terminateEmpSchema) : null;\nconst responseJson = pm.response.json();\nconst responseData = responseJson.data; \nconst successMsg = responseJson.messages;\nconsole.log(\"Success Message : \" ,successMsg.success);\n\npm.test (\"validate the success response message\", function (){\n    pm.expect(successMsg.success).to.eql(\"Successfully Saved\");\n})\n\npm.test(\"validate the json schema for the response\", function () {\n    pm.response.to.have.jsonSchema(terminateEmpSchemaJson);\n})\n\npm.test(\"Validate the response properties\", function () {\n    pm.expect(responseData).to.not.be.undefined;\n    dataProperties.forEach(function (properties) {\n        pm.expect(responseData).to.have.property(properties);\n    });\n});\n\npm.test(\"Validate the response against the expected values\", function () {\n    pm.expect(responseData.empNumber).to.eql(selectedEmployee.empNumber);\n    pm.expect(Number(responseData.reasonId)).to.eql(pm.variables.get(\"terminationReason\"));\n    pm.expect(responseData.date).to.eql(pm.variables.get(\"terminationDate\"));\n    pm.expect(responseData.termination_time).to.include(pm.variables.get(\"time\"))\n});"
+                              "let selectedEmployee;\nconst employeeListForTermination = JSON.parse(pm.collectionVariables.get(\"terminateEmployeesList\") || \"[]\");\n;\nif (employeeListForTermination.length > 0) {\n    selectedEmployee = employeeListForTermination[2];\n}\nconst dataProperties = [\n        \"id\",\n        \"empNumber\",\n        \"reasonId\",\n        \"date\",\n        \"termination_time\",\n        \"terminationTimeZoneName\",\n        \"termination_performed_user_id\",\n        \"termination_job_record_history_id\",\n        \"reactivationDate\",\n        \"reactivation_time\",\n        \"reactivationTimeZoneName\",\n        \"reactivation_performed_user_id\",\n        \"reactivation_job_record_history_id\",\n        \"reactivated\",\n        \"update_joined_date\",\n        \"reactivation_failed\",\n        \"note\",\n        \"flaged\",\n        \"terminateinfuture\"\n];\n\nconst terminateEmpSchema = pm.collectionVariables.get(\"terminateEmployeeSchema\");\nconst terminateEmpSchemaJson = terminateEmpSchema ? JSON.parse(terminateEmpSchema) : null;\nconst responseJson = pm.response.json();\nconst responseData = responseJson.data; \nconst successMsg = responseJson.messages;\nconsole.log(\"Success Message : \" ,successMsg.success);\n\npm.test (\"validate the terminated employee has the termination status\", function (){\n    pm.expect(pm.response.termination_id).not.to.be.null;\n})\n\npm.test (\"validate the success response message\", function (){\n    pm.expect(successMsg.success).to.eql(\"Successfully Saved\");\n})\n\npm.test(\"validate the json schema for the response\", function () {\n    pm.response.to.have.jsonSchema(terminateEmpSchemaJson);\n})\n\npm.test(\"Validate the response properties\", function () {\n    pm.expect(responseData).to.not.be.undefined;\n    dataProperties.forEach(function (properties) {\n        pm.expect(responseData).to.have.property(properties);\n    });\n});\n\npm.test(\"Validate the response against the expected values\", function () {\n    pm.expect(responseData.empNumber).to.eql(selectedEmployee.empNumber);\n    pm.expect(Number(responseData.reasonId)).to.eql(pm.variables.get(\"terminationReason\"));\n    pm.expect(responseData.date).to.eql(pm.variables.get(\"terminationDate\"));\n    pm.expect(responseData.termination_time).to.include(pm.variables.get(\"time\"))\n});"
                             ]
                           }
                         }
@@ -1499,7 +1284,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const date = new Date();\ndate.setMonth(date.getMonth() - 1);\nconst oneMonthAgo = date.toISOString().split('T')[0];\nlet selectedEmployee;\n\nconst employeeListForTermination = JSON.parse(\n    pm.collectionVariables.get(\"terminateEmployeesList\") || \"[]\"\n);\n\nif (employeeListForTermination.length > 0) {\n    selectedEmployee = employeeListForTermination[1];\n    console.log(\"Selected employee for the past date termination : \", selectedEmployee.firstName)\n}\n\nif (selectedEmployee){\n    pm.environment.set(\"emp_number\", selectedEmployee.empNumber);\n    pm.variables.set(\"terminationDate\", oneMonthAgo);\n    pm.environment.set(\"flagValue\", 0);\n    pm.environment.set(\"terminationNote\", \"Terminate for past date\");\n    pm.environment.set(\"terminationReason\", 1);\n    pm.environment.set(\"time\", \"23:55\");\n    pm.environment.set(\"timezone\", \"Asia/Kolkata\");\n} else {\n    throw new Error(\"No employee selected for termination\");\n}"
+                              "const date = new Date();\ndate.setMonth(date.getMonth() + 1);\nconst oneMonthAfter = date.toISOString().split('T')[0];\nlet selectedEmployee;\n\nconst employeeListForTermination = JSON.parse(\n    pm.collectionVariables.get(\"terminateEmployeesList\") || \"[]\"\n);\n\nif (employeeListForTermination.length > 0) {\n    selectedEmployee = employeeListForTermination[1];\n    console.log(\"Selected employee for the past date termination : \", selectedEmployee.firstName)\n}\n\nif (selectedEmployee){\n    pm.environment.set(\"emp_number\", selectedEmployee.empNumber);\n    pm.variables.set(\"terminationDate\", oneMonthAfter);\n    pm.variables.set(\"flagValue\", 0);\n    pm.variables.set(\"terminationNote\", \"Terminate for past date\");\n    pm.variables.set(\"terminationReason\", 1);\n    pm.variables.set(\"time\", \"23:55\");\n    pm.variables.set(\"timezone\", \"Asia/Kolkata\");\n} else {\n    throw new Error(\"No employee selected for termination\");\n}"
                             ]
                           }
                         },
@@ -1508,7 +1293,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "let selectedEmployee;\nconst employeeListForTermination = JSON.parse(pm.collectionVariables.get(\"terminateEmployeesList\") || \"[]\");\nconsole.log(employeeListForTermination)\nif (employeeListForTermination.length > 0) {\n    selectedEmployee = employeeListForTermination[1];\n}\nconst dataProperties = [\n        \"id\",\n        \"empNumber\",\n        \"reasonId\",\n        \"date\",\n        \"termination_time\",\n        \"terminationTimeZoneName\",\n        \"termination_performed_user_id\",\n        \"termination_job_record_history_id\",\n        \"reactivationDate\",\n        \"reactivation_time\",\n        \"reactivationTimeZoneName\",\n        \"reactivation_performed_user_id\",\n        \"reactivation_job_record_history_id\",\n        \"reactivated\",\n        \"update_joined_date\",\n        \"reactivation_failed\",\n        \"note\",\n        \"flaged\",\n        \"terminateinfuture\"\n];\n\nconst terminateEmpSchema = pm.collectionVariables.get(\"terminateEmployeeSchema\");\nconst terminateEmpSchemaJson = terminateEmpSchema ? JSON.parse(terminateEmpSchema) : null;\nconst responseJson = pm.response.json();\nconst responseData = responseJson.data; \nconst successMsg = responseJson.messages;\nconsole.log(\"Success Message : \" ,successMsg.success);\n\npm.test (\"validate the success response message\", function (){\n    pm.expect(successMsg.success).to.eql(\"Successfully Saved\");\n})\n\npm.test(\"validate the json schema for the response\", function () {\n    pm.response.to.have.jsonSchema(terminateEmpSchemaJson);\n})\n\npm.test(\"Validate the response properties\", function () {\n    pm.expect(responseData).to.not.be.undefined;\n    dataProperties.forEach(function (properties) {\n        pm.expect(responseData).to.have.property(properties);\n    });\n});\n\npm.test(\"Validate the response against the expected values\", function () {\n    pm.expect(responseData.empNumber).to.eql(selectedEmployee.empNumber);\n    pm.expect(Number(responseData.reasonId)).to.eql(pm.variables.get(\"terminationReason\"));\n    pm.expect(responseData.date).to.eql(pm.variables.get(\"terminationDate\"));\n    pm.expect(responseData.termination_time).to.include(pm.variables.get(\"time\"))\n});"
+                              "let selectedEmployee;\nconst employeeListForTermination = JSON.parse(pm.collectionVariables.get(\"terminateEmployeesList\") || \"[]\");\nconsole.log(employeeListForTermination)\nif (employeeListForTermination.length > 0) {\n    selectedEmployee = employeeListForTermination[1];\n}\nconst dataProperties = [\n        \"id\",\n        \"empNumber\",\n        \"reasonId\",\n        \"date\",\n        \"termination_time\",\n        \"terminationTimeZoneName\",\n        \"termination_performed_user_id\",\n        \"termination_job_record_history_id\",\n        \"reactivationDate\",\n        \"reactivation_time\",\n        \"reactivationTimeZoneName\",\n        \"reactivation_performed_user_id\",\n        \"reactivation_job_record_history_id\",\n        \"reactivated\",\n        \"update_joined_date\",\n        \"reactivation_failed\",\n        \"note\",\n        \"flaged\",\n        \"terminateinfuture\"\n];\n\nconst terminateEmpSchema = pm.collectionVariables.get(\"terminateEmployeeSchema\");\nconst terminateEmpSchemaJson = terminateEmpSchema ? JSON.parse(terminateEmpSchema) : null;\nconst responseJson = pm.response.json();\nconst responseData = responseJson.data; \nconst successMsg = responseJson.messages;\n\npm.test (\"validate the terminated employee has the termination status\", function (){\n    pm.expect(pm.response.termination_id).not.to.be.null;\n})\n\npm.test (\"validate the success response message\", function (){\n    pm.expect(successMsg.success).to.eql(\"Successfully Saved\");\n})\n\npm.test(\"validate the json schema for the response\", function () {\n    pm.response.to.have.jsonSchema(terminateEmpSchemaJson);\n})\n\npm.test(\"Validate the response properties\", function () {\n    pm.expect(responseData).to.not.be.undefined;\n    dataProperties.forEach(function (properties) {\n        pm.expect(responseData).to.have.property(properties);\n    });\n});\n\npm.test(\"Validate the response against the expected values\", function () {\n    pm.expect(responseData.empNumber).to.eql(selectedEmployee.empNumber);\n    pm.expect(Number(responseData.reasonId)).to.eql(pm.variables.get(\"terminationReason\"));\n    pm.expect(responseData.date).to.eql(pm.variables.get(\"terminationDate\"));\n    pm.expect(responseData.termination_time).to.include(pm.variables.get(\"time\"))\n});"
                             ]
                           }
                         }
@@ -1572,9 +1357,9 @@
           "        .to.include(\"application/json\");",
           "});",
           "",
-          "pm.test (\"Validate the success response\", function () {",
-          "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);",
-          "})"
+          "pm.test(\"Employee is created\", function () {",
+          "    pm.response.to.have.status(201);",
+          "});"
         ],
         "type": "text/javascript"
       }
@@ -1598,15 +1383,15 @@
       "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Generated schema for Root\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\"\n        },\n        \"empNumber\": {\n          \"type\": \"string\"\n        },\n        \"reasonId\": {\n          \"type\": \"string\"\n        },\n        \"date\": {\n          \"type\": \"string\"\n        },\n        \"termination_time\": {\n          \"type\": \"string\"\n        },\n        \"terminationTimeZoneName\": {\n          \"type\": \"string\"\n        },\n        \"termination_performed_user_id\": {\n          \"type\": \"string\"\n        },\n        \"termination_job_record_history_id\": {\n          \"type\": \"string\"\n        },\n        \"reactivationDate\": {},\n        \"reactivation_time\": {},\n        \"reactivationTimeZoneName\": {},\n        \"reactivation_performed_user_id\": {},\n        \"reactivation_job_record_history_id\": {},\n        \"reactivated\": {\n          \"type\": \"string\"\n        },\n        \"update_joined_date\": {\n          \"type\": \"string\"\n        },\n        \"reactivation_failed\": {\n          \"type\": \"string\"\n        },\n        \"note\": {\n          \"type\": \"string\"\n        },\n        \"flaged\": {\n          \"type\": \"string\"\n        },\n        \"terminateinfuture\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"required\": [\n        \"id\",\n        \"empNumber\",\n        \"reasonId\",\n        \"date\",\n        \"termination_time\",\n        \"terminationTimeZoneName\",\n        \"termination_performed_user_id\",\n        \"termination_job_record_history_id\",\n        \"reactivationDate\",\n        \"reactivation_time\",\n        \"reactivationTimeZoneName\",\n        \"reactivation_performed_user_id\",\n        \"reactivation_job_record_history_id\",\n        \"reactivated\",\n        \"update_joined_date\",\n        \"reactivation_failed\",\n        \"note\",\n        \"flaged\",\n        \"terminateinfuture\"\n      ]\n    },\n    \"messages\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"success\"\n      ]\n    }\n  },\n  \"required\": [\n    \"data\",\n    \"messages\"\n  ]\n}"
     },
     {
+      "key": "tokenSchema",
+      "value": ""
+    },
+    {
       "key": "emp_number",
       "value": ""
     },
     {
       "key": "terminateEmployeesList",
-      "value": ""
-    },
-    {
-      "key": "tokenSchema",
       "value": ""
     }
   ]
