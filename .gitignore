@@ -1,0 +1,15 @@
+# LibreOffice / OpenOffice lock files
+.~lock.*#
+
+# Newman generated reports
+newman/
+newman-reports/
+report.html
+
+# Node
+node_modules/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
