@@ -1,0 +1,2 @@
+"supervisorFirstName","supervisorMiddleName","supervisorLastName","subordinateFirstName","subordinateMiddleName","subordinateLastName","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","sup_reportingMethodId","sup_reportingMethodName"
+"Supervisor","Get","Test","Subordinate","Get","Test",2,"2024-06-20","false","false","1","Direct"

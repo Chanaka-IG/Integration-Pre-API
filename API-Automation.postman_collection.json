@@ -19,7 +19,7 @@
 							"script": {
 								"type": "text/javascript",
 								"exec": [
-									"const DEBUG = pm.environment.get(\"debug\")\nconst jsonResponse = pm.response.json();\nconst accessToken = jsonResponse.access_token || \"\";\n\npm.test(\"Response time is reasonable\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(10000);\n});\n\npm.test(\"Response is JSON\", function () {\n    pm.response.to.be.json;\n});\n\nconst tokenSchema = pm.variables.get(\"tokenSchema\");\n\nif (DEBUG) console.log(\"tokenSchema:\", tokenSchema);\n\nif (tokenSchema) {\n    const tokenSchemaJson = JSON.parse(tokenSchema);\n\n    console.log(\"Parsed schema:\", tokenSchemaJson);\n\n    pm.test(\"Validate response schema\", function () {\n        pm.response.to.have.jsonSchema(tokenSchemaJson);\n    });\n} else {\n    if (DEBUG) console.log(\"\u274c tokenSchema not found\");\n}\n\n\npm.test(\"Access token is available\", function () {\n    pm.expect(accessToken, \"access_token\")\n        .to.be.a(\"string\")\n        .and.not.empty;\n\n    pm.environment.set(\"accessToken\", accessToken);\n    pm.environment.set(\"tokenExpiresAt\", Date.now() + (jsonResponse.expires_in || 0) * 1000);\n});\n\npm.test(\"Validate availability of properties\", function () {\n    pm.expect(jsonResponse).to.have.property(\"access_token\");\n    pm.expect(jsonResponse).to.have.property(\"expires_in\");\n    pm.expect(jsonResponse).to.have.property(\"token_type\");\n    pm.expect(jsonResponse).to.have.property(\"scope\");\n});\n\npm.test(\"Validate values in response body\", function () {\n    pm.expect(jsonResponse.expires_in).to.eql(3600);\n    pm.expect(jsonResponse.token_type).to.eql(\"Bearer\");\n    pm.expect(jsonResponse.scope).to.eql(\"public private\");\n});"
+									"const DEBUG = pm.environment.get(\"debug\")\nconst jsonResponse = pm.response.json();\nconst accessToken = jsonResponse.access_token || \"\";\n\npm.test(\"Response time is reasonable\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(10000);\n});\n\npm.test(\"Response is JSON\", function () {\n    pm.response.to.be.json;\n});\n\nconst tokenSchema = pm.variables.get(\"tokenSchema\");\n\nif (DEBUG) console.log(\"tokenSchema:\", tokenSchema);\n\nif (tokenSchema) {\n    const tokenSchemaJson = JSON.parse(tokenSchema);\n\n    console.log(\"Parsed schema:\", tokenSchemaJson);\n\n    pm.test(\"Validate response schema\", function () {\n        pm.response.to.have.jsonSchema(tokenSchemaJson);\n    });\n} else {\n    if (DEBUG) console.log(\"❌ tokenSchema not found\");\n}\n\n\npm.test(\"Access token is available\", function () {\n    pm.expect(accessToken, \"access_token\")\n        .to.be.a(\"string\")\n        .and.not.empty;\n\n    pm.environment.set(\"accessToken\", accessToken);\n    pm.environment.set(\"tokenExpiresAt\", Date.now() + (jsonResponse.expires_in || 0) * 1000);\n});\n\npm.test(\"Validate availability of properties\", function () {\n    pm.expect(jsonResponse).to.have.property(\"access_token\");\n    pm.expect(jsonResponse).to.have.property(\"expires_in\");\n    pm.expect(jsonResponse).to.have.property(\"token_type\");\n    pm.expect(jsonResponse).to.have.property(\"scope\");\n});\n\npm.test(\"Validate values in response body\", function () {\n    pm.expect(jsonResponse.expires_in).to.eql(3600);\n    pm.expect(jsonResponse.token_type).to.eql(\"Bearer\");\n    pm.expect(jsonResponse.scope).to.eql(\"public private\");\n});"
 								]
 							}
 						}
@@ -1612,6 +1612,914 @@
 											]
 										}
 									]
+								},
+								{
+									"name": "Dependents",
+									"description": "Add and get dependents for an employee. Each sub-folder creates its own employee and is driven by its own CSV in Test-data/.",
+									"item": [
+										{
+											"name": "Add-Dependents",
+											"item": [
+												{
+													"name": "PIM-028 create employee for add dependent",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"// clear values left over from earlier folders or earlier runs\npm.environment.unset(\"emp_number\");\npm.environment.unset(\"dependent_seqno\");\n\npm.variables.set(\"employeeId\", `DEP-${Date.now().toString().slice(-6)}`);"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"pm.test(\"Employee is created\", function () {\n    pm.response.to.have.status(201);\n});\n\nconst responseData = (pm.response.json() || {}).data || {};\n\npm.test(\"Response contains empNumber\", function () {\n    pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;\n});\n\n// side effect: consumed by PIM-029\nif (responseData.empNumber) {\n    pm.environment.set(\"emp_number\", responseData.empNumber);\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												},
+												{
+													"name": "PIM-029 add dependent for created employee",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const empNumber = pm.environment.get(\"emp_number\");\nif (!empNumber) {\n    throw new Error(\"Precondition failed: emp_number not set by PIM-028\");\n}"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const response     = pm.response.json() || {};\nconst responseData = response.data || {};\n\n// treats null, undefined and \"\" as the same \"empty\" value\nconst norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst expected = key => norm(pm.iterationData.get(key));\n\npm.test(\"Dependent is added\", function () {\n    pm.response.to.have.status(201);\n});\n\npm.test(\"Response matches the dependent schema\", function () {\n    const raw = pm.collectionVariables.get(\"dependentPostSchema\");\n    pm.expect(raw, \"dependentPostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"Success message is returned\", function () {\n    const expectedMessage = pm.iterationData.get(\"dep_successMessage\") || \"Successfully Saved\";\n    pm.expect(response.messages && response.messages.success).to.eql(expectedMessage);\n});\n\npm.test(\"Dependent is linked to the created employee\", function () {\n    pm.expect(norm(responseData.emp_number)).to.eql(norm(pm.environment.get(\"emp_number\")));\n});\n\npm.test(\"Dependent has a sequence number\", function () {\n    pm.expect(norm(responseData.seqno), \"seqno\").to.not.eql(\"\");\n});\n\npm.test(\"Dependent details match what was sent\", function () {\n    pm.expect(norm(responseData.name), \"name\").to.eql(expected(\"dep_name\"));\n    pm.expect(norm(responseData.relationship_type), \"relationship_type\").to.eql(expected(\"dep_relationship_type\"));\n    pm.expect(norm(responseData.relationship), \"relationship\").to.eql(expected(\"dep_relationship\"));\n    pm.expect(norm(responseData.date_of_birth), \"date_of_birth\").to.eql(expected(\"dep_date_of_birth\"));\n});\n\n// side effect: available to a later Get-Dependents folder\nif (norm(responseData.seqno) !== \"\") {\n    pm.environment.set(\"dependent_seqno\", responseData.seqno);\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees/{{emp_number}}/dependent",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees",
+																"{{emp_number}}",
+																"dependent"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"emp_number\": \"{{emp_number}}\",\n    \"name\": \"{{dep_name}}\",\n    \"relationship_type\": \"{{dep_relationship_type}}\",\n    \"relationship\": \"{{dep_relationship}}\",\n    \"date_of_birth\": \"{{dep_date_of_birth}}\"\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												}
+											]
+										},
+										{
+											"name": "Get-Dependents",
+											"item": [
+												{
+													"name": "PIM-030 create employee for get dependent",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"// clear values left over from earlier folders or earlier runs\npm.environment.unset(\"emp_number\");\npm.environment.unset(\"dependent_seqno\");\n\npm.variables.set(\"employeeId\", `DEPGET-${Date.now().toString().slice(-6)}`);"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"pm.test(\"Employee is created\", function () {\n    pm.response.to.have.status(201);\n});\n\nconst responseData = (pm.response.json() || {}).data || {};\n\npm.test(\"Response contains empNumber\", function () {\n    pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;\n});\n\n// side effect: consumed by PIM-031 and PIM-032\nif (responseData.empNumber) {\n    pm.environment.set(\"emp_number\", responseData.empNumber);\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												},
+												{
+													"name": "PIM-031 add dependent for created employee",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const empNumber = pm.environment.get(\"emp_number\");\nif (!empNumber) {\n    throw new Error(\"Precondition failed: emp_number not set by PIM-030\");\n}"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const responseData = (pm.response.json() || {}).data || {};\nconst norm = v => (v === null || v === undefined) ? \"\" : String(v);\n\npm.test(\"Dependent is added\", function () {\n    pm.response.to.have.status(201);\n});\n\npm.test(\"Dependent has a sequence number\", function () {\n    pm.expect(norm(responseData.seqno), \"seqno\").to.not.eql(\"\");\n});\n\n// side effect: PIM-032 uses this to pick the exact dependent out of the list\nif (norm(responseData.seqno) !== \"\") {\n    pm.environment.set(\"dependent_seqno\", responseData.seqno);\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees/{{emp_number}}/dependent",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees",
+																"{{emp_number}}",
+																"dependent"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"emp_number\": \"{{emp_number}}\",\n    \"name\": \"{{dep_name}}\",\n    \"relationship_type\": \"{{dep_relationship_type}}\",\n    \"relationship\": \"{{dep_relationship}}\",\n    \"date_of_birth\": \"{{dep_date_of_birth}}\"\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												},
+												{
+													"name": "PIM-032 get dependents for created employee",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const empNumber = pm.environment.get(\"emp_number\");\nif (!empNumber) {\n    throw new Error(\"Precondition failed: emp_number not set by PIM-030\");\n}\nif (!pm.environment.get(\"dependent_seqno\")) {\n    throw new Error(\"Precondition failed: dependent_seqno not set by PIM-031\");\n}"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const response = pm.response.json() || {};\nconst responseData = response.data;\nconst dependents = Array.isArray(responseData) ? responseData : [];\n\nconst norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst expected = key => norm(pm.iterationData.get(key));\nconst seqno = norm(pm.environment.get(\"dependent_seqno\"));\n\nconst selectedDependent = dependents.find(d => norm(d.seqno) === seqno);\n\npm.test(\"Dependents are retrieved\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response matches the dependent list schema\", function () {\n    const raw = pm.collectionVariables.get(\"dependentGetSchema\");\n    pm.expect(raw, \"dependentGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"Dependent added in PIM-031 is in the list\", function () {\n    pm.expect(selectedDependent, `seqno ${seqno} not found in response`).to.exist;\n});\n\npm.test(\"Every dependent in the list belongs to the created employee\", function () {\n    dependents.forEach(d => pm.expect(norm(d.emp_number)).to.eql(norm(pm.environment.get(\"emp_number\"))));\n});\n\n// the checks below only make sense once the dependent is found\nif (selectedDependent) {\n    pm.test(\"Dependent details match what was sent\", function () {\n        pm.expect(norm(selectedDependent.name), \"name\").to.eql(expected(\"dep_name\"));\n        pm.expect(norm(selectedDependent.relationship_type), \"relationship_type\").to.eql(expected(\"dep_relationship_type\"));\n        pm.expect(norm(selectedDependent.relationship), \"relationship\").to.eql(expected(\"dep_relationship\"));\n        pm.expect(norm(selectedDependent.date_of_birth), \"date_of_birth\").to.eql(expected(\"dep_date_of_birth\"));\n    });\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "GET",
+														"header": [],
+														"url": {
+															"raw": "{{baseURL}}/api/employees/{{emp_number}}/dependents",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees",
+																"{{emp_number}}",
+																"dependents"
+															]
+														}
+													},
+													"response": []
+												}
+											]
+										}
+									]
+								},
+								{
+									"name": "Direct-Deposit",
+									"description": "Add and get direct deposit accounts for an employee. Each sub-folder creates its own employee and is driven by its own CSV in Test-data/.",
+									"item": [
+										{
+											"name": "Add-Direct-Deposit",
+											"item": [
+												{
+													"name": "PIM-033 create employee for add direct deposit",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"// clear values left over from earlier folders or earlier runs\npm.environment.unset(\"emp_number\");\npm.environment.unset(\"direct_deposit_id\");\n\npm.variables.set(\"employeeId\", `DD-${Date.now().toString().slice(-6)}`);"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"pm.test(\"Employee is created\", function () {\n    pm.response.to.have.status(201);\n});\n\nconst responseData = (pm.response.json() || {}).data || {};\n\npm.test(\"Response contains empNumber\", function () {\n    pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;\n});\n\n// side effect: consumed by PIM-034\nif (responseData.empNumber) {\n    pm.environment.set(\"emp_number\", responseData.empNumber);\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												},
+												{
+													"name": "PIM-034 add direct deposit for created employee",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const empNumber = pm.environment.get(\"emp_number\");\nif (!empNumber) {\n    throw new Error(\"Precondition failed: emp_number not set by PIM-033\");\n}"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const response     = pm.response.json() || {};\nconst responseData = response.data || {};\n\n// treats null, undefined and \"\" as the same \"empty\" value\nconst norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst expected = key => norm(pm.iterationData.get(key));\n\npm.test(\"Direct deposit is added\", function () {\n    pm.response.to.have.status(201);\n});\n\npm.test(\"Response matches the direct deposit schema\", function () {\n    const raw = pm.collectionVariables.get(\"directDepositPostSchema\");\n    pm.expect(raw, \"directDepositPostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"Success message is returned\", function () {\n    const expectedMessage = pm.iterationData.get(\"dd_successMessage\") || \"Successfully Saved\";\n    pm.expect(response.messages && response.messages.success).to.eql(expectedMessage);\n});\n\npm.test(\"Direct deposit is linked to the created employee\", function () {\n    pm.expect(norm(responseData.employee_number)).to.eql(norm(pm.environment.get(\"emp_number\")));\n});\n\npm.test(\"Direct deposit has an id\", function () {\n    pm.expect(norm(responseData.id), \"id\").to.not.eql(\"\");\n});\n\n// amount is compared numerically so \"4000.50\" and \"4000.5\" are treated as equal\npm.test(\"Direct deposit details match what was sent\", function () {\n    pm.expect(norm(responseData.account_number), \"account_number\").to.eql(expected(\"dd_account_number\"));\n    pm.expect(norm(responseData.account_type), \"account_type\").to.eql(expected(\"dd_account_type\"));\n    pm.expect(Number(responseData.amount), \"amount\").to.eql(Number(expected(\"dd_amount\")));\n    pm.expect(norm(responseData.branch_location), \"branch_location\").to.eql(expected(\"dd_branch_location\"));\n    pm.expect(norm(responseData.institute_name), \"institute_name\").to.eql(expected(\"dd_institute_name\"));\n    pm.expect(norm(responseData.routing_number), \"routing_number\").to.eql(expected(\"dd_routing_number\"));\n});\n\n// side effect: available to a later Get-Direct-Deposit folder\nif (norm(responseData.id) !== \"\") {\n    pm.environment.set(\"direct_deposit_id\", responseData.id);\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees/{{emp_number}}/directDeposit",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees",
+																"{{emp_number}}",
+																"directDeposit"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"account_number\": \"{{dd_account_number}}\",\n    \"account_type\": \"{{dd_account_type}}\",\n    \"amount\": \"{{dd_amount}}\",\n    \"branch_location\": \"{{dd_branch_location}}\",\n    \"institute_name\": \"{{dd_institute_name}}\",\n    \"routing_number\": \"{{dd_routing_number}}\"\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												}
+											]
+										},
+										{
+											"name": "Get-Direct-Deposit",
+											"item": [
+												{
+													"name": "PIM-035 create employee for get direct deposit",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"// clear values left over from earlier folders or earlier runs\npm.environment.unset(\"emp_number\");\npm.environment.unset(\"direct_deposit_id\");\n\npm.variables.set(\"employeeId\", `DDGET-${Date.now().toString().slice(-6)}`);"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"pm.test(\"Employee is created\", function () {\n    pm.response.to.have.status(201);\n});\n\nconst responseData = (pm.response.json() || {}).data || {};\n\npm.test(\"Response contains empNumber\", function () {\n    pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;\n});\n\n// side effect: consumed by PIM-036 and PIM-037\nif (responseData.empNumber) {\n    pm.environment.set(\"emp_number\", responseData.empNumber);\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												},
+												{
+													"name": "PIM-036 add direct deposit for created employee",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const empNumber = pm.environment.get(\"emp_number\");\nif (!empNumber) {\n    throw new Error(\"Precondition failed: emp_number not set by PIM-035\");\n}"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const responseData = (pm.response.json() || {}).data || {};\nconst norm = v => (v === null || v === undefined) ? \"\" : String(v);\n\npm.test(\"Direct deposit is added\", function () {\n    pm.response.to.have.status(201);\n});\n\npm.test(\"Direct deposit has an id\", function () {\n    pm.expect(norm(responseData.id), \"id\").to.not.eql(\"\");\n});\n\n// side effect: PIM-037 uses this to pick the exact direct deposit out of the list\nif (norm(responseData.id) !== \"\") {\n    pm.environment.set(\"direct_deposit_id\", responseData.id);\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees/{{emp_number}}/directDeposit",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees",
+																"{{emp_number}}",
+																"directDeposit"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"account_number\": \"{{dd_account_number}}\",\n    \"account_type\": \"{{dd_account_type}}\",\n    \"amount\": \"{{dd_amount}}\",\n    \"branch_location\": \"{{dd_branch_location}}\",\n    \"institute_name\": \"{{dd_institute_name}}\",\n    \"routing_number\": \"{{dd_routing_number}}\"\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												},
+												{
+													"name": "PIM-037 get direct deposits for created employee",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const empNumber = pm.environment.get(\"emp_number\");\nif (!empNumber) {\n    throw new Error(\"Precondition failed: emp_number not set by PIM-035\");\n}\nif (!pm.environment.get(\"direct_deposit_id\")) {\n    throw new Error(\"Precondition failed: direct_deposit_id not set by PIM-036\");\n}"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const response = pm.response.json() || {};\nconst responseData = response.data;\nconst directDeposits = Array.isArray(responseData) ? responseData : [];\n\nconst norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst expected = key => norm(pm.iterationData.get(key));\nconst depositId = norm(pm.environment.get(\"direct_deposit_id\"));\n\nconst selectedDeposit = directDeposits.find(d => norm(d.id) === depositId);\n\npm.test(\"Direct deposits are retrieved\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response matches the direct deposit list schema\", function () {\n    const raw = pm.collectionVariables.get(\"directDepositGetSchema\");\n    pm.expect(raw, \"directDepositGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"Direct deposit added in PIM-036 is in the list\", function () {\n    pm.expect(selectedDeposit, `id ${depositId} not found in response`).to.exist;\n});\n\npm.test(\"Every direct deposit in the list belongs to the created employee\", function () {\n    directDeposits.forEach(d => pm.expect(norm(d.employee_number)).to.eql(norm(pm.environment.get(\"emp_number\"))));\n});\n\n// the checks below only make sense once the direct deposit is found\nif (selectedDeposit) {\n    pm.test(\"Direct deposit details match what was sent\", function () {\n        pm.expect(norm(selectedDeposit.account_number), \"account_number\").to.eql(expected(\"dd_account_number\"));\n        pm.expect(norm(selectedDeposit.account_type), \"account_type\").to.eql(expected(\"dd_account_type\"));\n        pm.expect(Number(selectedDeposit.amount), \"amount\").to.eql(Number(expected(\"dd_amount\")));\n        pm.expect(norm(selectedDeposit.branch_location), \"branch_location\").to.eql(expected(\"dd_branch_location\"));\n        pm.expect(norm(selectedDeposit.institute_name), \"institute_name\").to.eql(expected(\"dd_institute_name\"));\n        pm.expect(norm(selectedDeposit.routing_number), \"routing_number\").to.eql(expected(\"dd_routing_number\"));\n    });\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "GET",
+														"header": [],
+														"url": {
+															"raw": "{{baseURL}}/api/employees/{{emp_number}}/directDeposit",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees",
+																"{{emp_number}}",
+																"directDeposit"
+															]
+														}
+													},
+													"response": []
+												}
+											]
+										}
+									]
+								},
+								{
+									"name": "Supervisors",
+									"description": "Assign and get supervisors for an employee. Each sub-folder creates its own supervisor and subordinate employees and is driven by its own CSV in Test-data/.",
+									"item": [
+										{
+											"name": "Add-Supervisor",
+											"item": [
+												{
+													"name": "PIM-038 create supervisor employee for add supervisor",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"// clear values left over from earlier folders or earlier runs\npm.environment.unset(\"supervisor_emp_number\");\npm.environment.unset(\"supervisor_employee_id\");\npm.environment.unset(\"subordinate_emp_number\");\npm.environment.unset(\"subordinate_employee_id\");\n\npm.variables.set(\"employeeId\", `SUP-${Date.now().toString().slice(-6)}`);"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"pm.test(\"Supervisor employee is created\", function () {\n    pm.response.to.have.status(201);\n});\n\nconst responseData = (pm.response.json() || {}).data || {};\n\npm.test(\"Response contains empNumber\", function () {\n    pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;\n});\n\n// side effect: consumed by PIM-039 and PIM-040\nif (responseData.empNumber) {\n    pm.environment.set(\"supervisor_emp_number\", responseData.empNumber);\n    pm.environment.set(\"supervisor_employee_id\", responseData.employeeId);\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"firstName\": \"{{supervisorFirstName}}\",\n    \"middleName\": \"{{supervisorMiddleName}}\",\n    \"lastName\": \"{{supervisorLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												},
+												{
+													"name": "PIM-039 create subordinate employee for add supervisor",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const supervisorEmpNumber = pm.environment.get(\"supervisor_emp_number\");\nif (!supervisorEmpNumber) {\n    throw new Error(\"Precondition failed: supervisor_emp_number not set by PIM-038\");\n}\n\npm.variables.set(\"employeeId\", `SUB-${Date.now().toString().slice(-6)}`);"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"pm.test(\"Subordinate employee is created\", function () {\n    pm.response.to.have.status(201);\n});\n\nconst responseData = (pm.response.json() || {}).data || {};\n\npm.test(\"Response contains empNumber\", function () {\n    pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;\n});\n\n// side effect: consumed by PIM-040\nif (responseData.empNumber) {\n    pm.environment.set(\"subordinate_emp_number\", responseData.empNumber);\n    pm.environment.set(\"subordinate_employee_id\", responseData.employeeId);\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"firstName\": \"{{subordinateFirstName}}\",\n    \"middleName\": \"{{subordinateMiddleName}}\",\n    \"lastName\": \"{{subordinateLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												},
+												{
+													"name": "PIM-040 add supervisor for subordinate employee",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const supervisorEmpNumber = pm.environment.get(\"supervisor_emp_number\");\nif (!supervisorEmpNumber) {\n    throw new Error(\"Precondition failed: supervisor_emp_number not set by PIM-038\");\n}\n\nconst subordinateEmpNumber = pm.environment.get(\"subordinate_emp_number\");\nif (!subordinateEmpNumber) {\n    throw new Error(\"Precondition failed: subordinate_emp_number not set by PIM-039\");\n}"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const response     = pm.response.json() || {};\nconst responseData = response.data || {};\nconst supervisor   = responseData.supervisor || {};\nconst subordinate  = responseData.subordinate || {};\nconst method       = responseData.ReportingMethod || {};\n\n// treats null, undefined and \"\" as the same \"empty\" value\nconst norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst expected = key => norm(pm.iterationData.get(key));\n\npm.test(\"Supervisor is assigned\", function () {\n    pm.response.to.have.status(201);\n});\n\npm.test(\"Response matches the supervisor schema\", function () {\n    const raw = pm.collectionVariables.get(\"supervisorPostSchema\");\n    pm.expect(raw, \"supervisorPostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"Success message is returned\", function () {\n    const expectedMessage = pm.iterationData.get(\"sup_successMessage\") || \"Successfully Saved\";\n    pm.expect(response.messages && response.messages.success).to.eql(expectedMessage);\n});\n\npm.test(\"Supervisor and subordinate ids match the created employees\", function () {\n    pm.expect(norm(responseData.supervisorId), \"supervisorId\").to.eql(norm(pm.environment.get(\"supervisor_emp_number\")));\n    pm.expect(norm(responseData.subordinateId), \"subordinateId\").to.eql(norm(pm.environment.get(\"subordinate_emp_number\")));\n});\n\npm.test(\"Reporting method matches what was sent\", function () {\n    pm.expect(norm(responseData.reportingMethodId), \"reportingMethodId\").to.eql(expected(\"sup_reportingMethodId\"));\n    pm.expect(norm(method.id), \"ReportingMethod.id\").to.eql(expected(\"sup_reportingMethodId\"));\n    pm.expect(norm(method.name), \"ReportingMethod.name\").to.eql(expected(\"sup_reportingMethodName\"));\n});\n\npm.test(\"Supervisor details match the created supervisor employee\", function () {\n    pm.expect(norm(supervisor.empNumber), \"supervisor.empNumber\").to.eql(norm(pm.environment.get(\"supervisor_emp_number\")));\n    pm.expect(norm(supervisor.employeeId), \"supervisor.employeeId\").to.eql(norm(pm.environment.get(\"supervisor_employee_id\")));\n    pm.expect(norm(supervisor.firstName), \"supervisor.firstName\").to.eql(expected(\"supervisorFirstName\"));\n    pm.expect(norm(supervisor.middleName), \"supervisor.middleName\").to.eql(expected(\"supervisorMiddleName\"));\n    pm.expect(norm(supervisor.lastName), \"supervisor.lastName\").to.eql(expected(\"supervisorLastName\"));\n});\n\npm.test(\"Subordinate details match the created subordinate employee\", function () {\n    pm.expect(norm(subordinate.empNumber), \"subordinate.empNumber\").to.eql(norm(pm.environment.get(\"subordinate_emp_number\")));\n    pm.expect(norm(subordinate.employeeId), \"subordinate.employeeId\").to.eql(norm(pm.environment.get(\"subordinate_employee_id\")));\n    pm.expect(norm(subordinate.firstName), \"subordinate.firstName\").to.eql(expected(\"subordinateFirstName\"));\n    pm.expect(norm(subordinate.middleName), \"subordinate.middleName\").to.eql(expected(\"subordinateMiddleName\"));\n    pm.expect(norm(subordinate.lastName), \"subordinate.lastName\").to.eql(expected(\"subordinateLastName\"));\n});\n\npm.test(\"Supervisor and subordinate are active employees\", function () {\n    pm.expect(norm(supervisor.termination_id), \"supervisor.termination_id\").to.eql(\"\");\n    pm.expect(norm(subordinate.termination_id), \"subordinate.termination_id\").to.eql(\"\");\n});"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees/{{subordinate_emp_number}}/supervisors",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees",
+																"{{subordinate_emp_number}}",
+																"supervisors"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"supervisorId\": \"{{supervisor_emp_number}}\",\n    \"subordinateId\": \"{{subordinate_emp_number}}\",\n    \"reportingMethodId\": \"{{sup_reportingMethodId}}\"\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												}
+											]
+										},
+										{
+											"name": "Get-Supervisor",
+											"item": [
+												{
+													"name": "PIM-041 create supervisor employee for get supervisor",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"// clear values left over from earlier folders or earlier runs\npm.environment.unset(\"supervisor_emp_number\");\npm.environment.unset(\"supervisor_employee_id\");\npm.environment.unset(\"subordinate_emp_number\");\npm.environment.unset(\"subordinate_employee_id\");\n\npm.variables.set(\"employeeId\", `SUPGET-${Date.now().toString().slice(-6)}`);"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"pm.test(\"Supervisor employee is created\", function () {\n    pm.response.to.have.status(201);\n});\n\nconst responseData = (pm.response.json() || {}).data || {};\n\npm.test(\"Response contains empNumber\", function () {\n    pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;\n});\n\n// side effect: consumed by PIM-042, PIM-043 and PIM-044\nif (responseData.empNumber) {\n    pm.environment.set(\"supervisor_emp_number\", responseData.empNumber);\n    pm.environment.set(\"supervisor_employee_id\", responseData.employeeId);\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"firstName\": \"{{supervisorFirstName}}\",\n    \"middleName\": \"{{supervisorMiddleName}}\",\n    \"lastName\": \"{{supervisorLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												},
+												{
+													"name": "PIM-042 create subordinate employee for get supervisor",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const supervisorEmpNumber = pm.environment.get(\"supervisor_emp_number\");\nif (!supervisorEmpNumber) {\n    throw new Error(\"Precondition failed: supervisor_emp_number not set by PIM-041\");\n}\n\npm.variables.set(\"employeeId\", `SUBGET-${Date.now().toString().slice(-6)}`);"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"pm.test(\"Subordinate employee is created\", function () {\n    pm.response.to.have.status(201);\n});\n\nconst responseData = (pm.response.json() || {}).data || {};\n\npm.test(\"Response contains empNumber\", function () {\n    pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;\n});\n\n// side effect: consumed by PIM-043 and PIM-044\nif (responseData.empNumber) {\n    pm.environment.set(\"subordinate_emp_number\", responseData.empNumber);\n    pm.environment.set(\"subordinate_employee_id\", responseData.employeeId);\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"firstName\": \"{{subordinateFirstName}}\",\n    \"middleName\": \"{{subordinateMiddleName}}\",\n    \"lastName\": \"{{subordinateLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												},
+												{
+													"name": "PIM-043 add supervisor for subordinate employee",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const supervisorEmpNumber = pm.environment.get(\"supervisor_emp_number\");\nif (!supervisorEmpNumber) {\n    throw new Error(\"Precondition failed: supervisor_emp_number not set by PIM-041\");\n}\n\nconst subordinateEmpNumber = pm.environment.get(\"subordinate_emp_number\");\nif (!subordinateEmpNumber) {\n    throw new Error(\"Precondition failed: subordinate_emp_number not set by PIM-042\");\n}"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const responseData = (pm.response.json() || {}).data || {};\nconst norm = v => (v === null || v === undefined) ? \"\" : String(v);\n\npm.test(\"Supervisor is assigned\", function () {\n    pm.response.to.have.status(201);\n});\n\npm.test(\"Supervisor id matches the created supervisor employee\", function () {\n    pm.expect(norm(responseData.supervisorId), \"supervisorId\").to.eql(norm(pm.environment.get(\"supervisor_emp_number\")));\n});"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseURL}}/api/employees/{{subordinate_emp_number}}/supervisors",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees",
+																"{{subordinate_emp_number}}",
+																"supervisors"
+															]
+														},
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"supervisorId\": \"{{supervisor_emp_number}}\",\n    \"subordinateId\": \"{{subordinate_emp_number}}\",\n    \"reportingMethodId\": \"{{sup_reportingMethodId}}\"\n}",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														}
+													},
+													"response": []
+												},
+												{
+													"name": "PIM-044 get supervisors for subordinate employee",
+													"event": [
+														{
+															"listen": "prerequest",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const supervisorEmpNumber = pm.environment.get(\"supervisor_emp_number\");\nif (!supervisorEmpNumber) {\n    throw new Error(\"Precondition failed: supervisor_emp_number not set by PIM-041\");\n}\n\nconst subordinateEmpNumber = pm.environment.get(\"subordinate_emp_number\");\nif (!subordinateEmpNumber) {\n    throw new Error(\"Precondition failed: subordinate_emp_number not set by PIM-042\");\n}"
+																]
+															}
+														},
+														{
+															"listen": "test",
+															"script": {
+																"type": "text/javascript",
+																"exec": [
+																	"const response = pm.response.json() || {};\nconst responseData = response.data;\nconst supervisors = Array.isArray(responseData) ? responseData : [];\n\n// treats null, undefined and \"\" as the same \"empty\" value\nconst norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst expected = key => norm(pm.iterationData.get(key));\n\nconst supervisorEmpNumber  = norm(pm.environment.get(\"supervisor_emp_number\"));\nconst subordinateEmpNumber = norm(pm.environment.get(\"subordinate_emp_number\"));\n\nconst selectedRecord = supervisors.find(s => norm(s.supervisorId) === supervisorEmpNumber);\n\npm.test(\"Supervisors are retrieved\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response matches the supervisor list schema\", function () {\n    const raw = pm.collectionVariables.get(\"supervisorGetSchema\");\n    pm.expect(raw, \"supervisorGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"Supervisor assigned in PIM-043 is in the list\", function () {\n    pm.expect(selectedRecord, `supervisorId ${supervisorEmpNumber} not found in response`).to.exist;\n});\n\npm.test(\"Every record in the list belongs to the subordinate employee\", function () {\n    supervisors.forEach(s => pm.expect(norm(s.subordinateId)).to.eql(subordinateEmpNumber));\n});\n\n// the checks below only make sense once the supervisor record is found\nif (selectedRecord) {\n    pm.test(\"Reporting method matches what was sent\", function () {\n        const method = selectedRecord.ReportingMethod || {};\n        pm.expect(norm(selectedRecord.reportingMethodId), \"reportingMethodId\").to.eql(expected(\"sup_reportingMethodId\"));\n        pm.expect(norm(method.id), \"ReportingMethod.id\").to.eql(expected(\"sup_reportingMethodId\"));\n        pm.expect(norm(method.name), \"ReportingMethod.name\").to.eql(expected(\"sup_reportingMethodName\"));\n    });\n\n    pm.test(\"Supervisor details match the created supervisor employee\", function () {\n        const supervisor = selectedRecord.supervisor || {};\n        pm.expect(norm(supervisor.empNumber), \"supervisor.empNumber\").to.eql(norm(pm.environment.get(\"supervisor_emp_number\")));\n        pm.expect(norm(supervisor.employeeId), \"supervisor.employeeId\").to.eql(norm(pm.environment.get(\"supervisor_employee_id\")));\n        pm.expect(norm(supervisor.firstName), \"supervisor.firstName\").to.eql(expected(\"supervisorFirstName\"));\n        pm.expect(norm(supervisor.middleName), \"supervisor.middleName\").to.eql(expected(\"supervisorMiddleName\"));\n        pm.expect(norm(supervisor.lastName), \"supervisor.lastName\").to.eql(expected(\"supervisorLastName\"));\n    });\n}"
+																]
+															}
+														}
+													],
+													"request": {
+														"method": "GET",
+														"header": [],
+														"url": {
+															"raw": "{{baseURL}}/api/employees/{{subordinate_emp_number}}/supervisors",
+															"host": [
+																"{{baseURL}}"
+															],
+															"path": [
+																"api",
+																"employees",
+																"{{subordinate_emp_number}}",
+																"supervisors"
+															]
+														}
+													},
+													"response": []
+												}
+											]
+										}
+									]
 								}
 							]
 						}
@@ -1736,6 +2644,30 @@
 		{
 			"key": "immigrationGetSchema",
 			"value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Get immigration list response\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"empNumber\": {\n            \"type\": [\n              \"string\",\n              \"number\"\n            ]\n          },\n          \"type\": {\n            \"type\": [\n              \"number\",\n              \"string\"\n            ]\n          },\n          \"recordId\": {\n            \"type\": [\n              \"string\",\n              \"number\"\n            ]\n          },\n          \"number\": {\n            \"type\": \"string\"\n          },\n          \"status\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          },\n          \"issuedDate\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          },\n          \"expiryDate\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          },\n          \"notes\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          },\n          \"reviewDate\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          },\n          \"countryCode\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          }\n        },\n        \"required\": [\n          \"empNumber\",\n          \"type\",\n          \"recordId\",\n          \"number\",\n          \"status\",\n          \"issuedDate\",\n          \"expiryDate\",\n          \"notes\",\n          \"reviewDate\",\n          \"countryCode\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"data\"\n  ]\n}"
+		},
+		{
+			"key": "dependentPostSchema",
+			"value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Add dependent response\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"messages\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"success\"\n      ]\n    },\n    \"data\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"emp_number\": {\n          \"type\": [\n            \"string\",\n            \"number\"\n          ]\n        },\n        \"seqno\": {\n          \"type\": [\n            \"string\",\n            \"number\"\n          ]\n        },\n        \"name\": {\n          \"type\": \"string\"\n        },\n        \"relationship_type\": {\n          \"type\": \"string\"\n        },\n        \"relationship\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        },\n        \"date_of_birth\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        },\n        \"nation_code\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        }\n      },\n      \"required\": [\n        \"emp_number\",\n        \"seqno\",\n        \"name\",\n        \"relationship_type\",\n        \"relationship\",\n        \"date_of_birth\",\n        \"nation_code\"\n      ]\n    }\n  },\n  \"required\": [\n    \"messages\",\n    \"data\"\n  ]\n}"
+		},
+		{
+			"key": "dependentGetSchema",
+			"value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Get dependent list response\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"emp_number\": {\n            \"type\": [\n              \"string\",\n              \"number\"\n            ]\n          },\n          \"seqno\": {\n            \"type\": [\n              \"string\",\n              \"number\"\n            ]\n          },\n          \"name\": {\n            \"type\": \"string\"\n          },\n          \"relationship_type\": {\n            \"type\": \"string\"\n          },\n          \"relationship\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          },\n          \"date_of_birth\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          },\n          \"nation_code\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          }\n        },\n        \"required\": [\n          \"emp_number\",\n          \"seqno\",\n          \"name\",\n          \"relationship_type\",\n          \"relationship\",\n          \"date_of_birth\",\n          \"nation_code\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"data\"\n  ]\n}"
+		},
+		{
+			"key": "directDepositPostSchema",
+			"value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Add direct deposit response\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"messages\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"success\"\n      ]\n    },\n    \"data\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"id\": {\n          \"type\": [\n            \"string\",\n            \"number\"\n          ]\n        },\n        \"employee_number\": {\n          \"type\": [\n            \"string\",\n            \"number\"\n          ]\n        },\n        \"account_number\": {\n          \"type\": \"string\"\n        },\n        \"account_type\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"Saving\",\n            \"Check\"\n          ]\n        },\n        \"amount\": {\n          \"type\": [\n            \"string\",\n            \"number\"\n          ]\n        },\n        \"branch_location\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        },\n        \"institute_name\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        },\n        \"routing_number\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        }\n      },\n      \"required\": [\n        \"id\",\n        \"employee_number\",\n        \"account_number\",\n        \"account_type\",\n        \"amount\",\n        \"branch_location\",\n        \"institute_name\",\n        \"routing_number\"\n      ]\n    }\n  },\n  \"required\": [\n    \"messages\",\n    \"data\"\n  ]\n}"
+		},
+		{
+			"key": "directDepositGetSchema",
+			"value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Get direct deposit list response\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"id\": {\n            \"type\": [\n              \"string\",\n              \"number\"\n            ]\n          },\n          \"employee_number\": {\n            \"type\": [\n              \"string\",\n              \"number\"\n            ]\n          },\n          \"account_number\": {\n            \"type\": \"string\"\n          },\n          \"account_type\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"Saving\",\n              \"Check\"\n            ]\n          },\n          \"amount\": {\n            \"type\": [\n              \"string\",\n              \"number\"\n            ]\n          },\n          \"branch_location\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          },\n          \"institute_name\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          },\n          \"routing_number\": {\n            \"type\": [\n              \"string\",\n              \"null\"\n            ]\n          }\n        },\n        \"required\": [\n          \"id\",\n          \"employee_number\",\n          \"account_number\",\n          \"account_type\",\n          \"amount\",\n          \"branch_location\",\n          \"institute_name\",\n          \"routing_number\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"data\"\n  ]\n}"
+		},
+		{
+			"key": "supervisorPostSchema",
+			"value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Add supervisor response\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"messages\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"success\"\n      ]\n    },\n    \"data\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"supervisorId\": {\n          \"type\": [\n            \"string\",\n            \"number\"\n          ]\n        },\n        \"subordinateId\": {\n          \"type\": [\n            \"string\",\n            \"number\"\n          ]\n        },\n        \"reportingMethodId\": {\n          \"type\": [\n            \"string\",\n            \"number\"\n          ]\n        },\n        \"supervisor\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"empNumber\": {\n              \"type\": [\n                \"string\",\n                \"number\"\n              ]\n            },\n            \"firstName\": {\n              \"type\": \"string\"\n            },\n            \"lastName\": {\n              \"type\": \"string\"\n            },\n            \"middleName\": {\n              \"type\": [\n                \"string\",\n                \"null\"\n              ]\n            },\n            \"termination_id\": {\n              \"type\": [\n                \"string\",\n                \"number\",\n                \"null\"\n              ]\n            },\n            \"purged_at\": {\n              \"type\": [\n                \"string\",\n                \"null\"\n              ]\n            },\n            \"employeeId\": {\n              \"type\": [\n                \"string\",\n                \"null\"\n              ]\n            }\n          },\n          \"required\": [\n            \"empNumber\",\n            \"firstName\",\n            \"lastName\",\n            \"middleName\",\n            \"termination_id\",\n            \"purged_at\",\n            \"employeeId\"\n          ]\n        },\n        \"subordinate\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"empNumber\": {\n              \"type\": [\n                \"string\",\n                \"number\"\n              ]\n            },\n            \"firstName\": {\n              \"type\": \"string\"\n            },\n            \"lastName\": {\n              \"type\": \"string\"\n            },\n            \"middleName\": {\n              \"type\": [\n                \"string\",\n                \"null\"\n              ]\n            },\n            \"termination_id\": {\n              \"type\": [\n                \"string\",\n                \"number\",\n                \"null\"\n              ]\n            },\n            \"purged_at\": {\n              \"type\": [\n                \"string\",\n                \"null\"\n              ]\n            },\n            \"employeeId\": {\n              \"type\": [\n                \"string\",\n                \"null\"\n              ]\n            }\n          },\n          \"required\": [\n            \"empNumber\",\n            \"firstName\",\n            \"lastName\",\n            \"middleName\",\n            \"termination_id\",\n            \"purged_at\",\n            \"employeeId\"\n          ]\n        },\n        \"ReportingMethod\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"id\": {\n              \"type\": [\n                \"string\",\n                \"number\"\n              ]\n            },\n            \"name\": {\n              \"type\": \"string\"\n            }\n          },\n          \"required\": [\n            \"id\",\n            \"name\"\n          ]\n        }\n      },\n      \"required\": [\n        \"supervisorId\",\n        \"subordinateId\",\n        \"reportingMethodId\",\n        \"supervisor\",\n        \"subordinate\",\n        \"ReportingMethod\"\n      ]\n    }\n  },\n  \"required\": [\n    \"messages\",\n    \"data\"\n  ]\n}"
+		},
+		{
+			"key": "supervisorGetSchema",
+			"value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Get supervisor list response\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"supervisorId\": {\n            \"type\": [\n              \"string\",\n              \"number\"\n            ]\n          },\n          \"subordinateId\": {\n            \"type\": [\n              \"string\",\n              \"number\"\n            ]\n          },\n          \"reportingMethodId\": {\n            \"type\": [\n              \"string\",\n              \"number\"\n            ]\n          },\n          \"supervisor\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"empNumber\": {\n                \"type\": [\n                  \"string\",\n                  \"number\"\n                ]\n              },\n              \"firstName\": {\n                \"type\": \"string\"\n              },\n              \"lastName\": {\n                \"type\": \"string\"\n              },\n              \"middleName\": {\n                \"type\": [\n                  \"string\",\n                  \"null\"\n                ]\n              },\n              \"termination_id\": {\n                \"type\": [\n                  \"string\",\n                  \"number\",\n                  \"null\"\n                ]\n              },\n              \"purged_at\": {\n                \"type\": [\n                  \"string\",\n                  \"null\"\n                ]\n              },\n              \"employeeId\": {\n                \"type\": [\n                  \"string\",\n                  \"null\"\n                ]\n              }\n            },\n            \"required\": [\n              \"empNumber\",\n              \"firstName\",\n              \"lastName\",\n              \"middleName\",\n              \"termination_id\",\n              \"purged_at\",\n              \"employeeId\"\n            ]\n          },\n          \"ReportingMethod\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"id\": {\n                \"type\": [\n                  \"string\",\n                  \"number\"\n                ]\n              },\n              \"name\": {\n                \"type\": \"string\"\n              }\n            },\n            \"required\": [\n              \"id\",\n              \"name\"\n            ]\n          }\n        },\n        \"required\": [\n          \"supervisorId\",\n          \"subordinateId\",\n          \"reportingMethodId\",\n          \"supervisor\",\n          \"ReportingMethod\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"data\"\n  ]\n}"
 		}
 	]
 }
