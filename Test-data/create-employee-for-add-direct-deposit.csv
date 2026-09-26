@@ -1,0 +1,3 @@
+"firstName","middleName","lastName","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","dd_account_number","dd_account_type","dd_amount","dd_branch_location","dd_institute_name","dd_routing_number","dd_successMessage"
+"DirectDeposit","Saving","Test",2,"2024-06-20","false","false","0532013000","Saving","2000","Colombo","Bank of Ceylon","1234","Successfully Saved"
+"DirectDeposit","Check","Test",2,"2024-06-20","false","false","8910282329001","Check","4000.50","Panadura","LOLC","512","Successfully Saved"

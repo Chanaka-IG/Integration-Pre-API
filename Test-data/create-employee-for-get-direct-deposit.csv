@@ -1,0 +1,2 @@
+"firstName","middleName","lastName","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","dd_account_number","dd_account_type","dd_amount","dd_branch_location","dd_institute_name","dd_routing_number"
+"DirectDeposit","Get","Test",2,"2024-06-20","false","false","0532013000","Saving","2000","Colombo","Bank of Ceylon","1234"
