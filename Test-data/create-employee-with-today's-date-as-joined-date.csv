@@ -1,2 +1,2 @@
-"firstName","middleName","lastName","employeeId","locationId","chkLogin","autoGenerateEmployeeId"
-"Alex","Carey","Peter","aleax002",2,"false","false"
+"firstName","middleName","lastName","locationId","chkLogin","autoGenerateEmployeeId"
+"Alex","Carey","Peter",2,"false","false"
