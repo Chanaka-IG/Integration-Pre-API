@@ -1,0 +1,6 @@
+"scenario","ems_limit","ems_sortingFeild","ems_sortingOrder","expectedStatus","expectedError"
+"limit is not a number","abc","","",400,"unsupported resource request"
+"limit with SQL-like text","2 OR 1=1","","",400,"unsupported resource request"
+"sort field not in the allowed list","","foo","ASC",400,"unsupported resource request"
+"sort field with a quote","","name'","ASC",400,"unsupported resource request"
+"sort field with SQL-like text","","name DESC,id","ASC",400,"unsupported resource request"

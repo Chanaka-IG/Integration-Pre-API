@@ -1,0 +1,6 @@
+"scenario","ems_nameMode","ems_name","expectedStatus","duplicateError"
+"name field missing","omit","",400,"Already Exists"
+"name is empty","string","",400,"Already Exists"
+"name is null","null","",400,"Already Exists"
+"name is whitespace only","string","   ",400,"Already Exists"
+"name longer than 60 characters","string","Name Longer Than Sixty Characters For Employment Status Check",400,"Already Exists"
