@@ -15,7 +15,7 @@ collection's pre-request and test scripts.
 |---|---|---|
 | Collection | Postman **API-Automation** in Team Workspace (uid `16056352-c7925e32-21ec-48e0-bb7c-94ab75adb207`) | `API-Automation.postman_collection.json` is an **export** and can lag. Re-export after Postman edits before committing. |
 | Environment | `QA.postman_environment.json` | Only connection/auth vars. Never commit real secrets beyond what is already there. |
-| Test data | `Test-data/*.csv` | One CSV per leaf folder. |
+| Test data | `Test-data/<Module>/<Feature>/*.csv` | One CSV per leaf folder, grouped by module and feature. |
 | JSON schemas | Collection variables (`<module>PostSchema`, `<module>GetSchema`) | Stored as stringified JSON. |
 
 When editing via the Postman MCP, `patchCollection`'s `variable` field **replaces the whole list** —
@@ -27,19 +27,35 @@ fetch the live collection, merge, send every variable, then verify.
 Integration-api/
 ├── API-Automation.postman_collection.json   # exported collection (tests live here)
 ├── QA.postman_environment.json              # baseURL, clientID, clientSecret, grantType, userName, password, accessToken
-├── Test-data/                                # one CSV per leaf folder, kebab-case, named after the folder
-│   └── <folder-name>.csv
-├── Test-plans/                               # outputs of api-test-scope / api-test-prioritization
-│   └── <module>-scope.md
+├── Test-data/                                # one CSV per leaf folder, grouped by module → feature
+│   ├── PIM/
+│   │   ├── Create-Employee/  Get-Employee/  Terminate-Employee/
+│   │   └── Emergency-Contacts/  Immigration/  Dependents/  Direct-Deposit/  Supervisors/
+│   └── Admin/
+│       └── Employment-Status/
+│           └── <leaf-folder-name>.csv        # positive and negative CSVs of a feature share its folder
+├── docs/                                     # git-ignored planning docs, same module → feature folders as Test-data/
+│   └── Admin/
+│       └── Employment-Status/                # in pipeline order:
+│           ├── <MODULE>-exploration-<method>-<endpoint-slug>.md               # api-exploratory-testing, one per endpoint+method
+│           ├── <module>-<Test-plan><description>-scope.md                    # api-test-scope
+│           └── <module>-<Test-prioritization><description>-prioritization.md # api-test-prioritization
 ├── newman-reports/                           # git-ignored run output (htmlextra)
 ├── .claude/skills/                           # these skills
 └── .gitignore                                # ignores newman-reports/, report.html, .~lock.*#, .mcp.json
 ```
 
 Rules:
-- CSVs go in `Test-data/` only — never in the repo root. Flag stray root CSVs or `.~lock.*#` files.
+- CSVs go in `Test-data/<Module>/<Feature>/` only — never in the repo root or directly in `Test-data/`.
+  `<Module>` matches the collection's module folder (`PIM`, `Admin`, `Leave`…). `<Feature>` is the sub-module
+  (e.g. `Immigration`, not `Update-employee`). Create a new module/feature folder when the first CSV needs it.
+  Flag stray root CSVs or `.~lock.*#` files.
 - Reports go in `newman-reports/` (ignored). Do not commit `report.html`.
-- `Test-plans/` holds markdown scope/priority docs; create it on first use.
+- Docs go in `docs/<Module>/<Feature>/`, using the **same module and feature folder names as `Test-data/`**
+  (e.g. `docs/Admin/Employment-Status/` next to `Test-data/Admin/Employment-Status/`). Never put them directly
+  in `docs/`. Create the folders on first use. To find an existing doc by file name: `find docs -name "<file>"`.
+- Probe scratch output from **api-exploratory-testing** (token, raw responses, probe log) stays in
+  the scratchpad, never in the repo.
 
 ## Collection layout
 
@@ -61,7 +77,7 @@ API-Automation
   employee) so it can run alone with `--folder`.
 - Folder names: kebab-case, Title-Case words allowed (`Add-Immigration`, `get-all-employees`).
 - Request names: `<ID> <plain sentence>` — `PIM-026 add immigration for created employee`.
-- IDs: `<MODULE>-NNN`, sequential **across the whole collection**, never reused. Find the highest
+- IDs: `<MODULE>-NNN`, sequential **across the whole collection**, never reused. Find the highest. Ids should be incremented from the previous test case.
   existing ID before adding (`AUTH-001`, `PIM-001…`). Setup requests get IDs too.
 
 ## Collection-level scripts (do not duplicate in requests)
@@ -85,7 +101,7 @@ API-Automation
 
 ## CSV conventions
 
-- File name = leaf folder name + `.csv`.
+- File name = leaf folder name + `.csv`, stored in `Test-data/<Module>/<Feature>/`.
 - Header row, all values double-quoted except numbers that go into the body unquoted.
 - Shared employee columns: `firstName,middleName,lastName,locationId,joinedDate,chkLogin,autoGenerateEmployeeId`.
 - Module columns prefixed: `imm_*`, `dep_*`, `dd_*`, plus `<prefix>_successMessage` where the API returns one.
@@ -95,8 +111,9 @@ API-Automation
 ## When asked to set up a new module
 
 1. Confirm module name and ID prefix with the user.
-2. Create `Test-plans/<module>-scope.md` (via **api-test-scope**).
+2. Explore the endpoints (via **api-exploratory-testing**), then create the scope doc (via
+   **api-test-scope**) and prioritize it (via **api-test-prioritization**).
 3. Add folders to the live collection following the tree above.
 4. Add schema collection variables (full-list patch).
-5. Add CSVs to `Test-data/`.
+5. Add CSVs to `Test-data/<Module>/<Feature>/`.
 6. Re-export the collection into the repo.

@@ -1,12 +1,15 @@
 ---
 name: api-test-prioritization
-description: Assigns P1/P2/P3/P4 priorities to API test scenarios based on business impact and likelihood of failure, and updates the Priority column in Test-plans/<module>-scope.md. Use when asked to prioritize tests, rank test cases, decide what to automate first, or after api-test-scope produces a scope.
+description: Assigns P1/P2/P3/P4 priorities to API test scenarios based on business impact and likelihood of failure, and writes docs/<Module>/<Feature>/<module>-<Test-prioritization><description>-prioritization.md from the scope doc. Use when asked to prioritize tests, rank test cases, decide what to automate first, or after api-test-scope produces a scope.
 ---
+
+# Test Strategist & Architect Agent
+You are a **Test Strategist** — part developer, part tester. You decide the optimal test layer for every test case.
 
 # API test prioritization
 
-Input: a scope doc from **api-test-scope** (`Test-plans/<module>-scope.md`). Output: the same doc
-with the Priority column filled and a rationale for each P1/P2.
+Input: a scope doc from **api-test-scope** (`docs/<Module>/<Feature>/<module>-<Test-plan><small description about the API use>-scope.md`). 
+Output: the same doc with the Priority column filled and a rationale for each P1/P2. output file `docs/<Module>/<Feature>/<module>-<Test-prioritization><same description>-prioritization.md`
 
 ## Priority definitions
 
@@ -24,7 +27,8 @@ For each scenario score **Impact** and **Likelihood** 1–3, then map:
 - Impact 3 = data loss/corruption, security, payroll/legal data (salary, bank, termination, immigration), core create/read.
 - Impact 2 = feature partly broken, bad data accepted, wrong error.
 - Impact 1 = cosmetic, message text, rare optional path.
-- Likelihood 3 = new/changed code, complex validation, past defects; 2 = normal; 1 = stable, simple.
+- Likelihood 3 = new/changed code, complex validation, past defects (including suspected defects in
+  the **api-exploratory-testing** doc, if one exists); 2 = normal; 1 = stable, simple.
 
 | Impact × Likelihood | Priority |
 |---|---|

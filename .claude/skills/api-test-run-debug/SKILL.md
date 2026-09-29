@@ -26,7 +26,7 @@ Single folder (the normal case — each leaf folder has its own CSV):
 newman run API-Automation.postman_collection.json \
   -e QA.postman_environment.json \
   --folder "Get-Immigration" \
-  -d "Test-data/create-employee-for-get-immigration.csv" \
+  -d "Test-data/PIM/Immigration/create-employee-for-get-immigration.csv" \
   -r cli,htmlextra --reporter-htmlextra-export newman-reports/get-immigration.html
 ```
 
@@ -34,6 +34,8 @@ newman run API-Automation.postman_collection.json \
   without `-d`.
 - Full regression: loop over leaf folders pairing each with its CSV rather than running the whole
   collection with a single `-d` (one CSV can't feed every folder).
+- CSVs live in `Test-data/<Module>/<Feature>/`; find a folder's CSV by name with
+  `find Test-data -name "<folder-name>.csv"`.
 - Add `--verbose` to see request/response bodies; add `--export-environment` to inspect env vars
   after the run.
 - Enable script logging with `--env-var debug=true` (scripts read `pm.variables.get("debug")`,
@@ -61,7 +63,7 @@ with request ID, test name, and the assertion message.
 | 401 / `Token request failed` | Environment/auth | `QA.postman_environment.json` creds, `baseURL`, clock; token refresh in collection pre-request |
 | `fixture is missing` / schema var undefined | Framework | Collection variable missing — check the variable list was not wiped by a partial patch |
 | Schema mismatch on a field | Contract change or schema too strict | Compare actual response vs schema; ask before loosening |
-| Value mismatch (expected CSV vs actual) | Real defect **or** API normalises data (trimming, date format, case) | Reproduce with a single manual call; check OrangeHRM source for the transformation |
+| Value mismatch (expected CSV vs actual) | Real defect **or** API normalises data (trimming, date format, case) | Reproduce with a single manual call (curl setup in **api-exploratory-testing**); check OrangeHRM source for the transformation |
 | Record not found in list | Wrong ID saved, pagination, or eventual consistency | Log `recordId` and list length under `debug` |
 | Passes alone, fails in full run | Shared state leak | Missing `pm.environment.unset` in the setup request |
 | Flaky timing (> 10000 ms) | Environment | Rerun once; report if repeatable |

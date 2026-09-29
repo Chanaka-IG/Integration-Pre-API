@@ -12,12 +12,15 @@ Standards come from **api-framework-structure** and **api-test-scripting** — r
 Review against the **live** collection when possible; note if the repo export differs.
 
 ## Checklist
+Read these BEFORE writing any test:
+1. `api-framework-structure` skill — Start here for overview and data models
+2. `api-automation-best-practices` check whether the tests follow the best practices when scripting the tests.
 
 ### Structure & naming
 - [ ] Folder in the right place (`Positive Test cases` / `Negative Test cases` / module / feature).
 - [ ] Leaf folder is self-contained: creates its own parent data; runs alone with `--folder`.
 - [ ] Request names `<ID> <plain sentence>`; IDs sequential, unique, no gaps introduced by reuse; typos fixed.
-- [ ] CSV exists in `Test-data/`, named after the folder, columns prefixed per convention.
+- [ ] CSV exists in `Test-data/<Module>/<Feature>/`, named after the folder, columns prefixed per convention.
 
 ### Independence & state
 - [ ] Setup request unsets hand-off env vars before creating data.
@@ -31,6 +34,7 @@ Review against the **live** collection when possible; note if the repo export di
 - [ ] Field values compared to CSV/previous response, not hard-coded.
 - [ ] List responses: specific record found by ID, field checks guarded by `if (selectedRecord)`.
 - [ ] Negative tests assert specific status + error content, and ideally that nothing was created.
+- [ ] Expected codes/messages match the exploration doc for that endpoint + method (`docs/<Module>/<Feature>/<MODULE>-exploration-<method>-<endpoint-slug>.md`, **api-exploratory-testing**) where one exists; suspected defects are not asserted as correct behaviour.
 - [ ] Every `pm.expect` has a message; test names read as plain-sentence expectations.
 - [ ] No assertion that always passes (e.g. `to.exist` on a value already defaulted to `{}`, empty `pm.test`).
 
@@ -42,8 +46,9 @@ Review against the **live** collection when possible; note if the repo export di
 - [ ] No secrets or tokens hard-coded.
 
 ### Coverage
-- [ ] Every P1/P2 row in `Test-plans/<module>-scope.md` maps to a collection ID, or is marked as not yet scripted.
+- [ ] Every P1/P2 row in `docs/<Module>/<Feature>/<module>-<Test-prioritization><description>-prioritization.md` maps to a collection ID, or is marked as not yet scripted.
 - [ ] Read-after-write exists for each create endpoint.
+
 
 ## Report format
 

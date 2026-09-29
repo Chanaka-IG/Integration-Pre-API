@@ -1,11 +1,22 @@
 ---
 name: api-test-scripting
-description: Writes Postman request pre-request/test scripts and CSV test data for the P1 and P2 scenarios of an API test scope, following this repo's conventions (self-contained folders, sequential IDs, env-var hand-offs, iteration-data assertions, schema checks). Use when asked to write/automate/script API tests, add requests to the API-Automation collection, or implement scenarios from Test-plans/<module>-scope.md.
+description: Writes Postman request pre-request/test scripts and CSV test data for the P1 and P2 scenarios of an API test scope, following this repo's conventions (self-contained folders, sequential IDs, env-var hand-offs, iteration-data assertions, schema checks). Use when asked to write/automate/script API tests, add requests to the API-Automation collection, or implement P1/P2 scenarios from docs/<Module>/<Feature>/<module>-<Test-prioritization><description>-prioritization.md.
 ---
+
+## Knowledge Sources
+Read these BEFORE writing any test:
+1. `api-framework-structure` skill — Start here for overview and data models
+2. `api-automation-best-practices` strictky follow the best practices when scripting the tests.
+3. The exploration doc(s) from `api-exploratory-testing` for the endpoint + method being scripted only
+   (`docs/<Module>/<Feature>/<MODULE>-exploration-<method>-<endpoint-slug>.md` — naming rule in that skill; the scope doc header lists them),
+   if one exists — base status codes, error messages, and the schema on its observed behaviour and
+   "Suggested assertions". If it doesn't exist and an expected response is unclear, run
+   **api-exploratory-testing** first instead of guessing. Don't assert a suspected defect as
+   correct behaviour — ask the user.
 
 # API test scripting (P1 + P2 only)
 
-Inputs: `Test-plans/<module>-scope.md` with confirmed priorities (**api-test-prioritization**).
+Inputs: `docs/<Module>/<Feature>/<module>-<Test-prioritization><same description>-prioritization.md` with confirmed priorities (**api-test-prioritization**).
 Script **only P1 and P2** rows. If asked to script P3/P4, say they are out of scope for this skill
 and confirm with the user first.
 
@@ -18,7 +29,7 @@ implementation is `Positive Test cases/PIM/Update-employee/Immigration` — copy
 2. Find the highest existing `<MODULE>-NNN` and continue from there.
 3. Per scenario, create a **self-contained leaf folder**: setup request(s) → action request →
    (verification GET if read-after-write).
-4. Create the CSV in `Test-data/<folder-name>.csv`.
+4. Create the CSV in `Test-data/<Module>/<Feature>/<folder-name>.csv` (see **api-framework-structure**).
 5. Add/merge schema collection variables (send the full variable list).
 6. Dry-run (see **api-test-run-debug**) before telling the user it is done.
 7. Update the scope doc: fill in the collection IDs for scripted rows.
@@ -40,6 +51,8 @@ Reference data with `{{var}}`. Strings quoted, numbers/booleans unquoted:
 Any unquoted variable needs a pre-request guard against a blank CSV cell (invalid JSON otherwise).
 
 ## Setup request (creates the parent)
+
+- if there is something to work with the employee number, you cant get it from the CSV, you need to create a valid employee first (POST `/employees`).
 
 ```js
 // Pre-request

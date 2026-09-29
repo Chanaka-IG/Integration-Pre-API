@@ -2539,9 +2539,1421 @@
             }
           ],
           "description": "All the test cases related PIM APIs will be included here"
+        },
+        {
+          "name": "Admin",
+          "item": [
+            {
+              "name": "Employment-Status",
+              "item": [
+                {
+                  "name": "add-employment-status",
+                  "item": [
+                    {
+                      "name": "ADMIN-001 get employment statuses before add",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"employment_status_id\");",
+                              "pm.environment.unset(\"employment_status_name\");",
+                              "pm.environment.unset(\"employment_status_baseline\");"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "",
+                              "pm.test(\"Employment statuses are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the employment status list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"employmentStatusGetSchema\");",
+                              "    pm.expect(raw, \"employmentStatusGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "// side effect: ADMIN-003 checks these records are unchanged after the add",
+                              "pm.environment.set(\"employment_status_baseline\",",
+                              "    JSON.stringify(records.map(r => ({ id: String(r.id), name: String(r.name) }))));"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-002 add employment status",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const baseName = pm.iterationData.get(\"ems_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: ems_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// names are unique (case-insensitive), so prefix a run-specific value; max length is 60",
+                              "const name = `EMS-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "if (name.length > 60) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 60`);",
+                              "}",
+                              "",
+                              "// side effect: checked by ADMIN-002 and ADMIN-003",
+                              "pm.environment.set(\"employment_status_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Employment status is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the employment status schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"employmentStatusPostSchema\");",
+                              "    pm.expect(raw, \"employmentStatusPostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Employment status name matches what was sent\", function () {",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"employment_status_name\")));",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-003 and ADMIN-004",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"employment_status_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-003 get employment statuses after add",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"employment_status_id\")) {",
+                              "    throw new Error(\"Precondition failed: employment_status_id not set by ADMIN-002\");",
+                              "}",
+                              "if (!pm.environment.get(\"employment_status_baseline\")) {",
+                              "    throw new Error(\"Precondition failed: employment_status_baseline not set by ADMIN-001\");",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const statusId = norm(pm.environment.get(\"employment_status_id\"));",
+                              "const baseline = JSON.parse(pm.environment.get(\"employment_status_baseline\"));",
+                              "",
+                              "const selectedRecord = records.find(r => norm(r.id) === statusId);",
+                              "",
+                              "pm.test(\"Employment statuses are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the employment status list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"employmentStatusGetSchema\");",
+                              "    pm.expect(raw, \"employmentStatusGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Employment status added in ADMIN-002 is in the list\", function () {",
+                              "    pm.expect(selectedRecord, `id ${statusId} not found in response`).to.exist;",
+                              "});",
+                              "",
+                              "// the check below only makes sense once the record is found",
+                              "if (selectedRecord) {",
+                              "    pm.test(\"Listed name matches what was sent\", function () {",
+                              "        pm.expect(norm(selectedRecord.name), \"name\").to.eql(norm(pm.environment.get(\"employment_status_name\")));",
+                              "    });",
+                              "}",
+                              "",
+                              "pm.test(\"Existing employment statuses are unchanged\", function () {",
+                              "    const changed = baseline.filter(b => {",
+                              "        const current = records.find(r => norm(r.id) === b.id);",
+                              "        return !current || norm(current.name) !== b.name;",
+                              "    });",
+                              "    pm.expect(changed, \"employment statuses missing or renamed after the add\").to.eql([]);",
+                              "});"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-004 delete employment status created by ADMIN-002",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"employment_status_id\")) {",
+                              "    throw new Error(\"Precondition failed: employment_status_id not set by ADMIN-002\");",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "pm.test(\"Employment status created by ADMIN-002 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"employment_status_id\");",
+                              "pm.environment.unset(\"employment_status_name\");",
+                              "pm.environment.unset(\"employment_status_baseline\");"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"data\": [\"{{employment_status_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-employment-statuses",
+                  "item": [
+                    {
+                      "name": "ADMIN-012 get employment statuses",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"employment_status_snapshot\");"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const meta = response.meta || {};",
+                              "",
+                              "pm.test(\"Employment statuses are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the employment status list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"employmentStatusGetSchema\");",
+                              "    pm.expect(raw, \"employmentStatusGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Total count matches the number of records returned\", function () {",
+                              "    pm.expect(meta.total, \"meta.total\").to.eql(records.length);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-013",
+                              "pm.environment.set(\"employment_status_snapshot\", JSON.stringify({ data: records, total: meta.total }));"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-013 get employment statuses again to check nothing changed",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"employment_status_snapshot\")) {",
+                              "    throw new Error(\"Precondition failed: employment_status_snapshot not set by ADMIN-012\");",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const meta = response.meta || {};",
+                              "const snapshot = JSON.parse(pm.environment.get(\"employment_status_snapshot\"));",
+                              "",
+                              "pm.test(\"Employment statuses are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "// compares the whole list: fails if another user or run changes employment statuses on QA in between",
+                              "pm.test(\"Repeated GET returns the same employment statuses\", function () {",
+                              "    pm.expect(records, \"data compared with ADMIN-012\").to.eql(snapshot.data);",
+                              "});",
+                              "",
+                              "pm.test(\"Repeated GET returns the same total count\", function () {",
+                              "    pm.expect(meta.total, \"meta.total compared with ADMIN-012\").to.eql(snapshot.total);",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"employment_status_snapshot\");"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-employment-statuses-after-add-and-delete",
+                  "item": [
+                    {
+                      "name": "ADMIN-014 get employment statuses before add",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"employment_status_id\");",
+                              "pm.environment.unset(\"employment_status_name\");",
+                              "pm.environment.unset(\"employment_status_baseline_total\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const meta = (pm.response.json() || {}).meta || {};",
+                              "",
+                              "pm.test(\"Employment statuses are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response contains the total count\", function () {",
+                              "    pm.expect(meta.total, \"meta.total\").to.be.a(\"number\");",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-016 and ADMIN-018, which compare exact totals (fails if QA data changes mid-run)",
+                              "if (typeof meta.total === \"number\") {",
+                              "    pm.environment.set(\"employment_status_baseline_total\", String(meta.total));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-015 add employment status for read-after-write",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const baseName = pm.iterationData.get(\"ems_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: ems_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// names are unique (case-insensitive), so prefix a run-specific value; max length is 60",
+                              "const name = `EMS-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "if (name.length > 60) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 60`);",
+                              "}",
+                              "",
+                              "// side effect: checked by ADMIN-016",
+                              "pm.environment.set(\"employment_status_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Employment status is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Response contains the new employment status id\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-016, ADMIN-017 and ADMIN-018",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"employment_status_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-016 get employment statuses after add",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"employment_status_id\")) {",
+                              "    throw new Error(\"Precondition failed: employment_status_id not set by ADMIN-015\");",
+                              "}",
+                              "if (!pm.environment.get(\"employment_status_baseline_total\")) {",
+                              "    throw new Error(\"Precondition failed: employment_status_baseline_total not set by ADMIN-014\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const meta = response.meta || {};",
+                              "const statusId = norm(pm.environment.get(\"employment_status_id\"));",
+                              "const baselineTotal = Number(pm.environment.get(\"employment_status_baseline_total\"));",
+                              "const selectedRecord = records.find(r => norm(r.id) === statusId);",
+                              "",
+                              "pm.test(\"Employment statuses are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Employment status added in ADMIN-015 is in the list\", function () {",
+                              "    pm.expect(selectedRecord, `id ${statusId} not found in response`).to.exist;",
+                              "});",
+                              "",
+                              "// the check below only makes sense once the record is found",
+                              "if (selectedRecord) {",
+                              "    pm.test(\"Listed name matches what was sent\", function () {",
+                              "        pm.expect(norm(selectedRecord.name), \"name\").to.eql(norm(pm.environment.get(\"employment_status_name\")));",
+                              "    });",
+                              "}",
+                              "",
+                              "pm.test(\"Total count increased by one after the add\", function () {",
+                              "    pm.expect(meta.total, \"meta.total\").to.eql(baselineTotal + 1);",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-017 delete employment status created by ADMIN-015",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"employment_status_id\")) {",
+                              "    throw new Error(\"Precondition failed: employment_status_id not set by ADMIN-015\");",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "pm.test(\"Employment status created by ADMIN-015 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"data\": [\"{{employment_status_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-018 get employment statuses after delete",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"employment_status_id\")) {",
+                              "    throw new Error(\"Precondition failed: employment_status_id not set by ADMIN-015\");",
+                              "}",
+                              "if (!pm.environment.get(\"employment_status_baseline_total\")) {",
+                              "    throw new Error(\"Precondition failed: employment_status_baseline_total not set by ADMIN-014\");",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const meta = response.meta || {};",
+                              "const statusId = norm(pm.environment.get(\"employment_status_id\"));",
+                              "const baselineTotal = Number(pm.environment.get(\"employment_status_baseline_total\"));",
+                              "",
+                              "pm.test(\"Employment statuses are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Employment status deleted in ADMIN-017 is no longer in the list\", function () {",
+                              "    pm.expect(records.map(r => norm(r.id)), \"ids in the list\").to.not.include(statusId);",
+                              "});",
+                              "",
+                              "pm.test(\"Total count is back to the value before the add\", function () {",
+                              "    pm.expect(meta.total, \"meta.total\").to.eql(baselineTotal);",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"employment_status_id\");",
+                              "pm.environment.unset(\"employment_status_name\");",
+                              "pm.environment.unset(\"employment_status_baseline_total\");"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ],
       "description": "All the positive test cases will be included within this folder"
+    },
+    {
+      "name": "Negative Test cases",
+      "item": [
+        {
+          "name": "Admin",
+          "item": [
+            {
+              "name": "Employment-Status",
+              "item": [
+                {
+                  "name": "add-employment-status-with-invalid-name",
+                  "item": [
+                    {
+                      "name": "ADMIN-005 add employment status with invalid name",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// build the body from the CSV row: the name is omitted, null, or sent as a string\nconst mode = String(pm.iterationData.get(\"ems_nameMode\") || \"\").trim();\nconst rawName = pm.iterationData.get(\"ems_name\");\nconst body = {};\n\nif (mode === \"string\") {\n    body.name = rawName === undefined || rawName === null ? \"\" : String(rawName);\n} else if (mode === \"null\") {\n    body.name = null;\n} else if (mode !== \"omit\") {\n    throw new Error(`Test data error: ems_nameMode must be omit, null or string, got \"${mode}\"`);\n}\n\npm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nlet responseData = {};\ntry {\n    responseData = (pm.response.json() || {}).data || {};\n} catch (e) {\n    // error responses from this endpoint are plain text, not JSON\n}\nconsole.log(\"response data:\", responseData)\nconsole.log(\"Response code : \",pm.response.code)\n\n// teardown: remove a record the request should not have created, so later runs are not affected\nconst deleteEmploymentStatus = id => pm.sendRequest({\n    url: `${pm.environment.get(\"baseURL\")}/api/employmentStatus`,\n    method: \"DELETE\",\n    header: {\n        \"Content-Type\": \"application/json\",\n        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`\n    },\n    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }\n}, (err, res) => {\n    pm.test(\"Record created by the rejected request is cleaned up\", function () {\n        pm.expect(err, \"delete request error\").to.be.null;\n        pm.expect(res && res.code, \"delete status\").to.eql(204);\n    });\n});\n\nconst scenario = pm.iterationData.get(\"scenario\");\n\npm.test(`Invalid name is rejected (${scenario})`, function () {\n    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));\n});\n\npm.test(`No employment status is created (${scenario})`, function () {\n    pm.expect(norm(responseData.id), \"id of an employment status created by an invalid request\").to.eql(\"\");\n});\n\n// a blank-name record left on the instance makes blank names fail the duplicate check instead of validation\npm.test(`Name is rejected by validation, not by the duplicate-name check (${scenario})`, function () {\n    pm.expect(pm.response.text().trim(), \"error body\").to.not.eql(norm(pm.iterationData.get(\"duplicateError\")));\n});\n\nif (norm(responseData.id) !== \"\") {\n    deleteEmploymentStatus(responseData.id);\n}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-employment-status-with-duplicate-name",
+                  "item": [
+                    {
+                      "name": "ADMIN-006 add employment status for duplicate check",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"employment_status_id\");",
+                              "pm.environment.unset(\"employment_status_name\");",
+                              "",
+                              "const baseName = pm.iterationData.get(\"ems_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: ems_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// names are unique (case-insensitive), so prefix a run-specific value; max length is 60",
+                              "const name = `EMS-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "if (name.length > 60) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 60`);",
+                              "}",
+                              "",
+                              "// side effect: ADMIN-007 sends the same name again",
+                              "pm.environment.set(\"employment_status_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Employment status is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Response contains the employment status ID\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id\").to.not.eql(\"\");",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-007 and ADMIN-008",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"employment_status_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-007 add employment status with duplicate name",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"employment_status_id\") || !pm.environment.get(\"employment_status_name\")) {",
+                              "    throw new Error(\"Precondition failed: employment status not created by ADMIN-006\");",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name: pm.environment.get(\"employment_status_name\") }));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteEmploymentStatus = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/employmentStatus`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "});",
+                              "",
+                              "pm.test(\"Duplicate name is rejected\", function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(\"Error message says the name already exists\", function () {",
+                              "    pm.expect(pm.response.text().trim(), \"error body\").to.eql(norm(pm.iterationData.get(\"expectedError\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No second employment status is created\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id of a duplicate employment status\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "if (norm(responseData.id) !== \"\" && norm(responseData.id) !== norm(pm.environment.get(\"employment_status_id\"))) {",
+                              "    deleteEmploymentStatus(responseData.id);",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-008 delete employment status created by ADMIN-006",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"employment_status_id\")) {",
+                              "    throw new Error(\"Precondition failed: employment_status_id not set by ADMIN-006\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "pm.test(\"Employment status created by ADMIN-006 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"employment_status_id\");",
+                              "pm.environment.unset(\"employment_status_name\");",
+                              "pm.environment.unset(\"employment_status_baseline\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"data\": [\"{{employment_status_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-employment-status-with-undocumented-fields",
+                  "item": [
+                    {
+                      "name": "ADMIN-009 add employment status with undocumented field",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"employment_status_name\");",
+                              "",
+                              "const baseName = pm.iterationData.get(\"ems_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: ems_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// names are unique (case-insensitive), so prefix a run-specific value; max length is 60",
+                              "const name = `EMS-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "if (name.length > 60) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 60`);",
+                              "}",
+                              "",
+                              "const field = String(pm.iterationData.get(\"ems_extraField\") || \"\").trim();",
+                              "if (field === \"\" || field === \"name\") {",
+                              "    throw new Error(\"Test data error: ems_extraField must name a field other than name\");",
+                              "}",
+                              "",
+                              "// side effect: checked by the tests of this request",
+                              "pm.environment.set(\"employment_status_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name, [field]: String(pm.iterationData.get(\"ems_extraValue\")) }));"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteEmploymentStatus = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/employmentStatus`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "});",
+                              "",
+                              "const field = norm(pm.iterationData.get(\"ems_extraField\"));",
+                              "const sentValue = norm(pm.iterationData.get(\"ems_extraValue\"));",
+                              "// the docs don't say whether extra fields are ignored or rejected, so the CSV lists the accepted statuses",
+                              "const allowedStatuses = norm(pm.iterationData.get(\"expectedStatuses\")).split(\"|\").map(Number);",
+                              "",
+                              "pm.test(`Request with undocumented field \"${field}\" is ignored or rejected`, function () {",
+                              "    pm.expect(pm.response.code, \"status\").to.be.oneOf(allowedStatuses);",
+                              "});",
+                              "",
+                              "if (pm.response.code === 201) {",
+                              "    pm.test(`Undocumented field \"${field}\" does not change the saved record`, function () {",
+                              "        pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"employment_status_name\")));",
+                              "        if (field === \"id\") {",
+                              "            pm.expect(norm(responseData.id), \"id must be generated by the server\").to.not.eql(sentValue);",
+                              "        }",
+                              "    });",
+                              "}",
+                              "",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    deleteEmploymentStatus(responseData.id);",
+                              "}",
+                              "",
+                              "pm.environment.unset(\"employment_status_name\");"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-employment-status-without-valid-token",
+                  "item": [
+                    {
+                      "name": "ADMIN-010 add employment status without token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"employment_status_name\");",
+                              "",
+                              "const baseName = pm.iterationData.get(\"ems_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: ems_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// names are unique (case-insensitive), so prefix a run-specific value; max length is 60",
+                              "const name = `EMS-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "if (name.length > 60) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 60`);",
+                              "}",
+                              "",
+                              "// side effect: ADMIN-011 sends the same name",
+                              "pm.environment.set(\"employment_status_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteEmploymentStatus = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/employmentStatus`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "});",
+                              "",
+                              "pm.test(\"Request is rejected as unauthorized\", function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No employment status is created\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id of an employment status created without a valid token\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    deleteEmploymentStatus(responseData.id);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-011 add employment status with invalid token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"employment_status_name\")) {",
+                              "    throw new Error(\"Precondition failed: employment_status_name not set by ADMIN-010\");",
+                              "}",
+                              "if (!pm.iterationData.get(\"invalidToken\")) {",
+                              "    throw new Error(\"Test data error: invalidToken is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name: pm.environment.get(\"employment_status_name\") }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteEmploymentStatus = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/employmentStatus`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "});",
+                              "",
+                              "pm.test(\"Request is rejected as unauthorized\", function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No employment status is created\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id of an employment status created without a valid token\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "pm.test(\"Error says the access token is invalid\", function () {",
+                              "    const body = pm.response.json() || {};",
+                              "    pm.expect(norm(body.error), \"error\").to.eql(norm(pm.iterationData.get(\"expectedError\")));",
+                              "    pm.expect(norm(body.error_description), \"error_description\").to.eql(norm(pm.iterationData.get(\"expectedErrorDescription\")));",
+                              "});",
+                              "",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    deleteEmploymentStatus(responseData.id);",
+                              "}",
+                              "",
+                              "pm.environment.unset(\"employment_status_name\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{invalidToken}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-employment-statuses-with-invalid-query-parameters",
+                  "item": [
+                    {
+                      "name": "ADMIN-023 get employment statuses with invalid query parameter",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// add the query parameters from the CSV row; a blank cell means the parameter is not sent",
+                              "const params = { limit: \"ems_limit\", sortingFeild: \"ems_sortingFeild\", sortingOrder: \"ems_sortingOrder\" };",
+                              "const query = [];",
+                              "Object.keys(params).forEach(key => {",
+                              "    const value = pm.iterationData.get(params[key]);",
+                              "    if (value !== undefined && value !== null && String(value) !== \"\") {",
+                              "        query.push({ key, value: encodeURIComponent(String(value)) });",
+                              "    }",
+                              "});",
+                              "if (query.length === 0) {",
+                              "    throw new Error(\"Test data error: the CSV row sends no query parameter\");",
+                              "}",
+                              "pm.request.url.addQueryParams(query);"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(`Invalid query parameter is rejected (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error message explains the request is not supported (${scenario})`, function () {",
+                              "    pm.expect(pm.response.text().trim(), \"error body\").to.eql(String(pm.iterationData.get(\"expectedError\")));",
+                              "});"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employmentStatus",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employmentStatus"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "auth": {
@@ -2594,8 +4006,19 @@
           "    pm.expect(pm.response.responseTime).to.be.below(10000);",
           "});",
           "",
-          "pm.test(\"Response is JSON\", function () {",
-          "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+          "// 204 No Content has no body, so there is no content type to check",
+          "pm.test(\"Response content type is correct\", function () {",
+          "    const contentType = pm.response.headers.get(\"Content-Type\") || \"\";",
+          "    const status = pm.response.code;",
+          "",
+          "    if (status >= 200 && status < 300) {",
+          "        pm.expect(contentType).to.include(\"application/json\");",
+          "    } else {",
+          "        pm.expect(",
+          "            contentType.includes(\"application/json\") ||",
+          "            contentType.includes(\"text/html\")",
+          "        ).to.be.true;",
+          "    }",
           "});",
           "",
           "pm.test(\"No server error\", function () {",
@@ -2682,6 +4105,14 @@
     {
       "key": "supervisorGetSchema",
       "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Get supervisor list response\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"supervisorId\": {\n            \"type\": [\n              \"string\",\n              \"number\"\n            ]\n          },\n          \"subordinateId\": {\n            \"type\": [\n              \"string\",\n              \"number\"\n            ]\n          },\n          \"reportingMethodId\": {\n            \"type\": [\n              \"string\",\n              \"number\"\n            ]\n          },\n          \"supervisor\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"empNumber\": {\n                \"type\": [\n                  \"string\",\n                  \"number\"\n                ]\n              },\n              \"firstName\": {\n                \"type\": \"string\"\n              },\n              \"lastName\": {\n                \"type\": \"string\"\n              },\n              \"middleName\": {\n                \"type\": [\n                  \"string\",\n                  \"null\"\n                ]\n              },\n              \"termination_id\": {\n                \"type\": [\n                  \"string\",\n                  \"number\",\n                  \"null\"\n                ]\n              },\n              \"purged_at\": {\n                \"type\": [\n                  \"string\",\n                  \"null\"\n                ]\n              },\n              \"employeeId\": {\n                \"type\": [\n                  \"string\",\n                  \"null\"\n                ]\n              }\n            },\n            \"required\": [\n              \"empNumber\",\n              \"firstName\",\n              \"lastName\",\n              \"middleName\",\n              \"termination_id\",\n              \"purged_at\",\n              \"employeeId\"\n            ]\n          },\n          \"ReportingMethod\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"id\": {\n                \"type\": [\n                  \"string\",\n                  \"number\"\n                ]\n              },\n              \"name\": {\n                \"type\": \"string\"\n              }\n            },\n            \"required\": [\n              \"id\",\n              \"name\"\n            ]\n          }\n        },\n        \"required\": [\n          \"supervisorId\",\n          \"subordinateId\",\n          \"reportingMethodId\",\n          \"supervisor\",\n          \"ReportingMethod\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"data\"\n  ]\n}"
+    },
+    {
+      "key": "employmentStatusPostSchema",
+      "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Add employment status response\",\n  \"type\": \"object\",\n  \"required\": [\n    \"data\"\n  ],\n  \"properties\": {\n    \"data\": {\n      \"type\": \"object\",\n      \"required\": [\n        \"id\",\n        \"name\"\n      ],\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[0-9]+$\"\n        },\n        \"name\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 60\n        }\n      }\n    }\n  }\n}"
+    },
+    {
+      "key": "employmentStatusGetSchema",
+      "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Employment status list response\",\n  \"type\": \"object\",\n  \"required\": [\n    \"data\",\n    \"meta\"\n  ],\n  \"properties\": {\n    \"data\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"id\",\n          \"name\"\n        ],\n        \"properties\": {\n          \"id\": {\n            \"type\": \"string\",\n            \"pattern\": \"^[0-9]+$\"\n          },\n          \"name\": {\n            \"type\": \"string\",\n            \"maxLength\": 60\n          }\n        }\n      }\n    },\n    \"meta\": {\n      \"type\": \"object\",\n      \"required\": [\n        \"total\"\n      ],\n      \"properties\": {\n        \"total\": {\n          \"type\": \"integer\",\n          \"minimum\": 0\n        }\n      }\n    }\n  }\n}"
     }
   ]
 }
