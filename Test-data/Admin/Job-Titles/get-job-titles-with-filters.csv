@@ -1,0 +1,10 @@
+"scenario","jtg_ids","jtg_name","jtg_includeDeleted","jtg_limit","jtg_offset","jtg_expectedTitles","jtg_expectedTotal"
+"lookup by ids","A|B|C","","","","","A|B|C",3
+"name filter hides the deleted job title","","__PREFIX__","","","","A|B|C",3
+"includeDeleted false hides the deleted job title","","__PREFIX__","false","","","A|B|C",3
+"includeDeleted true shows the deleted job title","","__PREFIX__","true","","","A|B|C|D",4
+"first page of two","A|B|C","","","2","0","A|B",3
+"second page of two","A|B|C","","","2","2","C",3
+"offset beyond the last job title","A|B|C","","","2","10","",3
+"includeDeleted 1 behaves like true","","__PREFIX__","1","","","A|B|C|D",4
+"SQL-like name filter is treated as text","","__PREFIX__' OR '1'='1","","","","",0

@@ -1,0 +1,2 @@
+"scenario","expectedStatus","expectedMessage","expectedErrorKey","expectedError"
+"client-supplied id",422,"Invalid Data Submitted","keySet","Must not have keys `{ ""id"" }`"
