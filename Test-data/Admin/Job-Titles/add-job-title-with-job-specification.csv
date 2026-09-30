@@ -1,0 +1,3 @@
+"jt_name","jt_description","jt_note","jt_filePath","jt_fileName","jt_fileType","jt_fileSize"
+"Specification PDF","Role described in the attached PDF","Created by API automation","Test-data/Admin/Job-Titles/files/job-specification.pdf","job-specification.pdf","application/pdf",142
+"Specification Text","Role described in the attached text file","Created by API automation","Test-data/Admin/Job-Titles/files/job-specification.txt","job-specification.txt","text/plain",52

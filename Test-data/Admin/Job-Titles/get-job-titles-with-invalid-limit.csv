@@ -1,0 +1,3 @@
+"scenario","jtg_limit","maxPageSize","expectedMessage"
+"limit is zero",0,100,"Invalid Data Submitted"
+"limit is negative",-1,100,"Invalid Data Submitted"

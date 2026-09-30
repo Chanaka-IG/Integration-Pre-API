@@ -1,0 +1,2 @@
+# fixture files are uploaded byte for byte; the CSV asserts their exact size
+Test-data/Admin/Job-Titles/files/* binary

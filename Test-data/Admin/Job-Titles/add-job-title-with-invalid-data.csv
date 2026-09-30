@@ -1,0 +1,8 @@
+"scenario","jt_requestBody","expectedStatus","expectedMessage","expectedErrorKey","expectedError"
+"jobTitleName missing (empty body)","{}",422,"Invalid Data Submitted","keySet","Must have keys `{ ""jobTitleName"""
+"jobTitleName missing (only description sent)","{""jobDescription"":""Description without a name""}",422,"Invalid Data Submitted","keySet","Must have keys `{ ""jobTitleName"""
+"jobTitleName is empty","{""jobTitleName"":""""}",422,"Invalid Data Submitted","allOf","jobTitleName must not be empty"
+"jobTitleName is whitespace only","{""jobTitleName"":""   ""}",422,"Invalid Data Submitted","allOf","jobTitleName must not be empty"
+"jobTitleName is an array","{""jobTitleName"":[""__UNIQUE_NAME__""]}",422,"Invalid Data Submitted","allOf",""
+"isDeleted is true","{""jobTitleName"":""__UNIQUE_NAME__"",""isDeleted"":true}",422,"Invalid Data Submitted","allOf","isDeleted must evaluate to `false`"
+"isDeleted is 1","{""jobTitleName"":""__UNIQUE_NAME__"",""isDeleted"":1}",422,"Invalid Data Submitted","allOf","isDeleted must evaluate to `false`"

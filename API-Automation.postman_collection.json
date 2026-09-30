@@ -3261,6 +3261,1728 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Job-Titles",
+              "item": [
+                {
+                  "name": "add-job-title",
+                  "item": [
+                    {
+                      "name": "ADMIN-027 get job titles before add",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"job_title_id\");",
+                              "pm.environment.unset(\"job_title_name\");",
+                              "pm.environment.unset(\"job_title_baseline\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "",
+                              "pm.test(\"Job titles are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Baseline job titles are returned\", function () {",
+                              "    pm.expect(records.length, \"number of baseline job titles\").to.be.above(0);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-030 (oldest titles by id, so the new title is never in this page)",
+                              "pm.environment.set(\"job_title_baseline\", JSON.stringify(records.map(r => ({",
+                              "    id: norm(r.id),",
+                              "    jobTitleName: norm(r.jobTitleName),",
+                              "    jobDescription: norm(r.jobDescription),",
+                              "    note: norm(r.note)",
+                              "}))));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles?orderField=id&orderBy=ASC&page[limit]=10",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ],
+                          "query": [
+                            {
+                              "key": "orderField",
+                              "value": "id"
+                            },
+                            {
+                              "key": "orderBy",
+                              "value": "ASC"
+                            },
+                            {
+                              "key": "page[limit]",
+                              "value": "10"
+                            }
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-028 add job title",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const baseName = pm.iterationData.get(\"jt_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: jt_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// names are unique among active job titles, so prefix a run-specific value; max length is 100",
+                              "const name = `JT-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "if (name.length > 100) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 100`);",
+                              "}",
+                              "",
+                              "// side effect: checked by ADMIN-028 and ADMIN-029",
+                              "pm.environment.set(\"job_title_name\", name);",
+                              "",
+                              "// optional fields: a blank CSV cell means the field is not sent",
+                              "const body = { jobTitleName: name };",
+                              "const description = norm(pm.iterationData.get(\"jt_description\"));",
+                              "const note = norm(pm.iterationData.get(\"jt_note\"));",
+                              "if (description !== \"\") body.jobDescription = description;",
+                              "if (note !== \"\") body.note = note;",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const expected = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Job title is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the job title schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"jobTitlePostSchema\");",
+                              "    pm.expect(raw, \"jobTitlePostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Job title details match what was sent\", function () {",
+                              "    pm.expect(norm(responseData.jobTitleName), \"jobTitleName\").to.eql(norm(pm.environment.get(\"job_title_name\")));",
+                              "    pm.expect(norm(responseData.jobDescription), \"jobDescription\").to.eql(expected(\"jt_description\"));",
+                              "    pm.expect(norm(responseData.note), \"note\").to.eql(expected(\"jt_note\"));",
+                              "});",
+                              "",
+                              "pm.test(\"New job title is active\", function () {",
+                              "    pm.expect(norm(responseData.isDeleted), \"isDeleted\").to.eql(\"0\");",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-029, ADMIN-030 and ADMIN-031",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"job_title_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-029 get job title created by ADMIN-028",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_title_id\")) {",
+                              "    throw new Error(\"Precondition failed: job_title_id not set by ADMIN-028\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const expected = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Job title is retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the job title schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"jobTitleGetSchema\");",
+                              "    pm.expect(raw, \"jobTitleGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Retrieved job title is the one added in ADMIN-028\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id\").to.eql(norm(pm.environment.get(\"job_title_id\")));",
+                              "});",
+                              "",
+                              "pm.test(\"Saved job title details match what was sent\", function () {",
+                              "    pm.expect(norm(responseData.jobTitleName), \"jobTitleName\").to.eql(norm(pm.environment.get(\"job_title_name\")));",
+                              "    pm.expect(norm(responseData.jobDescription), \"jobDescription\").to.eql(expected(\"jt_description\"));",
+                              "    pm.expect(norm(responseData.note), \"note\").to.eql(expected(\"jt_note\"));",
+                              "    pm.expect(norm(responseData.isDeleted), \"isDeleted\").to.eql(\"0\");",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles/{{job_title_id}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles",
+                            "{{job_title_id}}"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-030 get job titles again to check existing titles are unchanged",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"job_title_baseline\")) {",
+                              "    throw new Error(\"Precondition failed: job_title_baseline not set by ADMIN-027\");",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const baseline = JSON.parse(pm.environment.get(\"job_title_baseline\"));",
+                              "",
+                              "pm.test(\"Job titles are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Existing job titles are unchanged after the add\", function () {",
+                              "    const changed = baseline.filter(b => {",
+                              "        const current = records.find(r => norm(r.id) === b.id);",
+                              "        return !current ||",
+                              "            norm(current.jobTitleName) !== b.jobTitleName ||",
+                              "            norm(current.jobDescription) !== b.jobDescription ||",
+                              "            norm(current.note) !== b.note;",
+                              "    }).map(b => b.id);",
+                              "    pm.expect(changed, \"ids of job titles missing or changed after the add\").to.eql([]);",
+                              "});"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles?orderField=id&orderBy=ASC&page[limit]=10",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ],
+                          "query": [
+                            {
+                              "key": "orderField",
+                              "value": "id"
+                            },
+                            {
+                              "key": "orderBy",
+                              "value": "ASC"
+                            },
+                            {
+                              "key": "page[limit]",
+                              "value": "10"
+                            }
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-031 delete job title created by ADMIN-028",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"job_title_id\")) {",
+                              "    throw new Error(\"Precondition failed: job_title_id not set by ADMIN-028\");",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "pm.test(\"Job title created by ADMIN-028 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"job_title_id\");",
+                              "pm.environment.unset(\"job_title_name\");",
+                              "pm.environment.unset(\"job_title_baseline\");"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"ids\": [{{job_title_id}}]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-job-title-with-job-specification",
+                  "item": [
+                    {
+                      "name": "ADMIN-032 add job title with job specification",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs\npm.environment.unset(\"job_title_id\");\npm.environment.unset(\"job_specification_id\");\n\n[\"jt_filePath\", \"jt_fileName\", \"jt_fileType\", \"jt_fileSize\"].forEach(key => {\n    const value = pm.iterationData.get(key);\n    if (value === undefined || String(value).trim() === \"\") {\n        throw new Error(`Test data error: ${key} is blank in the CSV row`);\n    }\n});\n\nconst baseName = pm.iterationData.get(\"jt_name\");\nif (baseName === undefined || String(baseName).trim() === \"\") {\n    throw new Error(\"Test data error: jt_name is blank in the CSV row\");\n}\n\n// names are unique among active job titles, so prefix a run-specific value; max length is 100\nconst name = `JT-${Date.now().toString().slice(-6)} ${baseName}`;\nif (name.length > 100) {\n    throw new Error(`Test data error: generated name is ${name.length} characters, max is 100`);\n}\n\n// side effect: checked by ADMIN-032 and ADMIN-033\npm.environment.set(\"job_title_name\", name);\npm.variables.set(\"jobTitleName\", name);"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst expected = key => norm(pm.iterationData.get(key));\nlet response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // an error response from this endpoint can have an empty text/html body\n}\nconst responseData = response.data || {};\nconst attachment = responseData.JobSpecificationAttachment || {};\n\npm.test(\"Job title with job specification is added\", function () {\n    pm.response.to.have.status(201);\n});\n\npm.test(\"Response matches the job title schema\", function () {\n    const raw = pm.collectionVariables.get(\"jobTitlePostSchema\");\n    pm.expect(raw, \"jobTitlePostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"Job title details match what was sent\", function () {\n    pm.expect(norm(responseData.jobTitleName), \"jobTitleName\").to.eql(norm(pm.environment.get(\"job_title_name\")));\n    pm.expect(norm(responseData.jobDescription), \"jobDescription\").to.eql(expected(\"jt_description\"));\n    pm.expect(norm(responseData.note), \"note\").to.eql(expected(\"jt_note\"));\n});\n\npm.test(\"Job specification is attached\", function () {\n    pm.expect(norm(attachment.id), \"JobSpecificationAttachment.id\").to.match(/^[0-9]+$/);\n});\n\npm.test(\"Job specification details match the uploaded file\", function () {\n    pm.expect(norm(attachment.fileName), \"JobSpecificationAttachment.fileName\").to.eql(expected(\"jt_fileName\"));\n    pm.expect(norm(attachment.fileType), \"JobSpecificationAttachment.fileType\").to.eql(expected(\"jt_fileType\"));\n    pm.expect(norm(attachment.fileSize), \"JobSpecificationAttachment.fileSize\").to.eql(expected(\"jt_fileSize\"));\n});\n\n// side effect: consumed by ADMIN-033 and ADMIN-034\nif (norm(responseData.id) !== \"\") {\n    pm.environment.set(\"job_title_id\", String(responseData.id));\n}\nif (norm(attachment.id) !== \"\") {\n    pm.environment.set(\"job_specification_id\", String(attachment.id));\n}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "formdata",
+                          "formdata": [
+                            {
+                              "key": "jobTitleName",
+                              "value": "{{jobTitleName}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "jobDescription",
+                              "value": "{{jt_description}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "note",
+                              "value": "{{jt_note}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "jobSpecification",
+                              "type": "file",
+                              "src": [
+                                "{{jt_filePath}}"
+                              ]
+                            }
+                          ]
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles?include=JobSpecificationAttachment",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ],
+                          "query": [
+                            {
+                              "key": "include",
+                              "value": "JobSpecificationAttachment"
+                            }
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-033 get job title with job specification created by ADMIN-032",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_title_id\")) {",
+                              "    throw new Error(\"Precondition failed: job_title_id not set by ADMIN-032\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const expected = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "const attachment = responseData.JobSpecificationAttachment || {};",
+                              "",
+                              "pm.test(\"Job title is retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the job title schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"jobTitleGetSchema\");",
+                              "    pm.expect(raw, \"jobTitleGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Retrieved job title is the one added in ADMIN-032\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id\").to.eql(norm(pm.environment.get(\"job_title_id\")));",
+                              "    pm.expect(norm(responseData.jobTitleName), \"jobTitleName\").to.eql(norm(pm.environment.get(\"job_title_name\")));",
+                              "});",
+                              "",
+                              "pm.test(\"Stored job specification is the one uploaded in ADMIN-032\", function () {",
+                              "    pm.expect(norm(attachment.id), \"JobSpecificationAttachment.id\").to.eql(norm(pm.environment.get(\"job_specification_id\")));",
+                              "    pm.expect(norm(attachment.fileName), \"JobSpecificationAttachment.fileName\").to.eql(expected(\"jt_fileName\"));",
+                              "    pm.expect(norm(attachment.fileType), \"JobSpecificationAttachment.fileType\").to.eql(expected(\"jt_fileType\"));",
+                              "    pm.expect(norm(attachment.fileSize), \"JobSpecificationAttachment.fileSize\").to.eql(expected(\"jt_fileSize\"));",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles/{{job_title_id}}?include=JobSpecificationAttachment",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles",
+                            "{{job_title_id}}"
+                          ],
+                          "query": [
+                            {
+                              "key": "include",
+                              "value": "JobSpecificationAttachment"
+                            }
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-034 delete job title created by ADMIN-032",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"job_title_id\")) {",
+                              "    throw new Error(\"Precondition failed: job_title_id not set by ADMIN-032\");",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "pm.test(\"Job title created by ADMIN-032 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"job_title_id\");",
+                              "pm.environment.unset(\"job_title_name\");",
+                              "pm.environment.unset(\"job_specification_id\");"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"ids\": [{{job_title_id}}]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ],
+                  "description": "Uploads the files in Test-data/Admin/Job-Titles/files/ (path from the CSV column jt_filePath). The path is relative: run Newman from the repository root, or in the Postman app set Settings > General > Working directory to the repository root."
+                },
+                {
+                  "name": "add-job-title-after-deleting-same-name",
+                  "item": [
+                    {
+                      "name": "ADMIN-035 add job title to be deleted",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"deleted_job_title_id\");",
+                              "pm.environment.unset(\"job_title_id\");",
+                              "",
+                              "const baseName = pm.iterationData.get(\"jt_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: jt_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// names are unique among active job titles, so prefix a run-specific value; max length is 100",
+                              "const name = `JT-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "if (name.length > 100) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 100`);",
+                              "}",
+                              "",
+                              "// side effect: reused by ADMIN-037 and checked by ADMIN-038",
+                              "pm.environment.set(\"job_title_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ jobTitleName: name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Job title is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-036, ADMIN-037 and ADMIN-038",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"deleted_job_title_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-036 delete job title created by ADMIN-035",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"deleted_job_title_id\")) {",
+                              "    throw new Error(\"Precondition failed: deleted_job_title_id not set by ADMIN-035\");",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "pm.test(\"Job title created by ADMIN-035 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"ids\": [{{deleted_job_title_id}}]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-037 add job title with the name of the deleted job title",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"deleted_job_title_id\") || !pm.environment.get(\"job_title_name\")) {",
+                              "    throw new Error(\"Precondition failed: job title not created by ADMIN-035\");",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ jobTitleName: pm.environment.get(\"job_title_name\") }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Job title with the name of a deleted job title is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the job title schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"jobTitlePostSchema\");",
+                              "    pm.expect(raw, \"jobTitlePostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Job title name matches the deleted job title\", function () {",
+                              "    pm.expect(norm(responseData.jobTitleName), \"jobTitleName\").to.eql(norm(pm.environment.get(\"job_title_name\")));",
+                              "});",
+                              "",
+                              "pm.test(\"A new job title is created instead of restoring the deleted one\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id\").to.not.eql(norm(pm.environment.get(\"deleted_job_title_id\")));",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-038 and ADMIN-039",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"job_title_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-038 get deleted and new job titles",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"deleted_job_title_id\")) {",
+                              "    throw new Error(\"Precondition failed: deleted_job_title_id not set by ADMIN-035\");",
+                              "}",
+                              "if (!pm.environment.get(\"job_title_id\")) {",
+                              "    throw new Error(\"Precondition failed: job_title_id not set by ADMIN-037\");",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const deletedId = norm(pm.environment.get(\"deleted_job_title_id\"));",
+                              "const newId = norm(pm.environment.get(\"job_title_id\"));",
+                              "const deletedRecord = records.find(r => norm(r.id) === deletedId);",
+                              "const newRecord = records.find(r => norm(r.id) === newId);",
+                              "",
+                              "pm.test(\"Job titles are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Deleted job title from ADMIN-035 is still marked as deleted\", function () {",
+                              "    pm.expect(deletedRecord, `id ${deletedId} not found in response`).to.exist;",
+                              "    if (deletedRecord) {",
+                              "        pm.expect(norm(deletedRecord.isDeleted), \"isDeleted of the deleted job title\").to.eql(\"1\");",
+                              "    }",
+                              "});",
+                              "",
+                              "pm.test(\"Job title added in ADMIN-037 is active\", function () {",
+                              "    pm.expect(newRecord, `id ${newId} not found in response`).to.exist;",
+                              "    if (newRecord) {",
+                              "        pm.expect(norm(newRecord.isDeleted), \"isDeleted of the new job title\").to.eql(\"0\");",
+                              "        pm.expect(norm(newRecord.jobTitleName), \"jobTitleName\").to.eql(norm(pm.environment.get(\"job_title_name\")));",
+                              "    }",
+                              "});"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles?filter[ids][]={{deleted_job_title_id}}&filter[ids][]={{job_title_id}}&filter[includeDeleted]=true",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ],
+                          "query": [
+                            {
+                              "key": "filter[ids][]",
+                              "value": "{{deleted_job_title_id}}"
+                            },
+                            {
+                              "key": "filter[ids][]",
+                              "value": "{{job_title_id}}"
+                            },
+                            {
+                              "key": "filter[includeDeleted]",
+                              "value": "true"
+                            }
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-039 delete job title created by ADMIN-037",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_title_id\")) {",
+                              "    throw new Error(\"Precondition failed: job_title_id not set by ADMIN-037\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "pm.test(\"Job title created by ADMIN-037 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"job_title_id\");",
+                              "pm.environment.unset(\"job_title_name\");",
+                              "pm.environment.unset(\"deleted_job_title_id\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"ids\": [{{job_title_id}}]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-job-titles",
+                  "item": [
+                    {
+                      "name": "ADMIN-046 get job titles",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "// read-only request on shared data: nothing to set up or clear"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const meta = response.meta || {};",
+                              "",
+                              "pm.test(\"Job titles are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the job title list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"jobTitleListSchema\");",
+                              "    pm.expect(raw, \"jobTitleListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"No more than one page of 100 job titles is returned by default\", function () {",
+                              "    pm.expect(records.length, \"number of job titles returned\").to.be.at.most(100);",
+                              "});",
+                              "",
+                              "// other QA users change the list, so check consistency rather than fixed counts",
+                              "pm.test(\"Total count is not less than the number of job titles returned\", function () {",
+                              "    pm.expect(meta.total, \"meta.total\").to.be.at.least(records.length);",
+                              "});",
+                              "",
+                              "pm.test(\"Only active job titles are listed by default\", function () {",
+                              "    const deleted = records.filter(r => r.isDeleted !== \"0\").map(r => r.id);",
+                              "    pm.expect(deleted, \"ids of deleted job titles in the default list\").to.eql([]);",
+                              "});",
+                              "",
+                              "pm.test(\"Response reports read permission\", function () {",
+                              "    pm.expect((meta.permissions || {}).read, \"meta.permissions.read\").to.eql(true);",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-job-titles-with-filters",
+                  "item": [
+                    {
+                      "name": "ADMIN-047 add job title A for the list checks",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"job_title_fixtures\");",
+                              "pm.environment.unset(\"job_title_list_query\");",
+                              "pm.environment.unset(\"job_title_list_snapshot\");",
+                              "",
+                              "// a new prefix per iteration keeps the name filter limited to this folder's job titles",
+                              "// side effect: used by ADMIN-048…ADMIN-053",
+                              "pm.environment.set(\"job_title_prefix\", `JTG-${Date.now().toString().slice(-6)}`);",
+                              "",
+                              "const fixture = {",
+                              "    jobTitleName: `${pm.environment.get(\"job_title_prefix\")} A title`,",
+                              "    jobDescription: \"Alpha description\",",
+                              "    note: \"zeta note\"",
+                              "};",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(fixture));"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Job title A is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-052…ADMIN-054",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"job_title_fixtures\") || \"{}\");",
+                              "    fixtures[\"A\"] = {",
+                              "        id: String(responseData.id),",
+                              "        jobTitleName: norm(responseData.jobTitleName),",
+                              "        jobDescription: norm(responseData.jobDescription),",
+                              "        note: norm(responseData.note)",
+                              "    };",
+                              "    pm.environment.set(\"job_title_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-048 add job title B for the list checks",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_title_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: job_title_prefix not set by ADMIN-047\");",
+                              "}",
+                              "",
+                              "const fixture = {",
+                              "    jobTitleName: `${pm.environment.get(\"job_title_prefix\")} B title`,",
+                              "    jobDescription: \"Beta description\",",
+                              "    note: \"alpha note\"",
+                              "};",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(fixture));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Job title B is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-052…ADMIN-054",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"job_title_fixtures\") || \"{}\");",
+                              "    fixtures[\"B\"] = {",
+                              "        id: String(responseData.id),",
+                              "        jobTitleName: norm(responseData.jobTitleName),",
+                              "        jobDescription: norm(responseData.jobDescription),",
+                              "        note: norm(responseData.note)",
+                              "    };",
+                              "    pm.environment.set(\"job_title_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-049 add job title C for the list checks",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"job_title_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: job_title_prefix not set by ADMIN-047\");",
+                              "}",
+                              "",
+                              "const fixture = {",
+                              "    jobTitleName: `${pm.environment.get(\"job_title_prefix\")} C title`,",
+                              "    jobDescription: \"Gamma description\",",
+                              "    note: \"mid note\"",
+                              "};",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(fixture));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Job title C is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-052…ADMIN-054",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"job_title_fixtures\") || \"{}\");",
+                              "    fixtures[\"C\"] = {",
+                              "        id: String(responseData.id),",
+                              "        jobTitleName: norm(responseData.jobTitleName),",
+                              "        jobDescription: norm(responseData.jobDescription),",
+                              "        note: norm(responseData.note)",
+                              "    };",
+                              "    pm.environment.set(\"job_title_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-050 add job title D to be deleted",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_title_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: job_title_prefix not set by ADMIN-047\");",
+                              "}",
+                              "",
+                              "const fixture = {",
+                              "    jobTitleName: `${pm.environment.get(\"job_title_prefix\")} D title`,",
+                              "    jobDescription: \"Deleted description\",",
+                              "    note: \"deleted note\"",
+                              "};",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(fixture));"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Job title D is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-051 and ADMIN-052",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"job_title_fixtures\") || \"{}\");",
+                              "    fixtures[\"D\"] = {",
+                              "        id: String(responseData.id),",
+                              "        jobTitleName: norm(responseData.jobTitleName),",
+                              "        jobDescription: norm(responseData.jobDescription),",
+                              "        note: norm(responseData.note)",
+                              "    };",
+                              "    pm.environment.set(\"job_title_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-051 delete job title D created by ADMIN-050",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const fixtures = JSON.parse(pm.environment.get(\"job_title_fixtures\") || \"{}\");",
+                              "const missing = [\"A\", \"B\", \"C\", \"D\"].filter(k => !fixtures[k]);",
+                              "if (missing.length) {",
+                              "    throw new Error(`Precondition failed: job titles ${missing.join(\", \")} not created by ADMIN-047…ADMIN-050`);",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ ids: [Number(fixtures.D.id)] }));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "pm.test(\"Job title D is deleted, so it can be used as a deleted record\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-052 get job titles with the filters from the CSV",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const fixtures = JSON.parse(pm.environment.get(\"job_title_fixtures\") || \"{}\");",
+                              "const missing = [\"A\", \"B\", \"C\", \"D\"].filter(k => !fixtures[k]);",
+                              "if (missing.length) {",
+                              "    throw new Error(`Precondition failed: job titles ${missing.join(\", \")} not created by ADMIN-047…ADMIN-050`);",
+                              "}",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key)).trim();",
+                              "",
+                              "// build the query from the CSV row; a blank cell means the parameter is not sent",
+                              "// jtg_ids lists fixture keys (A|B|C|D); __PREFIX__ in jtg_name becomes this iteration's prefix",
+                              "const query = [];",
+                              "const add = (key, value) => query.push({ key, value: encodeURIComponent(String(value)) });",
+                              "cell(\"jtg_ids\").split(\"|\").filter(Boolean).forEach(k => {",
+                              "    if (!fixtures[k]) {",
+                              "        throw new Error(`Test data error: jtg_ids has unknown key \"${k}\"`);",
+                              "    }",
+                              "    add(\"filter[ids][]\", fixtures[k].id);",
+                              "});",
+                              "if (cell(\"jtg_name\")) add(\"filter[name]\", cell(\"jtg_name\").split(\"__PREFIX__\").join(pm.environment.get(\"job_title_prefix\")));",
+                              "if (cell(\"jtg_includeDeleted\")) add(\"filter[includeDeleted]\", cell(\"jtg_includeDeleted\"));",
+                              "if (cell(\"jtg_limit\")) add(\"page[limit]\", cell(\"jtg_limit\"));",
+                              "if (cell(\"jtg_offset\")) add(\"page[offset]\", cell(\"jtg_offset\"));",
+                              "if (query.length === 0) {",
+                              "    throw new Error(\"Test data error: the CSV row sends no query parameter\");",
+                              "}",
+                              "",
+                              "pm.request.url.addQueryParams(query);",
+                              "",
+                              "// side effect: ADMIN-053 repeats the same query",
+                              "pm.environment.set(\"job_title_list_query\", JSON.stringify(query));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const meta = response.meta || {};",
+                              "const fixtures = JSON.parse(pm.environment.get(\"job_title_fixtures\"));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "// expected result from the CSV: fixture keys in the expected order, and the expected total",
+                              "const expectedKeys = norm(pm.iterationData.get(\"jtg_expectedTitles\")).split(\"|\").filter(Boolean);",
+                              "const expectedIds = expectedKeys.map(k => fixtures[k].id);",
+                              "const keyById = Object.keys(fixtures).reduce((acc, k) => Object.assign(acc, { [fixtures[k].id]: k }), {});",
+                              "",
+                              "pm.test(`Job titles are retrieved (${scenario})`, function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the job title list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"jobTitleListSchema\");",
+                              "    pm.expect(raw, \"jobTitleListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(`The expected job titles are returned in order (${scenario})`, function () {",
+                              "    pm.expect(records.map(r => norm(r.id)), \"ids returned\").to.eql(expectedIds);",
+                              "});",
+                              "",
+                              "pm.test(`Total count matches the filtered result (${scenario})`, function () {",
+                              "    pm.expect(meta.total, \"meta.total\").to.eql(Number(pm.iterationData.get(\"jtg_expectedTotal\")));",
+                              "});",
+                              "",
+                              "// the checks below only make sense for records this folder created",
+                              "records.filter(r => keyById[norm(r.id)]).forEach(r => {",
+                              "    const key = keyById[norm(r.id)];",
+                              "    pm.test(`Job title ${key} shows the saved values (${scenario})`, function () {",
+                              "        pm.expect(norm(r.jobTitleName), `${key}.jobTitleName`).to.eql(fixtures[key].jobTitleName);",
+                              "        pm.expect(norm(r.jobDescription), `${key}.jobDescription`).to.eql(fixtures[key].jobDescription);",
+                              "        pm.expect(norm(r.note), `${key}.note`).to.eql(fixtures[key].note);",
+                              "        pm.expect(norm(r.isDeleted), `${key}.isDeleted`).to.eql(key === \"D\" ? \"1\" : \"0\");",
+                              "    });",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-053",
+                              "pm.environment.set(\"job_title_list_snapshot\", JSON.stringify({ data: records, total: meta.total }));"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-053 get the same job titles again to check nothing changed",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"job_title_list_query\") || !pm.environment.get(\"job_title_list_snapshot\")) {",
+                              "    throw new Error(\"Precondition failed: job_title_list_query / job_title_list_snapshot not set by ADMIN-052\");",
+                              "}",
+                              "",
+                              "// same query parameters as ADMIN-052",
+                              "pm.request.url.addQueryParams(JSON.parse(pm.environment.get(\"job_title_list_query\")));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const snapshot = JSON.parse(pm.environment.get(\"job_title_list_snapshot\"));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(`Job titles are retrieved (${scenario})`, function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(`Reading the list does not change it (${scenario})`, function () {",
+                              "    pm.expect(response.data, \"data\").to.eql(snapshot.data);",
+                              "    pm.expect((response.meta || {}).total, \"meta.total\").to.eql(snapshot.total);",
+                              "});"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-054 delete job titles created by ADMIN-047…ADMIN-049",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const fixtures = JSON.parse(pm.environment.get(\"job_title_fixtures\") || \"{}\");",
+                              "// D was already deleted by ADMIN-051",
+                              "const ids = [\"A\", \"B\", \"C\"].filter(k => fixtures[k]).map(k => Number(fixtures[k].id));",
+                              "if (ids.length === 0) {",
+                              "    throw new Error(\"Precondition failed: no job titles created by ADMIN-047…ADMIN-049\");",
+                              "}",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ ids }));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "pm.test(\"Job titles created by ADMIN-047…ADMIN-049 are deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"job_title_fixtures\");",
+                              "pm.environment.unset(\"job_title_prefix\");",
+                              "pm.environment.unset(\"job_title_list_query\");",
+                              "pm.environment.unset(\"job_title_list_snapshot\");"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -3950,6 +5672,815 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Job-Titles",
+              "item": [
+                {
+                  "name": "add-job-title-with-invalid-data",
+                  "item": [
+                    {
+                      "name": "ADMIN-040 add job title with invalid data",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const template = pm.iterationData.get(\"jt_requestBody\");",
+                              "if (template === undefined || String(template).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: jt_requestBody is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// rows that need a valid name (so only the other field is invalid) use the __UNIQUE_NAME__ placeholder",
+                              "const name = `JT-${Date.now().toString().slice(-6)} Invalid Data`;",
+                              "const usesName = String(template).includes(\"__UNIQUE_NAME__\");",
+                              "const body = String(template).split(\"__UNIQUE_NAME__\").join(name);",
+                              "try {",
+                              "    JSON.parse(body);",
+                              "} catch (e) {",
+                              "    throw new Error(`Test data error: jt_requestBody is not valid JSON (${e.message})`);",
+                              "}",
+                              "",
+                              "// set in every iteration: local values persist across Newman iterations",
+                              "pm.variables.set(\"jobTitleName\", usesName ? name : \"\");",
+                              "pm.variables.set(\"requestBody\", body);"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // a 500 from this endpoint has an empty text/html body",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "const errorText = key => {",
+                              "    const value = (response.errors || {})[key];",
+                              "    if (value === undefined || value === null) return \"\";",
+                              "    return typeof value === \"object\" ? Object.values(value).join(\" | \") : String(value);",
+                              "};",
+                              "",
+                              "// teardown: remove a job title the request should not have created, so later runs are not affected",
+                              "const deleteJobTitle = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/job-titles`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ ids: [Number(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Job title created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const expectedError = norm(pm.iterationData.get(\"expectedError\"));",
+                              "const errorKey = norm(pm.iterationData.get(\"expectedErrorKey\"));",
+                              "const name = pm.variables.get(\"jobTitleName\");",
+                              "",
+                              "pm.test(`Invalid data is rejected (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error response says the data is invalid (${scenario})`, function () {",
+                              "    pm.expect(norm(response.message), \"message\").to.eql(norm(pm.iterationData.get(\"expectedMessage\")));",
+                              "    pm.expect(errorText(errorKey), `errors.${errorKey}`).to.not.eql(\"\");",
+                              "});",
+                              "",
+                              "// a blank expectedError means the exact message is not specified; status and shape are still checked",
+                              "if (expectedError !== \"\") {",
+                              "    pm.test(`Error message names the problem (${scenario})`, function () {",
+                              "        pm.expect(errorText(errorKey), `errors.${errorKey}`).to.include(expectedError);",
+                              "    });",
+                              "}",
+                              "",
+                              "pm.test(`No job title is created (${scenario})`, function () {",
+                              "    pm.expect(norm(responseData.id), \"id of a job title created by an invalid request\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "// double-check by name when the row sent a real, unique name",
+                              "if (name) {",
+                              "    pm.sendRequest({",
+                              "        url: `${pm.environment.get(\"baseURL\")}/api/job-titles?filter[name]=${encodeURIComponent(name)}`,",
+                              "        method: \"GET\",",
+                              "        header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "    }, (err, res) => {",
+                              "        pm.test(`No job title with the sent name exists (${scenario})`, function () {",
+                              "            pm.expect(err, \"search request error\").to.be.null;",
+                              "            const found = ((res && res.json().data) || []).filter(r => norm(r.jobTitleName) === name);",
+                              "            pm.expect(found.map(r => r.id), \"ids of job titles with the sent name\").to.eql([]);",
+                              "            // the id returned in the response is cleaned up below, so it is not deleted twice",
+                              "            found.filter(r => norm(r.id) !== norm(responseData.id)).forEach(r => deleteJobTitle(r.id));",
+                              "        });",
+                              "    });",
+                              "}",
+                              "",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    deleteJobTitle(responseData.id);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-job-title-with-duplicate-name",
+                  "item": [
+                    {
+                      "name": "ADMIN-041 add job title for duplicate check",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"job_title_id\");",
+                              "",
+                              "const baseName = pm.iterationData.get(\"jt_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: jt_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// names are unique among active job titles, so prefix a run-specific value; max length is 100",
+                              "const name = `JT-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "if (name.length > 100) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 100`);",
+                              "}",
+                              "",
+                              "// side effect: reused by ADMIN-042",
+                              "pm.environment.set(\"job_title_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ jobTitleName: name }));"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Job title is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-042 and ADMIN-043",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"job_title_id\", String(responseData.id));",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-042 add job title with duplicate name",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"job_title_id\") || !pm.environment.get(\"job_title_name\")) {",
+                              "    throw new Error(\"Precondition failed: job title not created by ADMIN-041\");",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ jobTitleName: pm.environment.get(\"job_title_name\") }));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // a 500 from this endpoint has an empty text/html body",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "const errorText = key => {",
+                              "    const value = (response.errors || {})[key];",
+                              "    if (value === undefined || value === null) return \"\";",
+                              "    return typeof value === \"object\" ? Object.values(value).join(\" | \") : String(value);",
+                              "};",
+                              "",
+                              "// teardown: remove a job title the request should not have created, so later runs are not affected",
+                              "const deleteJobTitle = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/job-titles`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ ids: [Number(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Job title created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "});",
+                              "",
+                              "pm.test(\"Duplicate name is rejected\", function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(\"Error message says the name already exists\", function () {",
+                              "    pm.expect(norm(response.message), \"message\").to.eql(norm(pm.iterationData.get(\"expectedMessage\")));",
+                              "    pm.expect(errorText(\"allOf\"), \"errors.allOf\").to.eql(norm(pm.iterationData.get(\"expectedError\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No second job title is created\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id of a duplicate job title\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "if (norm(responseData.id) !== \"\" && norm(responseData.id) !== norm(pm.environment.get(\"job_title_id\"))) {",
+                              "    deleteJobTitle(responseData.id);",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-043 delete job title created by ADMIN-041",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_title_id\")) {",
+                              "    throw new Error(\"Precondition failed: job_title_id not set by ADMIN-041\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "pm.test(\"Job title created by ADMIN-041 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"job_title_id\");",
+                              "pm.environment.unset(\"job_title_name\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"ids\": [{{job_title_id}}]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-job-title-with-undocumented-fields",
+                  "item": [
+                    {
+                      "name": "ADMIN-044 get the highest job title id",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"unused_job_title_id\");"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const highestId = records.length ? Number(records[0].id) : NaN;",
+                              "",
+                              "pm.test(\"Job titles are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Highest job title id is a positive number\", function () {",
+                              "    pm.expect(highestId, \"highest job title id\").to.be.above(0);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-045. The next id is unused, so a regression cannot overwrite a real",
+                              "// job title or push the auto-increment counter forward (seen with Employment Status, D3).",
+                              "// Another user can take this id in the moment before ADMIN-045 runs; that is only harmless while",
+                              "// the API keeps rejecting \"id\" with 422, which is what ADMIN-045 checks",
+                              "if (highestId > 0) {",
+                              "    pm.environment.set(\"unused_job_title_id\", String(highestId + 1));",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles?orderField=id&orderBy=DESC&page[limit]=1&filter[includeDeleted]=true",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ],
+                          "query": [
+                            {
+                              "key": "orderField",
+                              "value": "id"
+                            },
+                            {
+                              "key": "orderBy",
+                              "value": "DESC"
+                            },
+                            {
+                              "key": "page[limit]",
+                              "value": "1"
+                            },
+                            {
+                              "key": "filter[includeDeleted]",
+                              "value": "true"
+                            }
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-045 add job title with a client-supplied id",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const unusedId = pm.environment.get(\"unused_job_title_id\");",
+                              "if (!unusedId) {",
+                              "    throw new Error(\"Precondition failed: unused_job_title_id not set by ADMIN-044\");",
+                              "}",
+                              "",
+                              "const name = `JT-${Date.now().toString().slice(-6)} Client Id`;",
+                              "pm.variables.set(\"jobTitleName\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ jobTitleName: name, id: unusedId }));"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // a 500 from this endpoint has an empty text/html body",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "const errorText = key => {",
+                              "    const value = (response.errors || {})[key];",
+                              "    if (value === undefined || value === null) return \"\";",
+                              "    return typeof value === \"object\" ? Object.values(value).join(\" | \") : String(value);",
+                              "};",
+                              "",
+                              "// teardown: remove a job title the request should not have created, so later runs are not affected",
+                              "const deleteJobTitle = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/job-titles`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ ids: [Number(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Job title created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const errorKey = norm(pm.iterationData.get(\"expectedErrorKey\"));",
+                              "",
+                              "pm.test(`Undocumented field is rejected (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error message names the undocumented field (${scenario})`, function () {",
+                              "    pm.expect(norm(response.message), \"message\").to.eql(norm(pm.iterationData.get(\"expectedMessage\")));",
+                              "    pm.expect(errorText(errorKey), `errors.${errorKey}`).to.eql(norm(pm.iterationData.get(\"expectedError\")));",
+                              "});",
+                              "",
+                              "pm.test(`No job title is created with the client-supplied id (${scenario})`, function () {",
+                              "    pm.expect(norm(responseData.id), \"id of a job title created by an invalid request\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    deleteJobTitle(responseData.id);",
+                              "}",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"unused_job_title_id\");"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-job-titles-with-invalid-limit",
+                  "item": [
+                    {
+                      "name": "ADMIN-055 get job titles with a zero or negative limit",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const limit = pm.iterationData.get(\"jtg_limit\");",
+                              "if (limit === undefined || String(limit).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: jtg_limit is blank in the CSV row\");",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const maxPageSize = Number(pm.iterationData.get(\"maxPageSize\"));",
+                              "",
+                              "// the fix for D1 is still open: either reject the limit (422) or return a normal page; both are accepted",
+                              "if (pm.response.code === 422) {",
+                              "    pm.test(`Invalid limit is rejected (${scenario})`, function () {",
+                              "        pm.expect(response.message, \"message\").to.eql(pm.iterationData.get(\"expectedMessage\"));",
+                              "    });",
+                              "} else {",
+                              "    pm.test(`Invalid limit returns a normal page (${scenario})`, function () {",
+                              "        pm.response.to.have.status(200);",
+                              "    });",
+                              "",
+                              "    // with fewer job titles than one page the size check below would pass even with the defect",
+                              "    pm.test(`More than one page of job titles exists, so the page size can be checked (${scenario})`, function () {",
+                              "        pm.expect((response.meta || {}).total, \"meta.total\").to.be.above(maxPageSize);",
+                              "    });",
+                              "",
+                              "    pm.test(`No more than ${maxPageSize} job titles are returned (${scenario})`, function () {",
+                              "        pm.expect(records.length, \"number of job titles returned\").to.be.at.most(maxPageSize);",
+                              "    });",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles?page[limit]={{jtg_limit}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ],
+                          "query": [
+                            {
+                              "key": "page[limit]",
+                              "value": "{{jtg_limit}}"
+                            }
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-job-titles-without-valid-token",
+                  "item": [
+                    {
+                      "name": "ADMIN-056 get job titles without token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// sent without an Authorization header (request auth: No Auth)"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "",
+                              "pm.test(\"Request is rejected as unauthorized\", function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No job titles are returned\", function () {",
+                              "    pm.expect(records.length, \"number of job titles returned without a valid token\").to.eql(0);",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-057 get job titles with invalid token",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.iterationData.get(\"invalidToken\")) {",
+                              "    throw new Error(\"Test data error: invalidToken is blank in the CSV row\");",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // an error response from this endpoint can have an empty text/html body",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "",
+                              "pm.test(\"Request is rejected as unauthorized\", function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No job titles are returned\", function () {",
+                              "    pm.expect(records.length, \"number of job titles returned without a valid token\").to.eql(0);",
+                              "});",
+                              "",
+                              "pm.test(\"Error says the access token is invalid\", function () {",
+                              "    pm.expect(norm(response.error), \"error\").to.eql(norm(pm.iterationData.get(\"expectedError\")));",
+                              "    pm.expect(norm(response.error_description), \"error_description\").to.eql(norm(pm.iterationData.get(\"expectedErrorDescription\")));",
+                              "});"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{invalidToken}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/job-titles",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "job-titles"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -4113,6 +6644,18 @@
     {
       "key": "employmentStatusGetSchema",
       "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Employment status list response\",\n  \"type\": \"object\",\n  \"required\": [\n    \"data\",\n    \"meta\"\n  ],\n  \"properties\": {\n    \"data\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"id\",\n          \"name\"\n        ],\n        \"properties\": {\n          \"id\": {\n            \"type\": \"string\",\n            \"pattern\": \"^[0-9]+$\"\n          },\n          \"name\": {\n            \"type\": \"string\",\n            \"maxLength\": 60\n          }\n        }\n      }\n    },\n    \"meta\": {\n      \"type\": \"object\",\n      \"required\": [\n        \"total\"\n      ],\n      \"properties\": {\n        \"total\": {\n          \"type\": \"integer\",\n          \"minimum\": 0\n        }\n      }\n    }\n  }\n}"
+    },
+    {
+      "key": "jobTitlePostSchema",
+      "value": "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"title\": \"Add job title response\", \"type\": \"object\", \"required\": [\"data\", \"meta\"], \"properties\": {\"data\": {\"type\": \"object\", \"required\": [\"id\", \"jobTitleName\", \"jobDescription\", \"note\", \"isDeleted\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"jobTitleName\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 100}, \"jobDescription\": {\"type\": \"string\", \"maxLength\": 400}, \"note\": {\"type\": \"string\", \"maxLength\": 400}, \"isDeleted\": {\"type\": \"string\", \"enum\": [\"0\"]}, \"JobSpecificationAttachment\": {\"type\": \"object\", \"required\": [\"id\", \"fileName\", \"fileType\", \"fileSize\"], \"properties\": {\"id\": {\"type\": [\"string\", \"null\"]}, \"fileName\": {\"type\": [\"string\", \"null\"]}, \"fileType\": {\"type\": [\"string\", \"null\"]}, \"fileSize\": {\"type\": [\"string\", \"null\"]}}}}}, \"meta\": {\"type\": \"object\", \"required\": [\"total\", \"permissions\"], \"properties\": {\"total\": {\"type\": \"integer\"}, \"permissions\": {\"type\": \"object\", \"required\": [\"read\", \"create\", \"update\", \"delete\"], \"properties\": {\"read\": {\"type\": \"boolean\"}, \"create\": {\"type\": \"boolean\"}, \"update\": {\"type\": \"boolean\"}, \"delete\": {\"type\": \"boolean\"}}}}}}}"
+    },
+    {
+      "key": "jobTitleGetSchema",
+      "value": "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"title\": \"Get job title by id response\", \"type\": \"object\", \"required\": [\"data\", \"meta\"], \"properties\": {\"data\": {\"type\": \"object\", \"required\": [\"id\", \"jobTitleName\", \"jobDescription\", \"note\", \"isDeleted\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"jobTitleName\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 100}, \"jobDescription\": {\"type\": \"string\", \"maxLength\": 400}, \"note\": {\"type\": \"string\", \"maxLength\": 400}, \"isDeleted\": {\"type\": \"string\", \"enum\": [\"0\"]}, \"JobSpecificationAttachment\": {\"type\": \"object\", \"required\": [\"id\", \"fileName\", \"fileType\", \"fileSize\"], \"properties\": {\"id\": {\"type\": [\"string\", \"null\"]}, \"fileName\": {\"type\": [\"string\", \"null\"]}, \"fileType\": {\"type\": [\"string\", \"null\"]}, \"fileSize\": {\"type\": [\"string\", \"null\"]}}}}}, \"meta\": {\"type\": \"object\", \"required\": [\"permissions\"], \"properties\": {\"permissions\": {\"type\": \"object\", \"required\": [\"read\", \"create\", \"update\", \"delete\"], \"properties\": {\"read\": {\"type\": \"boolean\"}, \"create\": {\"type\": \"boolean\"}, \"update\": {\"type\": \"boolean\"}, \"delete\": {\"type\": \"boolean\"}}}}}}}"
+    },
+    {
+      "key": "jobTitleListSchema",
+      "value": "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"title\": \"Get job titles list response\", \"type\": \"object\", \"required\": [\"data\", \"meta\"], \"properties\": {\"data\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"jobTitleName\", \"jobDescription\", \"note\", \"isDeleted\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"jobTitleName\": {\"type\": \"string\", \"maxLength\": 100}, \"jobDescription\": {\"type\": \"string\", \"maxLength\": 400}, \"note\": {\"type\": \"string\", \"maxLength\": 400}, \"isDeleted\": {\"type\": \"string\", \"enum\": [\"0\", \"1\"]}, \"JobSpecificationAttachment\": {\"type\": \"object\", \"required\": [\"id\", \"fileName\", \"fileType\", \"fileSize\"], \"properties\": {\"id\": {\"type\": [\"string\", \"null\"]}, \"fileName\": {\"type\": [\"string\", \"null\"]}, \"fileType\": {\"type\": [\"string\", \"null\"]}, \"fileSize\": {\"type\": [\"string\", \"null\"]}}}}}}, \"meta\": {\"type\": \"object\", \"required\": [\"total\", \"permissions\"], \"properties\": {\"total\": {\"type\": \"integer\", \"minimum\": 0}, \"permissions\": {\"type\": \"object\", \"required\": [\"read\", \"create\", \"update\", \"delete\"], \"properties\": {\"read\": {\"type\": \"boolean\"}, \"create\": {\"type\": \"boolean\"}, \"update\": {\"type\": \"boolean\"}, \"delete\": {\"type\": \"boolean\"}}}}}}}"
     }
   ]
 }

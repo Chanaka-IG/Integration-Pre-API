@@ -1,0 +1,1 @@
+Job specification used by the API automation suite.
