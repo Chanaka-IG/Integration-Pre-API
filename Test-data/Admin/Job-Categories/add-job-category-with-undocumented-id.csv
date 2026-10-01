@@ -1,0 +1,3 @@
+"scenario","jc_name","jc_idSource","expectedStatuses"
+"unused id below the highest id","Unused Id","unused","201|400"
+"id of an existing job category","Existing Id","existing","201|400"

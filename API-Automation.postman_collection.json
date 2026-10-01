@@ -4983,6 +4983,569 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Job-Categories",
+              "item": [
+                {
+                  "name": "add-job-category",
+                  "item": [
+                    {
+                      "name": "ADMIN-058 get job categories before add",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"job_category_id\");",
+                              "pm.environment.unset(\"job_category_name\");",
+                              "pm.environment.unset(\"job_category_baseline\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "",
+                              "pm.test(\"Job categories are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the job category list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"jobCategoryGetSchema\");",
+                              "    pm.expect(raw, \"jobCategoryGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "// side effect: ADMIN-060 checks these records are unchanged after the add",
+                              "pm.environment.set(\"job_category_baseline\",",
+                              "    JSON.stringify(records.map(r => ({ id: norm(r.id), name: norm(r.name) }))));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-059 add job category",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const baseName = pm.iterationData.get(\"jc_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: jc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// names are unique (case-insensitive), so prefix a run-specific value; max length is 50",
+                              "const name = `JC-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "if (name.length > 50) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 50`);",
+                              "}",
+                              "",
+                              "// side effect: checked by ADMIN-059 and ADMIN-060",
+                              "pm.environment.set(\"job_category_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Job category is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the job category schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"jobCategoryPostSchema\");",
+                              "    pm.expect(raw, \"jobCategoryPostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Job category name matches what was sent\", function () {",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"job_category_name\")));",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-060 and ADMIN-061",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"job_category_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-060 get job categories after add",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_category_id\")) {",
+                              "    throw new Error(\"Precondition failed: job_category_id not set by ADMIN-059\");",
+                              "}",
+                              "if (!pm.environment.get(\"job_category_baseline\")) {",
+                              "    throw new Error(\"Precondition failed: job_category_baseline not set by ADMIN-058\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const categoryId = norm(pm.environment.get(\"job_category_id\"));",
+                              "const categoryName = norm(pm.environment.get(\"job_category_name\"));",
+                              "const baseline = JSON.parse(pm.environment.get(\"job_category_baseline\"));",
+                              "",
+                              "const selectedRecord = records.find(r => norm(r.id) === categoryId);",
+                              "",
+                              "pm.test(\"Job categories are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the job category list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"jobCategoryGetSchema\");",
+                              "    pm.expect(raw, \"jobCategoryGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Job category added in ADMIN-059 is in the list\", function () {",
+                              "    pm.expect(selectedRecord, `id ${categoryId} not found in response`).to.exist;",
+                              "});",
+                              "",
+                              "// the check below only makes sense once the record is found",
+                              "if (selectedRecord) {",
+                              "    pm.test(\"Listed name matches what was sent\", function () {",
+                              "        pm.expect(norm(selectedRecord.name), \"name\").to.eql(categoryName);",
+                              "    });",
+                              "}",
+                              "",
+                              "pm.test(\"The name is saved only once\", function () {",
+                              "    const sameName = records.filter(r => norm(r.name).toLowerCase() === categoryName.toLowerCase());",
+                              "    pm.expect(sameName.length, `job categories named \"${categoryName}\"`).to.eql(1);",
+                              "});",
+                              "",
+                              "pm.test(\"Existing job categories are unchanged\", function () {",
+                              "    const changed = baseline.filter(b => {",
+                              "        const current = records.find(r => norm(r.id) === b.id);",
+                              "        return !current || norm(current.name) !== b.name;",
+                              "    });",
+                              "    pm.expect(changed, \"job categories missing or renamed after the add\").to.eql([]);",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-061 delete job category created by ADMIN-059",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_category_id\")) {",
+                              "    throw new Error(\"Precondition failed: job_category_id not set by ADMIN-059\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const deletedId = String(pm.environment.get(\"job_category_id\"));",
+                              "",
+                              "pm.test(\"Job category created by ADMIN-059 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// QA returns 204 even for an id that doesn't exist, so a delete is confirmed by listing the categories",
+                              "const listJobCategories = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "listJobCategories((err, res, records) => {",
+                              "    pm.test(\"Job category created by ADMIN-059 is no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"list status\").to.eql(200);",
+                              "        pm.expect(records.map(r => String(r.id)), \"listed job category ids\").to.not.include(deletedId);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"job_category_id\");",
+                              "pm.environment.unset(\"job_category_name\");",
+                              "pm.environment.unset(\"job_category_baseline\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"data\": [\"{{job_category_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "add-job-category-with-4-byte-characters",
+                  "item": [
+                    {
+                      "name": "ADMIN-062 add job category with 4-byte characters",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"job_category_id\");",
+                              "pm.environment.unset(\"job_category_name\");",
+                              "",
+                              "const baseName = pm.iterationData.get(\"jc_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: jc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// names are unique (case-insensitive), so prefix a run-specific value; max length is 50",
+                              "const name = `JC-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "if (name.length > 50) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 50`);",
+                              "}",
+                              "",
+                              "// side effect: checked by ADMIN-062 and ADMIN-063",
+                              "pm.environment.set(\"job_category_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "// the docs don't say whether 4-byte characters are supported, so the CSV lists the accepted statuses",
+                              "const allowedStatuses = norm(pm.iterationData.get(\"expectedStatuses\")).split(\"|\").map(Number);",
+                              "",
+                              "pm.test(`Name with 4-byte characters is saved or rejected (${scenario})`, function () {",
+                              "    pm.expect(pm.response.code, \"status\").to.be.oneOf(allowedStatuses);",
+                              "});",
+                              "",
+                              "if (pm.response.code === 201) {",
+                              "    pm.test(`Response matches the job category schema (${scenario})`, function () {",
+                              "        const raw = pm.collectionVariables.get(\"jobCategoryPostSchema\");",
+                              "        pm.expect(raw, \"jobCategoryPostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "        pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "    });",
+                              "",
+                              "    pm.test(`Response name matches what was sent (${scenario})`, function () {",
+                              "        pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"job_category_name\")));",
+                              "    });",
+                              "}",
+                              "",
+                              "// side effect: consumed by ADMIN-063 and ADMIN-064",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"job_category_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-063 get job categories after adding 4-byte characters",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_category_name\")) {",
+                              "    throw new Error(\"Precondition failed: job_category_name not set by ADMIN-062\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const categoryId = norm(pm.environment.get(\"job_category_id\"));",
+                              "const categoryName = norm(pm.environment.get(\"job_category_name\"));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(\"Job categories are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the job category list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"jobCategoryGetSchema\");",
+                              "    pm.expect(raw, \"jobCategoryGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "if (categoryId !== \"\") {",
+                              "    const selectedRecord = records.find(r => norm(r.id) === categoryId);",
+                              "",
+                              "    pm.test(`Job category added in ADMIN-062 is in the list (${scenario})`, function () {",
+                              "        pm.expect(selectedRecord, `id ${categoryId} not found in response`).to.exist;",
+                              "    });",
+                              "",
+                              "    // the check below only makes sense once the record is found",
+                              "    if (selectedRecord) {",
+                              "        pm.test(`Stored name matches what was sent (${scenario})`, function () {",
+                              "            pm.expect(norm(selectedRecord.name), \"name\").to.eql(categoryName);",
+                              "        });",
+                              "    }",
+                              "} else {",
+                              "    // ADMIN-062 rejected the name, so nothing may have been saved under it",
+                              "    pm.test(`Rejected name is not saved (${scenario})`, function () {",
+                              "        const prefix = categoryName.split(\" \")[0];",
+                              "        const saved = records.filter(r => norm(r.name).startsWith(prefix));",
+                              "        pm.expect(saved, \"job categories saved by the rejected request\").to.eql([]);",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-064 delete job category created by ADMIN-062",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// nothing to delete when ADMIN-062 was rejected",
+                              "if (!pm.environment.get(\"job_category_id\")) {",
+                              "    pm.execution.skipRequest();",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const deletedId = String(pm.environment.get(\"job_category_id\"));",
+                              "",
+                              "pm.test(\"Job category created by ADMIN-062 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// QA returns 204 even for an id that doesn't exist, so a delete is confirmed by listing the categories",
+                              "const listJobCategories = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "listJobCategories((err, res, records) => {",
+                              "    pm.test(\"Job category created by ADMIN-062 is no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"list status\").to.eql(200);",
+                              "        pm.expect(records.map(r => String(r.id)), \"listed job category ids\").to.not.include(deletedId);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"job_category_id\");",
+                              "pm.environment.unset(\"job_category_name\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"data\": [\"{{job_category_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -6481,6 +7044,1155 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Job-Categories",
+              "item": [
+                {
+                  "name": "add-job-category-with-invalid-name",
+                  "item": [
+                    {
+                      "name": "ADMIN-065 add job category with invalid name",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// build the body from the CSV row: the name is omitted, null, a string, a JSON value, or a generated length",
+                              "const mode = String(pm.iterationData.get(\"jc_nameMode\") || \"\").trim();",
+                              "const rawName = pm.iterationData.get(\"jc_name\");",
+                              "const body = {};",
+                              "",
+                              "if (mode === \"string\") {",
+                              "    body.name = rawName === undefined || rawName === null ? \"\" : String(rawName);",
+                              "} else if (mode === \"null\") {",
+                              "    body.name = null;",
+                              "} else if (mode === \"json\") {",
+                              "    try {",
+                              "        body.name = JSON.parse(String(rawName));",
+                              "    } catch (e) {",
+                              "        throw new Error(`Test data error: jc_name is not valid JSON for mode json: ${rawName}`);",
+                              "    }",
+                              "} else if (mode === \"length\") {",
+                              "    const length = Number(pm.iterationData.get(\"jc_nameLength\"));",
+                              "    if (!Number.isInteger(length) || length < 1) {",
+                              "        throw new Error(\"Test data error: jc_nameLength must be a positive whole number for mode length\");",
+                              "    }",
+                              "    // unique prefix so a wrongly saved record can't collide with an earlier run",
+                              "    const prefix = `JC-${Date.now().toString().slice(-6)} `;",
+                              "    body.name = (prefix + \"x\".repeat(length)).slice(0, length);",
+                              "} else if (mode !== \"omit\") {",
+                              "    throw new Error(`Test data error: jc_nameMode must be omit, null, string, json or length, got \"${mode}\"`);",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));",
+                              "",
+                              "// the response alone can't show that nothing was saved (most rows return 500), so list the ids before and after",
+                              "pm.variables.set(\"idsBefore\", \"\");",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    if (err || !res || res.code !== 200) {",
+                              "        throw new Error(\"Precondition failed: could not list job categories before the request\");",
+                              "    }",
+                              "    // side effect: compared by the tests of this request",
+                              "    pm.variables.set(\"idsBefore\", JSON.stringify(((res.json() || {}).data || []).map(r => String(r.id))));",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// QA returns 204 even for an id that doesn't exist, so a delete is confirmed by listing the categories",
+                              "const listJobCategories = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteJobCategory = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "    listJobCategories((listErr, listRes, records) => {",
+                              "        pm.test(\"Record created by the rejected request is no longer listed\", function () {",
+                              "            pm.expect(listErr, \"list request error\").to.be.null;",
+                              "            pm.expect(listRes && listRes.code, \"list status\").to.eql(200);",
+                              "            pm.expect(records.map(r => String(r.id)), \"listed job category ids\").to.not.include(String(id));",
+                              "        });",
+                              "    });",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const idsBefore = pm.variables.get(\"idsBefore\");",
+                              "",
+                              "pm.test(`Invalid name is rejected (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`No job category is created (${scenario})`, function () {",
+                              "    pm.expect(norm(responseData.id), \"id of a job category created by an invalid request\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "// a leftover record with the same value makes the request fail the duplicate check instead of validation",
+                              "pm.test(`Name is rejected by validation, not by the duplicate-name check (${scenario})`, function () {",
+                              "    pm.expect(pm.response.text().trim(), \"error body\").to.not.eql(norm(pm.iterationData.get(\"duplicateError\")));",
+                              "});",
+                              "",
+                              "// the teardown runs after the lookup, so the lookup sees what the request saved",
+                              "listJobCategories((err, res, records) => {",
+                              "    pm.test(`Nothing is saved by the rejected request (${scenario})`, function () {",
+                              "        pm.expect(idsBefore, \"ids listed before the request\").to.be.a(\"string\").and.not.empty;",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        const before = JSON.parse(idsBefore);",
+                              "        const newIds = records.map(r => String(r.id)).filter(id => !before.includes(id));",
+                              "        pm.expect(newIds, \"job category ids added by the rejected request\").to.eql([]);",
+                              "    });",
+                              "",
+                              "    if (norm(responseData.id) !== \"\") {",
+                              "        deleteJobCategory(responseData.id);",
+                              "    }",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "add-job-category-with-duplicate-name",
+                  "item": [
+                    {
+                      "name": "ADMIN-066 add job category for duplicate check",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"job_category_id\");",
+                              "",
+                              "const baseName = pm.iterationData.get(\"jc_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: jc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// names are unique (case-insensitive), so prefix a run-specific value; max length is 50",
+                              "const name = `JC-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "if (name.length > 50) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 50`);",
+                              "}",
+                              "",
+                              "// side effect: ADMIN-067 sends the same name",
+                              "pm.environment.set(\"job_category_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Job category is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Job category name matches what was sent\", function () {",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"job_category_name\")));",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-067 and ADMIN-068",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"job_category_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-067 add job category with duplicate name",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_category_id\") || !pm.environment.get(\"job_category_name\")) {",
+                              "    throw new Error(\"Precondition failed: job category not created by ADMIN-066\");",
+                              "}",
+                              "",
+                              "const name = pm.environment.get(\"job_category_name\");",
+                              "const mode = String(pm.iterationData.get(\"jc_duplicateMode\") || \"\").trim();",
+                              "let duplicateName;",
+                              "if (mode === \"exact\") {",
+                              "    duplicateName = name;",
+                              "} else if (mode === \"padded\") {",
+                              "    duplicateName = `  ${name}  `;",
+                              "} else {",
+                              "    throw new Error(`Test data error: jc_duplicateMode must be exact or padded, got \"${mode}\"`);",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name: duplicateName }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// QA returns 204 even for an id that doesn't exist, so a delete is confirmed by listing the categories",
+                              "const listJobCategories = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteJobCategory = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "    listJobCategories((listErr, listRes, records) => {",
+                              "        pm.test(\"Record created by the rejected request is no longer listed\", function () {",
+                              "            pm.expect(listErr, \"list request error\").to.be.null;",
+                              "            pm.expect(listRes && listRes.code, \"list status\").to.eql(200);",
+                              "            pm.expect(records.map(r => String(r.id)), \"listed job category ids\").to.not.include(String(id));",
+                              "        });",
+                              "    });",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const createdId = norm(responseData.id);",
+                              "",
+                              "pm.test(`Duplicate name is rejected (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error message says the name already exists (${scenario})`, function () {",
+                              "    pm.expect(pm.response.text().trim(), \"error body\").to.eql(norm(pm.iterationData.get(\"expectedError\")));",
+                              "});",
+                              "",
+                              "pm.test(`No second job category is created (${scenario})`, function () {",
+                              "    pm.expect(createdId, \"id of a duplicate job category\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "if (createdId !== \"\" && createdId !== norm(pm.environment.get(\"job_category_id\"))) {",
+                              "    deleteJobCategory(createdId);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-068 delete job category created by ADMIN-066",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_category_id\")) {",
+                              "    throw new Error(\"Precondition failed: job_category_id not set by ADMIN-066\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const deletedId = String(pm.environment.get(\"job_category_id\"));",
+                              "",
+                              "pm.test(\"Job category created by ADMIN-066 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// QA returns 204 even for an id that doesn't exist, so a delete is confirmed by listing the categories",
+                              "const listJobCategories = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "listJobCategories((err, res, records) => {",
+                              "    pm.test(\"Job category created by ADMIN-066 is no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"list status\").to.eql(200);",
+                              "        pm.expect(records.map(r => String(r.id)), \"listed job category ids\").to.not.include(deletedId);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"job_category_id\");",
+                              "pm.environment.unset(\"job_category_name\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"data\": [\"{{job_category_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "add-job-category-with-undocumented-id",
+                  "item": [
+                    {
+                      "name": "ADMIN-069 add job category for undocumented id check",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"job_category_id\");",
+                              "pm.environment.unset(\"job_category_free_id\");",
+                              "",
+                              "const baseName = pm.iterationData.get(\"jc_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: jc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// names are unique (case-insensitive), so prefix a run-specific value; max length is 50",
+                              "const name = `JC-${Date.now().toString().slice(-6)} ${baseName} Setup`;",
+                              "if (name.length > 50) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 50`);",
+                              "}",
+                              "",
+                              "// side effect: ADMIN-072 checks this record is unchanged",
+                              "pm.environment.set(\"job_category_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Job category is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-070 to ADMIN-073",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"job_category_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-070 get job categories to find an unused id",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_category_id\")) {",
+                              "    throw new Error(\"Precondition failed: job_category_id not set by ADMIN-069\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "",
+                              "pm.test(\"Job categories are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the job category list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"jobCategoryGetSchema\");",
+                              "    pm.expect(raw, \"jobCategoryGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "// an id below the highest one never moves the auto-increment counter (defect D6 on the shared instance)",
+                              "const ids = records.map(r => Number(r.id)).filter(Number.isInteger);",
+                              "const highest = Math.max(0, ...ids);",
+                              "let freeId = 0;",
+                              "for (let i = 1; i < highest; i++) {",
+                              "    if (!ids.includes(i)) {",
+                              "        freeId = i;",
+                              "        break;",
+                              "    }",
+                              "}",
+                              "",
+                              "pm.test(\"An unused id below the highest id is available\", function () {",
+                              "    pm.expect(freeId, \"unused id below the highest id\").to.be.above(0);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-071",
+                              "if (freeId > 0) {",
+                              "    pm.environment.set(\"job_category_free_id\", String(freeId));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-071 add job category with undocumented id",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const source = String(pm.iterationData.get(\"jc_idSource\") || \"\").trim();",
+                              "let sentId;",
+                              "if (source === \"unused\") {",
+                              "    sentId = pm.environment.get(\"job_category_free_id\");",
+                              "    if (!sentId) {",
+                              "        throw new Error(\"Precondition failed: job_category_free_id not set by ADMIN-070\");",
+                              "    }",
+                              "} else if (source === \"existing\") {",
+                              "    sentId = pm.environment.get(\"job_category_id\");",
+                              "    if (!sentId) {",
+                              "        throw new Error(\"Precondition failed: job_category_id not set by ADMIN-069\");",
+                              "    }",
+                              "} else {",
+                              "    throw new Error(`Test data error: jc_idSource must be unused or existing, got \"${source}\"`);",
+                              "}",
+                              "",
+                              "const baseName = pm.iterationData.get(\"jc_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: jc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// a different unique name, so a rejection can't come from the duplicate-name check; max length is 50",
+                              "const name = `JC-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "if (name.length > 50) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 50`);",
+                              "}",
+                              "",
+                              "// side effect: checked by the tests of this request",
+                              "pm.variables.set(\"sentId\", String(sentId));",
+                              "pm.variables.set(\"sentName\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name, id: String(sentId) }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// QA returns 204 even for an id that doesn't exist, so a delete is confirmed by listing the categories",
+                              "const listJobCategories = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteJobCategory = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "    listJobCategories((listErr, listRes, records) => {",
+                              "        pm.test(\"Record created by the rejected request is no longer listed\", function () {",
+                              "            pm.expect(listErr, \"list request error\").to.be.null;",
+                              "            pm.expect(listRes && listRes.code, \"list status\").to.eql(200);",
+                              "            pm.expect(records.map(r => String(r.id)), \"listed job category ids\").to.not.include(String(id));",
+                              "        });",
+                              "    });",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const sentId = norm(pm.variables.get(\"sentId\"));",
+                              "const createdId = norm(responseData.id);",
+                              "// the docs don't say whether an undocumented id is ignored or rejected, so the CSV lists the accepted statuses",
+                              "const allowedStatuses = norm(pm.iterationData.get(\"expectedStatuses\")).split(\"|\").map(Number);",
+                              "",
+                              "pm.test(`Request with an undocumented id is ignored or rejected (${scenario})`, function () {",
+                              "    pm.expect(pm.response.code, \"status\").to.be.oneOf(allowedStatuses);",
+                              "});",
+                              "",
+                              "if (pm.response.code === 201) {",
+                              "    pm.test(`Undocumented id is not used for the new record (${scenario})`, function () {",
+                              "        pm.expect(createdId, \"id must be generated by the server\").to.not.eql(sentId);",
+                              "        pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.variables.get(\"sentName\")));",
+                              "    });",
+                              "}",
+                              "",
+                              "if (createdId !== \"\" && createdId !== norm(pm.environment.get(\"job_category_id\"))) {",
+                              "    deleteJobCategory(createdId);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-072 get job categories to check the existing record is unchanged",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_category_id\") || !pm.environment.get(\"job_category_name\")) {",
+                              "    throw new Error(\"Precondition failed: job category not created by ADMIN-069\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const categoryId = norm(pm.environment.get(\"job_category_id\"));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const selectedRecord = records.find(r => norm(r.id) === categoryId);",
+                              "",
+                              "pm.test(\"Job categories are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the job category list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"jobCategoryGetSchema\");",
+                              "    pm.expect(raw, \"jobCategoryGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(`Job category added in ADMIN-069 still exists (${scenario})`, function () {",
+                              "    pm.expect(selectedRecord, `id ${categoryId} not found in response`).to.exist;",
+                              "});",
+                              "",
+                              "// the check below only makes sense once the record is found",
+                              "if (selectedRecord) {",
+                              "    pm.test(`Job category added in ADMIN-069 is not overwritten (${scenario})`, function () {",
+                              "        pm.expect(norm(selectedRecord.name), \"name\").to.eql(norm(pm.environment.get(\"job_category_name\")));",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-073 delete job category created by ADMIN-069",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_category_id\")) {",
+                              "    throw new Error(\"Precondition failed: job_category_id not set by ADMIN-069\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const deletedId = String(pm.environment.get(\"job_category_id\"));",
+                              "",
+                              "pm.test(\"Job category created by ADMIN-069 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// QA returns 204 even for an id that doesn't exist, so a delete is confirmed by listing the categories",
+                              "const listJobCategories = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "listJobCategories((err, res, records) => {",
+                              "    pm.test(\"Job category created by ADMIN-069 is no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"list status\").to.eql(200);",
+                              "        pm.expect(records.map(r => String(r.id)), \"listed job category ids\").to.not.include(deletedId);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"job_category_id\");",
+                              "pm.environment.unset(\"job_category_name\");",
+                              "pm.environment.unset(\"job_category_free_id\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"data\": [\"{{job_category_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "add-job-category-without-valid-token",
+                  "item": [
+                    {
+                      "name": "ADMIN-074 add job category without token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"job_category_name\");",
+                              "",
+                              "const baseName = pm.iterationData.get(\"jc_name\");",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: jc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// names are unique (case-insensitive), so prefix a run-specific value; max length is 50",
+                              "const name = `JC-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "if (name.length > 50) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 50`);",
+                              "}",
+                              "",
+                              "// side effect: ADMIN-075 sends the same name",
+                              "pm.environment.set(\"job_category_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// QA returns 204 even for an id that doesn't exist, so a delete is confirmed by listing the categories",
+                              "const listJobCategories = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteJobCategory = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "    listJobCategories((listErr, listRes, records) => {",
+                              "        pm.test(\"Record created by the rejected request is no longer listed\", function () {",
+                              "            pm.expect(listErr, \"list request error\").to.be.null;",
+                              "            pm.expect(listRes && listRes.code, \"list status\").to.eql(200);",
+                              "            pm.expect(records.map(r => String(r.id)), \"listed job category ids\").to.not.include(String(id));",
+                              "        });",
+                              "    });",
+                              "});",
+                              "",
+                              "pm.test(\"Request is rejected as unauthorized\", function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No job category is created\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id of a job category created without a token\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    deleteJobCategory(responseData.id);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "auth": {
+                          "type": "noauth"
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-075 add job category with invalid token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"job_category_name\")) {",
+                              "    throw new Error(\"Precondition failed: job_category_name not set by ADMIN-074\");",
+                              "}",
+                              "if (!pm.iterationData.get(\"invalidToken\")) {",
+                              "    throw new Error(\"Test data error: invalidToken is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name: pm.environment.get(\"job_category_name\") }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// QA returns 204 even for an id that doesn't exist, so a delete is confirmed by listing the categories",
+                              "const listJobCategories = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteJobCategory = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/jobCategories`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "    listJobCategories((listErr, listRes, records) => {",
+                              "        pm.test(\"Record created by the rejected request is no longer listed\", function () {",
+                              "            pm.expect(listErr, \"list request error\").to.be.null;",
+                              "            pm.expect(listRes && listRes.code, \"list status\").to.eql(200);",
+                              "            pm.expect(records.map(r => String(r.id)), \"listed job category ids\").to.not.include(String(id));",
+                              "        });",
+                              "    });",
+                              "});",
+                              "",
+                              "pm.test(\"Request is rejected as unauthorized\", function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No job category is created\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id of a job category created with an invalid token\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "pm.test(\"Error says the access token is invalid\", function () {",
+                              "    let body = {};",
+                              "    try {",
+                              "        body = pm.response.json() || {};",
+                              "    } catch (e) {",
+                              "        // not JSON: the field checks below fail with the field name",
+                              "    }",
+                              "    pm.expect(norm(body.error), \"error\").to.eql(norm(pm.iterationData.get(\"expectedError\")));",
+                              "    pm.expect(norm(body.error_description), \"error_description\").to.eql(norm(pm.iterationData.get(\"expectedErrorDescription\")));",
+                              "});",
+                              "",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    deleteJobCategory(responseData.id);",
+                              "}",
+                              "",
+                              "pm.environment.unset(\"job_category_name\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/jobCategories",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "jobCategories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{invalidToken}}",
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -6656,6 +8368,14 @@
     {
       "key": "jobTitleListSchema",
       "value": "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"title\": \"Get job titles list response\", \"type\": \"object\", \"required\": [\"data\", \"meta\"], \"properties\": {\"data\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"jobTitleName\", \"jobDescription\", \"note\", \"isDeleted\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"jobTitleName\": {\"type\": \"string\", \"maxLength\": 100}, \"jobDescription\": {\"type\": \"string\", \"maxLength\": 400}, \"note\": {\"type\": \"string\", \"maxLength\": 400}, \"isDeleted\": {\"type\": \"string\", \"enum\": [\"0\", \"1\"]}, \"JobSpecificationAttachment\": {\"type\": \"object\", \"required\": [\"id\", \"fileName\", \"fileType\", \"fileSize\"], \"properties\": {\"id\": {\"type\": [\"string\", \"null\"]}, \"fileName\": {\"type\": [\"string\", \"null\"]}, \"fileType\": {\"type\": [\"string\", \"null\"]}, \"fileSize\": {\"type\": [\"string\", \"null\"]}}}}}}, \"meta\": {\"type\": \"object\", \"required\": [\"total\", \"permissions\"], \"properties\": {\"total\": {\"type\": \"integer\", \"minimum\": 0}, \"permissions\": {\"type\": \"object\", \"required\": [\"read\", \"create\", \"update\", \"delete\"], \"properties\": {\"read\": {\"type\": \"boolean\"}, \"create\": {\"type\": \"boolean\"}, \"update\": {\"type\": \"boolean\"}, \"delete\": {\"type\": \"boolean\"}}}}}}}"
+    },
+    {
+      "key": "jobCategoryPostSchema",
+      "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Add job category response\",\n  \"type\": \"object\",\n  \"required\": [\n    \"data\"\n  ],\n  \"properties\": {\n    \"data\": {\n      \"type\": \"object\",\n      \"required\": [\n        \"id\",\n        \"name\"\n      ],\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[0-9]+$\"\n        },\n        \"name\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 50\n        }\n      }\n    }\n  }\n}"
+    },
+    {
+      "key": "jobCategoryGetSchema",
+      "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Job category list response\",\n  \"type\": \"object\",\n  \"required\": [\n    \"data\",\n    \"meta\"\n  ],\n  \"properties\": {\n    \"data\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"id\",\n          \"name\"\n        ],\n        \"properties\": {\n          \"id\": {\n            \"type\": \"string\",\n            \"pattern\": \"^[0-9]+$\"\n          },\n          \"name\": {\n            \"type\": \"string\",\n            \"maxLength\": 50\n          }\n        }\n      }\n    },\n    \"meta\": {\n      \"type\": \"object\",\n      \"required\": [\n        \"total\"\n      ],\n      \"properties\": {\n        \"total\": {\n          \"type\": \"integer\",\n          \"minimum\": 0\n        }\n      }\n    }\n  }\n}"
     }
   ]
 }

@@ -1,0 +1,2 @@
+"jc_name","invalidToken","expectedStatus","expectedError","expectedErrorDescription"
+"Auth Check","invalid-token-for-api-test",401,"invalid_token","The access token provided is invalid"
