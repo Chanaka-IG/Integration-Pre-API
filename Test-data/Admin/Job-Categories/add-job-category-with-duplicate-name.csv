@@ -1,0 +1,3 @@
+"scenario","jc_name","jc_duplicateMode","expectedStatus","expectedError"
+"exact same name","Duplicate Check","exact",400,"Already Exists"
+"same name with surrounding spaces","Padded Duplicate","padded",400,"Already Exists"

@@ -1,0 +1,2 @@
+"scenario","jc_name","expectedStatuses"
+"emoji in the name","Emoji ✓😀","201|400"
