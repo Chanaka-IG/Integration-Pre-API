@@ -1,0 +1,2 @@
+"scenario","cc_code","cc_name","expectedStatuses"
+"emoji in the name","EMJ","Emoji ✓😀","201|400"

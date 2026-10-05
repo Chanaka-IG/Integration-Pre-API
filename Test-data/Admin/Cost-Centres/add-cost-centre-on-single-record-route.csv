@@ -1,0 +1,2 @@
+"scenario","cc_code","cc_name","expectedStatuses"
+"POST with an id in the path","SRR","Single Route","400|405"

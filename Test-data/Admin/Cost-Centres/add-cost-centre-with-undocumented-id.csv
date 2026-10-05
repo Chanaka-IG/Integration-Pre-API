@@ -1,0 +1,3 @@
+"scenario","cc_code","cc_name","cc_idSource","expectedStatuses"
+"next unused id","NID","Next Id","next","201|400"
+"id of an existing cost centre","XID","Existing Id","existing","201|400"

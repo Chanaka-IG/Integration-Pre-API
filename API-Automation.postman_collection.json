@@ -5546,6 +5546,675 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Cost-Centres",
+              "item": [
+                {
+                  "name": "add-cost-centre",
+                  "item": [
+                    {
+                      "name": "ADMIN-076 get cost centres before add",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"cost_centre_id\");",
+                              "pm.environment.unset(\"cost_centre_code\");",
+                              "pm.environment.unset(\"cost_centre_name\");",
+                              "pm.environment.unset(\"cost_centre_description\");",
+                              "pm.environment.unset(\"cost_centre_baseline\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "",
+                              "pm.test(\"Cost centres are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the cost centre list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"costCentreGetSchema\");",
+                              "    pm.expect(raw, \"costCentreGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "// side effect: ADMIN-079 checks these records are unchanged after the add",
+                              "pm.environment.set(\"cost_centre_baseline\", JSON.stringify(records.map(r => ({",
+                              "    id: norm(r.id), cost_code: norm(r.cost_code), name: norm(r.name), description: norm(r.description)",
+                              "}))));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-077 add cost centre",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const baseCode = pm.iterationData.get(\"cc_code\");",
+                              "const baseName = pm.iterationData.get(\"cc_name\");",
+                              "if (baseCode === undefined || String(baseCode).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_code is blank in the CSV row\");",
+                              "}",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps values unique across runs; max lengths are 20 (cost_code) and 40 (name)",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const code = `CC${runId}${baseCode}`;",
+                              "const name = `CC-${runId} ${baseName}`;",
+                              "if (code.length > 20) {",
+                              "    throw new Error(`Test data error: generated cost_code is ${code.length} characters, max is 20`);",
+                              "}",
+                              "if (name.length > 40) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 40`);",
+                              "}",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "",
+                              "// description is sent as a string or left out (mandatory fields only), as the CSV row says",
+                              "const descriptionMode = String(pm.iterationData.get(\"cc_descriptionMode\") || \"\").trim();",
+                              "const body = { cost_code: code, name };",
+                              "if (descriptionMode === \"string\") {",
+                              "    const description = pm.iterationData.get(\"cc_description\");",
+                              "    body.description = description === undefined || description === null ? \"\" : String(description);",
+                              "} else if (descriptionMode !== \"omit\") {",
+                              "    throw new Error(`Test data error: cc_descriptionMode must be string or omit, got \"${descriptionMode}\"`);",
+                              "}",
+                              "",
+                              "// side effect: checked by ADMIN-077 to ADMIN-079",
+                              "pm.environment.set(\"cost_centre_code\", code);",
+                              "pm.environment.set(\"cost_centre_name\", name);",
+                              "pm.environment.set(\"cost_centre_description\", norm(pm.iterationData.get(\"cc_expectedDescription\")));",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(`Cost centre is added (${scenario})`, function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the cost centre schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"costCentrePostSchema\");",
+                              "    pm.expect(raw, \"costCentrePostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(`Cost centre details match what was sent (${scenario})`, function () {",
+                              "    pm.expect(norm(responseData.cost_code), \"cost_code\").to.eql(norm(pm.environment.get(\"cost_centre_code\")));",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"cost_centre_name\")));",
+                              "    pm.expect(norm(responseData.description), \"description\").to.eql(norm(pm.environment.get(\"cost_centre_description\")));",
+                              "});",
+                              "",
+                              "pm.test(\"New cost centre is not marked as deleted\", function () {",
+                              "    pm.expect(norm(responseData.is_deleted), \"is_deleted\").to.eql(\"0\");",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-078 to ADMIN-080",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"cost_centre_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-078 get cost centre added by ADMIN-077",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"cost_centre_id\")) {",
+                              "    throw new Error(\"Precondition failed: cost_centre_id not set by ADMIN-077\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Cost centre is retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the cost centre schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"costCentrePostSchema\");",
+                              "    pm.expect(raw, \"costCentrePostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Saved cost centre matches what was sent\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id\").to.eql(norm(pm.environment.get(\"cost_centre_id\")));",
+                              "    pm.expect(norm(responseData.cost_code), \"cost_code\").to.eql(norm(pm.environment.get(\"cost_centre_code\")));",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"cost_centre_name\")));",
+                              "    pm.expect(norm(responseData.description), \"description\").to.eql(norm(pm.environment.get(\"cost_centre_description\")));",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres/{{cost_centre_id}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres",
+                            "{{cost_centre_id}}"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-079 get cost centres after add",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"cost_centre_id\")) {",
+                              "    throw new Error(\"Precondition failed: cost_centre_id not set by ADMIN-077\");",
+                              "}",
+                              "if (!pm.environment.get(\"cost_centre_baseline\")) {",
+                              "    throw new Error(\"Precondition failed: cost_centre_baseline not set by ADMIN-076\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const costCentreId = norm(pm.environment.get(\"cost_centre_id\"));",
+                              "const costCode = norm(pm.environment.get(\"cost_centre_code\"));",
+                              "const baseline = JSON.parse(pm.environment.get(\"cost_centre_baseline\"));",
+                              "",
+                              "const selectedRecord = records.find(r => norm(r.id) === costCentreId);",
+                              "",
+                              "pm.test(\"Cost centres are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the cost centre list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"costCentreGetSchema\");",
+                              "    pm.expect(raw, \"costCentreGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Cost centre added in ADMIN-077 is in the list\", function () {",
+                              "    pm.expect(selectedRecord, `id ${costCentreId} not found in response`).to.exist;",
+                              "});",
+                              "",
+                              "// the check below only makes sense once the record is found",
+                              "if (selectedRecord) {",
+                              "    pm.test(\"Listed cost centre matches what was sent\", function () {",
+                              "        pm.expect(norm(selectedRecord.cost_code), \"cost_code\").to.eql(costCode);",
+                              "        pm.expect(norm(selectedRecord.name), \"name\").to.eql(norm(pm.environment.get(\"cost_centre_name\")));",
+                              "        pm.expect(norm(selectedRecord.description), \"description\").to.eql(norm(pm.environment.get(\"cost_centre_description\")));",
+                              "    });",
+                              "}",
+                              "",
+                              "pm.test(\"The cost code is saved only once\", function () {",
+                              "    const sameCode = records.filter(r => norm(r.cost_code).toLowerCase() === costCode.toLowerCase());",
+                              "    pm.expect(sameCode.length, `cost centres with code \"${costCode}\"`).to.eql(1);",
+                              "});",
+                              "",
+                              "pm.test(\"Existing cost centres are unchanged\", function () {",
+                              "    const changed = baseline.filter(b => {",
+                              "        const current = records.find(r => norm(r.id) === b.id);",
+                              "        return !current || norm(current.cost_code) !== b.cost_code || norm(current.name) !== b.name",
+                              "            || norm(current.description) !== b.description;",
+                              "    });",
+                              "    pm.expect(changed, \"cost centres missing or changed after the add\").to.eql([]);",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-080 delete cost centre created by ADMIN-077",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"cost_centre_id\")) {",
+                              "    throw new Error(\"Precondition failed: cost_centre_id not set by ADMIN-077\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const deletedId = String(pm.environment.get(\"cost_centre_id\"));",
+                              "",
+                              "pm.test(\"Cost centre created by ADMIN-077 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// lists active cost centres; used to confirm a delete (soft delete, 204 has no body) or that nothing was saved",
+                              "const listCostCentres = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "listCostCentres((err, res, records) => {",
+                              "    pm.test(\"Cost centre created by ADMIN-077 is no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"list status\").to.eql(200);",
+                              "        pm.expect(records.map(r => String(r.id)), \"listed cost centre ids\").to.not.include(deletedId);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"cost_centre_id\");",
+                              "pm.environment.unset(\"cost_centre_code\");",
+                              "pm.environment.unset(\"cost_centre_name\");",
+                              "pm.environment.unset(\"cost_centre_description\");",
+                              "pm.environment.unset(\"cost_centre_baseline\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"data\": [\"{{cost_centre_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "add-cost-centre-with-4-byte-characters",
+                  "item": [
+                    {
+                      "name": "ADMIN-081 add cost centre with 4-byte characters",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"cost_centre_id\");",
+                              "pm.environment.unset(\"cost_centre_code\");",
+                              "pm.environment.unset(\"cost_centre_name\");",
+                              "",
+                              "const baseCode = pm.iterationData.get(\"cc_code\");",
+                              "const baseName = pm.iterationData.get(\"cc_name\");",
+                              "if (baseCode === undefined || String(baseCode).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_code is blank in the CSV row\");",
+                              "}",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps values unique across runs; max lengths are 20 (cost_code) and 40 (name)",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const code = `CC${runId}${baseCode}`;",
+                              "const name = `CC-${runId} ${baseName}`;",
+                              "if (code.length > 20) {",
+                              "    throw new Error(`Test data error: generated cost_code is ${code.length} characters, max is 20`);",
+                              "}",
+                              "if (name.length > 40) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 40`);",
+                              "}",
+                              "",
+                              "// side effect: checked by ADMIN-081 and ADMIN-082",
+                              "pm.environment.set(\"cost_centre_code\", code);",
+                              "pm.environment.set(\"cost_centre_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ cost_code: code, name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "// the docs don't say whether 4-byte characters are supported, so the CSV lists the accepted statuses",
+                              "const allowedStatuses = norm(pm.iterationData.get(\"expectedStatuses\")).split(\"|\").map(Number);",
+                              "",
+                              "pm.test(`Name with 4-byte characters is saved or rejected (${scenario})`, function () {",
+                              "    pm.expect(pm.response.code, \"status\").to.be.oneOf(allowedStatuses);",
+                              "});",
+                              "",
+                              "if (pm.response.code === 201) {",
+                              "    pm.test(`Response matches the cost centre schema (${scenario})`, function () {",
+                              "        const raw = pm.collectionVariables.get(\"costCentrePostSchema\");",
+                              "        pm.expect(raw, \"costCentrePostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "        pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "    });",
+                              "",
+                              "    pm.test(`Response name matches what was sent (${scenario})`, function () {",
+                              "        pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"cost_centre_name\")));",
+                              "    });",
+                              "}",
+                              "",
+                              "// side effect: consumed by ADMIN-082 and ADMIN-083",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"cost_centre_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-082 get cost centres after adding 4-byte characters",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"cost_centre_code\")) {",
+                              "    throw new Error(\"Precondition failed: cost_centre_code not set by ADMIN-081\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const costCentreId = norm(pm.environment.get(\"cost_centre_id\"));",
+                              "const costCode = norm(pm.environment.get(\"cost_centre_code\"));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(\"Cost centres are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the cost centre list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"costCentreGetSchema\");",
+                              "    pm.expect(raw, \"costCentreGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "if (costCentreId !== \"\") {",
+                              "    const selectedRecord = records.find(r => norm(r.id) === costCentreId);",
+                              "",
+                              "    pm.test(`Cost centre added in ADMIN-081 is in the list (${scenario})`, function () {",
+                              "        pm.expect(selectedRecord, `id ${costCentreId} not found in response`).to.exist;",
+                              "    });",
+                              "",
+                              "    // the check below only makes sense once the record is found",
+                              "    if (selectedRecord) {",
+                              "        pm.test(`Stored name matches what was sent (${scenario})`, function () {",
+                              "            pm.expect(norm(selectedRecord.name), \"name\").to.eql(norm(pm.environment.get(\"cost_centre_name\")));",
+                              "        });",
+                              "    }",
+                              "} else {",
+                              "    // ADMIN-081 rejected the name, so nothing may have been saved under its cost code",
+                              "    pm.test(`Rejected cost centre is not saved (${scenario})`, function () {",
+                              "        const saved = records.filter(r => norm(r.cost_code) === costCode);",
+                              "        pm.expect(saved, \"cost centres saved by the rejected request\").to.eql([]);",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-083 delete cost centre created by ADMIN-081",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// nothing to delete when ADMIN-081 was rejected",
+                              "if (!pm.environment.get(\"cost_centre_id\")) {",
+                              "    pm.execution.skipRequest();",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const deletedId = String(pm.environment.get(\"cost_centre_id\"));",
+                              "",
+                              "pm.test(\"Cost centre created by ADMIN-081 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// lists active cost centres; used to confirm a delete (soft delete, 204 has no body) or that nothing was saved",
+                              "const listCostCentres = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "listCostCentres((err, res, records) => {",
+                              "    pm.test(\"Cost centre created by ADMIN-081 is no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"list status\").to.eql(200);",
+                              "        pm.expect(records.map(r => String(r.id)), \"listed cost centre ids\").to.not.include(deletedId);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"cost_centre_id\");",
+                              "pm.environment.unset(\"cost_centre_code\");",
+                              "pm.environment.unset(\"cost_centre_name\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"data\": [\"{{cost_centre_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -8193,6 +8862,1572 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Cost-Centres",
+              "item": [
+                {
+                  "name": "add-cost-centre-with-invalid-data",
+                  "item": [
+                    {
+                      "name": "ADMIN-084 add cost centre with invalid data",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// build a valid body, then make one field invalid as the CSV row says:",
+                              "// the field is omitted, null, a string, or a JSON value (array, object, boolean)",
+                              "const field = String(pm.iterationData.get(\"cc_field\") || \"\").trim();",
+                              "const mode = String(pm.iterationData.get(\"cc_valueMode\") || \"\").trim();",
+                              "const rawValue = pm.iterationData.get(\"cc_value\");",
+                              "if (field !== \"cost_code\" && field !== \"name\") {",
+                              "    throw new Error(`Test data error: cc_field must be cost_code or name, got \"${field}\"`);",
+                              "}",
+                              "",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const body = { cost_code: `CC${runId}INV`, name: `CC-${runId} Invalid Data` };",
+                              "",
+                              "if (mode === \"omit\") {",
+                              "    delete body[field];",
+                              "} else if (mode === \"null\") {",
+                              "    body[field] = null;",
+                              "} else if (mode === \"string\") {",
+                              "    body[field] = rawValue === undefined || rawValue === null ? \"\" : String(rawValue);",
+                              "} else if (mode === \"json\") {",
+                              "    try {",
+                              "        body[field] = JSON.parse(String(rawValue));",
+                              "    } catch (e) {",
+                              "        throw new Error(`Test data error: cc_value is not valid JSON for mode json: ${rawValue}`);",
+                              "    }",
+                              "} else {",
+                              "    throw new Error(`Test data error: cc_valueMode must be omit, null, string or json, got \"${mode}\"`);",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));",
+                              "",
+                              "// every validation error has the same message, so list the ids before and after to prove nothing was saved",
+                              "pm.variables.set(\"idsBefore\", \"\");",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    if (err || !res || res.code !== 200) {",
+                              "        throw new Error(\"Precondition failed: could not list cost centres before the request\");",
+                              "    }",
+                              "    // side effect: compared by the tests of this request",
+                              "    pm.variables.set(\"idsBefore\", JSON.stringify(((res.json() || {}).data || []).map(r => String(r.id))));",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// lists active cost centres; used to confirm a delete (soft delete, 204 has no body) or that nothing was saved",
+                              "const listCostCentres = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteCostCentre = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "    listCostCentres((listErr, listRes, records) => {",
+                              "        pm.test(\"Record created by the rejected request is no longer listed\", function () {",
+                              "            pm.expect(listErr, \"list request error\").to.be.null;",
+                              "            pm.expect(listRes && listRes.code, \"list status\").to.eql(200);",
+                              "            pm.expect(records.map(r => String(r.id)), \"listed cost centre ids\").to.not.include(String(id));",
+                              "        });",
+                              "    });",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const idsBefore = pm.variables.get(\"idsBefore\");",
+                              "",
+                              "pm.test(`Invalid data is rejected (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error message says the request is not supported (${scenario})`, function () {",
+                              "    pm.expect(pm.response.text().trim(), \"error body\").to.eql(norm(pm.iterationData.get(\"expectedError\")));",
+                              "});",
+                              "",
+                              "pm.test(`No cost centre is created (${scenario})`, function () {",
+                              "    pm.expect(norm(responseData.id), \"id of a cost centre created by an invalid request\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "// the teardown runs after the lookup, so the lookup sees what the request saved",
+                              "listCostCentres((err, res, records) => {",
+                              "    pm.test(`Nothing is saved by the rejected request (${scenario})`, function () {",
+                              "        pm.expect(idsBefore, \"ids listed before the request\").to.be.a(\"string\").and.not.empty;",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        const before = JSON.parse(idsBefore);",
+                              "        const newIds = records.map(r => String(r.id)).filter(id => !before.includes(id));",
+                              "        pm.expect(newIds, \"cost centre ids added by the rejected request\").to.eql([]);",
+                              "    });",
+                              "",
+                              "    if (norm(responseData.id) !== \"\") {",
+                              "        deleteCostCentre(responseData.id);",
+                              "    }",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "add-cost-centre-with-duplicate-values",
+                  "item": [
+                    {
+                      "name": "ADMIN-085 add cost centre for duplicate check",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"cost_centre_id\");",
+                              "pm.environment.unset(\"cost_centre_code\");",
+                              "pm.environment.unset(\"cost_centre_name\");",
+                              "pm.environment.unset(\"cost_centre_next_id\");",
+                              "",
+                              "const baseCode = pm.iterationData.get(\"cc_code\");",
+                              "const baseName = pm.iterationData.get(\"cc_name\");",
+                              "if (baseCode === undefined || String(baseCode).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_code is blank in the CSV row\");",
+                              "}",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps values unique across runs; max lengths are 20 (cost_code) and 40 (name)",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const code = `CC${runId}${baseCode}`;",
+                              "const name = `CC-${runId} ${baseName}`;",
+                              "if (code.length > 20) {",
+                              "    throw new Error(`Test data error: generated cost_code is ${code.length} characters, max is 20`);",
+                              "}",
+                              "if (name.length > 40) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 40`);",
+                              "}",
+                              "",
+                              "// side effect: consumed by ADMIN-086 and ADMIN-087",
+                              "pm.environment.set(\"cost_centre_code\", code);",
+                              "pm.environment.set(\"cost_centre_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ cost_code: code, name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Cost centre is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Cost centre details match what was sent\", function () {",
+                              "    pm.expect(norm(responseData.cost_code), \"cost_code\").to.eql(norm(pm.environment.get(\"cost_centre_code\")));",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"cost_centre_name\")));",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-086 and ADMIN-087",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"cost_centre_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-086 add cost centre with duplicate values",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"cost_centre_id\") || !pm.environment.get(\"cost_centre_code\")) {",
+                              "    throw new Error(\"Precondition failed: cost centre not created by ADMIN-085\");",
+                              "}",
+                              "",
+                              "// reuse the cost code or the name of the ADMIN-085 record; the other field gets a new value",
+                              "const code = pm.environment.get(\"cost_centre_code\");",
+                              "const name = pm.environment.get(\"cost_centre_name\");",
+                              "const mode = String(pm.iterationData.get(\"cc_duplicateMode\") || \"\").trim();",
+                              "let body;",
+                              "if (mode === \"exactCode\") {",
+                              "    body = { cost_code: code, name: `${name} 2` };",
+                              "} else if (mode === \"lowerCaseCode\") {",
+                              "    body = { cost_code: code.toLowerCase(), name: `${name} 2` };",
+                              "} else if (mode === \"paddedCode\") {",
+                              "    body = { cost_code: `  ${code}  `, name: `${name} 2` };",
+                              "} else if (mode === \"sameName\") {",
+                              "    body = { cost_code: `${code}B`, name };",
+                              "} else {",
+                              "    throw new Error(`Test data error: cc_duplicateMode must be exactCode, lowerCaseCode, paddedCode or sameName, got \"${mode}\"`);",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// lists active cost centres; used to confirm a delete (soft delete, 204 has no body) or that nothing was saved",
+                              "const listCostCentres = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteCostCentre = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "    listCostCentres((listErr, listRes, records) => {",
+                              "        pm.test(\"Record created by the rejected request is no longer listed\", function () {",
+                              "            pm.expect(listErr, \"list request error\").to.be.null;",
+                              "            pm.expect(listRes && listRes.code, \"list status\").to.eql(200);",
+                              "            pm.expect(records.map(r => String(r.id)), \"listed cost centre ids\").to.not.include(String(id));",
+                              "        });",
+                              "    });",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const createdId = norm(responseData.id);",
+                              "",
+                              "// the API has no duplicate check yet (defects D1/D2); the expected result follows the UI rule",
+                              "pm.test(`Duplicate value is rejected (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`No second cost centre is created (${scenario})`, function () {",
+                              "    pm.expect(createdId, \"id of a duplicate cost centre\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "if (createdId !== \"\" && createdId !== norm(pm.environment.get(\"cost_centre_id\"))) {",
+                              "    deleteCostCentre(createdId);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-087 delete cost centre created by ADMIN-085",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"cost_centre_id\")) {",
+                              "    throw new Error(\"Precondition failed: cost_centre_id not set by ADMIN-085\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const deletedId = String(pm.environment.get(\"cost_centre_id\"));",
+                              "",
+                              "pm.test(\"Cost centre created by ADMIN-085 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// lists active cost centres; used to confirm a delete (soft delete, 204 has no body) or that nothing was saved",
+                              "const listCostCentres = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "listCostCentres((err, res, records) => {",
+                              "    pm.test(\"Cost centre created by ADMIN-085 is no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"list status\").to.eql(200);",
+                              "        pm.expect(records.map(r => String(r.id)), \"listed cost centre ids\").to.not.include(deletedId);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"cost_centre_id\");",
+                              "pm.environment.unset(\"cost_centre_code\");",
+                              "pm.environment.unset(\"cost_centre_name\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"data\": [\"{{cost_centre_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "add-cost-centre-with-undocumented-id",
+                  "item": [
+                    {
+                      "name": "ADMIN-088 add cost centre for undocumented id check",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"cost_centre_id\");",
+                              "pm.environment.unset(\"cost_centre_code\");",
+                              "pm.environment.unset(\"cost_centre_name\");",
+                              "pm.environment.unset(\"cost_centre_next_id\");",
+                              "",
+                              "const baseCode = pm.iterationData.get(\"cc_code\");",
+                              "const baseName = pm.iterationData.get(\"cc_name\");",
+                              "if (baseCode === undefined || String(baseCode).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_code is blank in the CSV row\");",
+                              "}",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps values unique across runs; max lengths are 20 (cost_code) and 40 (name)",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const code = `CC${runId}${baseCode}`;",
+                              "const name = `CC-${runId} ${baseName}`;",
+                              "if (code.length > 20) {",
+                              "    throw new Error(`Test data error: generated cost_code is ${code.length} characters, max is 20`);",
+                              "}",
+                              "if (name.length > 40) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 40`);",
+                              "}",
+                              "",
+                              "// side effect: consumed by ADMIN-089 to ADMIN-092",
+                              "pm.environment.set(\"cost_centre_code\", code);",
+                              "pm.environment.set(\"cost_centre_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ cost_code: code, name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Cost centre is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Cost centre details match what was sent\", function () {",
+                              "    pm.expect(norm(responseData.cost_code), \"cost_code\").to.eql(norm(pm.environment.get(\"cost_centre_code\")));",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"cost_centre_name\")));",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-089 to ADMIN-092",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"cost_centre_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-089 get cost centres including deleted to find the next id",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"cost_centre_id\")) {",
+                              "    throw new Error(\"Precondition failed: cost_centre_id not set by ADMIN-088\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "",
+                              "pm.test(\"Cost centres are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the cost centre list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"costCentreGetSchema\");",
+                              "    pm.expect(raw, \"costCentreGetSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "// deletes are soft, so deleted rows keep their ids. The next id after the highest is the one the",
+                              "// server would use anyway, so sending it never moves the shared auto-increment counter (defect D5)",
+                              "const ids = records.map(r => Number(r.id)).filter(Number.isInteger);",
+                              "const nextId = Math.max(0, ...ids) + 1;",
+                              "",
+                              "pm.test(\"The cost centre added in ADMIN-088 is the highest id\", function () {",
+                              "    pm.expect(nextId - 1, \"highest id\").to.eql(Number(pm.environment.get(\"cost_centre_id\")));",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-090",
+                              "pm.environment.set(\"cost_centre_next_id\", String(nextId));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres?includeDeleted=1",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ],
+                          "query": [
+                            {
+                              "key": "includeDeleted",
+                              "value": "1"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-090 add cost centre with undocumented id",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const source = String(pm.iterationData.get(\"cc_idSource\") || \"\").trim();",
+                              "let sentId;",
+                              "if (source === \"next\") {",
+                              "    sentId = pm.environment.get(\"cost_centre_next_id\");",
+                              "    if (!sentId) {",
+                              "        throw new Error(\"Precondition failed: cost_centre_next_id not set by ADMIN-089\");",
+                              "    }",
+                              "} else if (source === \"existing\") {",
+                              "    sentId = pm.environment.get(\"cost_centre_id\");",
+                              "    if (!sentId) {",
+                              "        throw new Error(\"Precondition failed: cost_centre_id not set by ADMIN-088\");",
+                              "    }",
+                              "} else {",
+                              "    throw new Error(`Test data error: cc_idSource must be next or existing, got \"${source}\"`);",
+                              "}",
+                              "",
+                              "// different values from ADMIN-088, so a rejection can't come from a duplicate check",
+                              "const baseCode = pm.iterationData.get(\"cc_code\");",
+                              "const baseName = pm.iterationData.get(\"cc_name\");",
+                              "if (baseCode === undefined || String(baseCode).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_code is blank in the CSV row\");",
+                              "}",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps values unique across runs; max lengths are 20 (cost_code) and 40 (name)",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const code = `CC${runId}${baseCode}2`;",
+                              "const name = `CC-${runId} ${baseName}`;",
+                              "if (code.length > 20) {",
+                              "    throw new Error(`Test data error: generated cost_code is ${code.length} characters, max is 20`);",
+                              "}",
+                              "if (name.length > 40) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 40`);",
+                              "}",
+                              "",
+                              "// side effect: checked by the tests of this request",
+                              "pm.variables.set(\"sentId\", String(sentId));",
+                              "pm.variables.set(\"sentCode\", code);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ cost_code: code, name, id: String(sentId) }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// lists active cost centres; used to confirm a delete (soft delete, 204 has no body) or that nothing was saved",
+                              "const listCostCentres = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteCostCentre = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "    listCostCentres((listErr, listRes, records) => {",
+                              "        pm.test(\"Record created by the rejected request is no longer listed\", function () {",
+                              "            pm.expect(listErr, \"list request error\").to.be.null;",
+                              "            pm.expect(listRes && listRes.code, \"list status\").to.eql(200);",
+                              "            pm.expect(records.map(r => String(r.id)), \"listed cost centre ids\").to.not.include(String(id));",
+                              "        });",
+                              "    });",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const sentId = norm(pm.variables.get(\"sentId\"));",
+                              "const createdId = norm(responseData.id);",
+                              "// the docs don't say whether an undocumented id is ignored or rejected, so the CSV lists the accepted statuses",
+                              "const allowedStatuses = norm(pm.iterationData.get(\"expectedStatuses\")).split(\"|\").map(Number);",
+                              "",
+                              "pm.test(`Request with an undocumented id is ignored or rejected (${scenario})`, function () {",
+                              "    pm.expect(pm.response.code, \"status\").to.be.oneOf(allowedStatuses);",
+                              "});",
+                              "",
+                              "if (pm.response.code === 201) {",
+                              "    pm.test(`Undocumented id is not used for the new record (${scenario})`, function () {",
+                              "        pm.expect(createdId, \"id must be generated by the server\").to.not.eql(sentId);",
+                              "        pm.expect(norm(responseData.cost_code), \"cost_code\").to.eql(norm(pm.variables.get(\"sentCode\")));",
+                              "    });",
+                              "}",
+                              "",
+                              "if (createdId !== \"\" && createdId !== norm(pm.environment.get(\"cost_centre_id\"))) {",
+                              "    deleteCostCentre(createdId);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-091 get cost centre added by ADMIN-088 to check it is unchanged",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"cost_centre_id\") || !pm.environment.get(\"cost_centre_code\")) {",
+                              "    throw new Error(\"Precondition failed: cost centre not created by ADMIN-088\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(\"Cost centre is retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the cost centre schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"costCentrePostSchema\");",
+                              "    pm.expect(raw, \"costCentrePostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(`Cost centre added in ADMIN-088 is not overwritten (${scenario})`, function () {",
+                              "    pm.expect(norm(responseData.id), \"id\").to.eql(norm(pm.environment.get(\"cost_centre_id\")));",
+                              "    pm.expect(norm(responseData.cost_code), \"cost_code\").to.eql(norm(pm.environment.get(\"cost_centre_code\")));",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"cost_centre_name\")));",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres/{{cost_centre_id}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres",
+                            "{{cost_centre_id}}"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-092 delete cost centre created by ADMIN-088",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"cost_centre_id\")) {",
+                              "    throw new Error(\"Precondition failed: cost_centre_id not set by ADMIN-088\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const deletedId = String(pm.environment.get(\"cost_centre_id\"));",
+                              "",
+                              "pm.test(\"Cost centre created by ADMIN-088 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// lists active cost centres; used to confirm a delete (soft delete, 204 has no body) or that nothing was saved",
+                              "const listCostCentres = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "listCostCentres((err, res, records) => {",
+                              "    pm.test(\"Cost centre created by ADMIN-088 is no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"list status\").to.eql(200);",
+                              "        pm.expect(records.map(r => String(r.id)), \"listed cost centre ids\").to.not.include(deletedId);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"cost_centre_id\");",
+                              "pm.environment.unset(\"cost_centre_code\");",
+                              "pm.environment.unset(\"cost_centre_name\");",
+                              "pm.environment.unset(\"cost_centre_next_id\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"data\": [\"{{cost_centre_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "add-cost-centre-without-valid-token",
+                  "item": [
+                    {
+                      "name": "ADMIN-093 add cost centre without token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"cost_centre_code\");",
+                              "pm.environment.unset(\"cost_centre_name\");",
+                              "",
+                              "const baseCode = pm.iterationData.get(\"cc_code\");",
+                              "const baseName = pm.iterationData.get(\"cc_name\");",
+                              "if (baseCode === undefined || String(baseCode).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_code is blank in the CSV row\");",
+                              "}",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps values unique across runs; max lengths are 20 (cost_code) and 40 (name)",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const code = `CC${runId}${baseCode}`;",
+                              "const name = `CC-${runId} ${baseName}`;",
+                              "if (code.length > 20) {",
+                              "    throw new Error(`Test data error: generated cost_code is ${code.length} characters, max is 20`);",
+                              "}",
+                              "if (name.length > 40) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 40`);",
+                              "}",
+                              "",
+                              "// side effect: ADMIN-094 sends the same values",
+                              "pm.environment.set(\"cost_centre_code\", code);",
+                              "pm.environment.set(\"cost_centre_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ cost_code: code, name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// lists active cost centres; used to confirm a delete (soft delete, 204 has no body) or that nothing was saved",
+                              "const listCostCentres = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteCostCentre = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "    listCostCentres((listErr, listRes, records) => {",
+                              "        pm.test(\"Record created by the rejected request is no longer listed\", function () {",
+                              "            pm.expect(listErr, \"list request error\").to.be.null;",
+                              "            pm.expect(listRes && listRes.code, \"list status\").to.eql(200);",
+                              "            pm.expect(records.map(r => String(r.id)), \"listed cost centre ids\").to.not.include(String(id));",
+                              "        });",
+                              "    });",
+                              "});",
+                              "",
+                              "pm.test(\"Request is rejected as unauthorized\", function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No cost centre is created\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id of a cost centre created without a token\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    deleteCostCentre(responseData.id);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "auth": {
+                          "type": "noauth"
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-094 add cost centre with invalid token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"cost_centre_code\")) {",
+                              "    throw new Error(\"Precondition failed: cost_centre_code not set by ADMIN-093\");",
+                              "}",
+                              "if (!pm.iterationData.get(\"invalidToken\")) {",
+                              "    throw new Error(\"Test data error: invalidToken is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "    cost_code: pm.environment.get(\"cost_centre_code\"),",
+                              "    name: pm.environment.get(\"cost_centre_name\")",
+                              "}));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// lists active cost centres; used to confirm a delete (soft delete, 204 has no body) or that nothing was saved",
+                              "const listCostCentres = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteCostCentre = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "    listCostCentres((listErr, listRes, records) => {",
+                              "        pm.test(\"Record created by the rejected request is no longer listed\", function () {",
+                              "            pm.expect(listErr, \"list request error\").to.be.null;",
+                              "            pm.expect(listRes && listRes.code, \"list status\").to.eql(200);",
+                              "            pm.expect(records.map(r => String(r.id)), \"listed cost centre ids\").to.not.include(String(id));",
+                              "        });",
+                              "    });",
+                              "});",
+                              "",
+                              "pm.test(\"Request is rejected as unauthorized\", function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No cost centre is created\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id of a cost centre created with an invalid token\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "pm.test(\"Error says the access token is invalid\", function () {",
+                              "    let body = {};",
+                              "    try {",
+                              "        body = pm.response.json() || {};",
+                              "    } catch (e) {",
+                              "        // not JSON: the field checks below fail with the field name",
+                              "    }",
+                              "    pm.expect(norm(body.error), \"error\").to.eql(norm(pm.iterationData.get(\"expectedError\")));",
+                              "    pm.expect(norm(body.error_description), \"error_description\").to.eql(norm(pm.iterationData.get(\"expectedErrorDescription\")));",
+                              "});",
+                              "",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    deleteCostCentre(responseData.id);",
+                              "}",
+                              "",
+                              "pm.environment.unset(\"cost_centre_code\");",
+                              "pm.environment.unset(\"cost_centre_name\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{invalidToken}}",
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "add-cost-centre-on-single-record-route",
+                  "item": [
+                    {
+                      "name": "ADMIN-095 add cost centre for single-record route check",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"cost_centre_id\");",
+                              "pm.environment.unset(\"cost_centre_code\");",
+                              "pm.environment.unset(\"cost_centre_name\");",
+                              "pm.environment.unset(\"cost_centre_next_id\");",
+                              "",
+                              "const baseCode = pm.iterationData.get(\"cc_code\");",
+                              "const baseName = pm.iterationData.get(\"cc_name\");",
+                              "if (baseCode === undefined || String(baseCode).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_code is blank in the CSV row\");",
+                              "}",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps values unique across runs; max lengths are 20 (cost_code) and 40 (name)",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const code = `CC${runId}${baseCode}`;",
+                              "const name = `CC-${runId} ${baseName}`;",
+                              "if (code.length > 20) {",
+                              "    throw new Error(`Test data error: generated cost_code is ${code.length} characters, max is 20`);",
+                              "}",
+                              "if (name.length > 40) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 40`);",
+                              "}",
+                              "",
+                              "// side effect: consumed by ADMIN-096 to ADMIN-098",
+                              "pm.environment.set(\"cost_centre_code\", code);",
+                              "pm.environment.set(\"cost_centre_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ cost_code: code, name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Cost centre is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Cost centre details match what was sent\", function () {",
+                              "    pm.expect(norm(responseData.cost_code), \"cost_code\").to.eql(norm(pm.environment.get(\"cost_centre_code\")));",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"cost_centre_name\")));",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-096 to ADMIN-098",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"cost_centre_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-096 add cost centre on the single-record route",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"cost_centre_id\")) {",
+                              "    throw new Error(\"Precondition failed: cost_centre_id not set by ADMIN-095\");",
+                              "}",
+                              "",
+                              "// different values from ADMIN-095, so the follow-up GET can tell an overwrite apart",
+                              "const baseCode = pm.iterationData.get(\"cc_code\");",
+                              "const baseName = pm.iterationData.get(\"cc_name\");",
+                              "if (baseCode === undefined || String(baseCode).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_code is blank in the CSV row\");",
+                              "}",
+                              "if (baseName === undefined || String(baseName).trim() === \"\") {",
+                              "    throw new Error(\"Test data error: cc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps values unique across runs; max lengths are 20 (cost_code) and 40 (name)",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const code = `CC${runId}${baseCode}2`;",
+                              "const name = `CC-${runId} ${baseName}`;",
+                              "if (code.length > 20) {",
+                              "    throw new Error(`Test data error: generated cost_code is ${code.length} characters, max is 20`);",
+                              "}",
+                              "if (name.length > 40) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 40`);",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ cost_code: code, name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "",
+                              "// lists active cost centres; used to confirm a delete (soft delete, 204 has no body) or that nothing was saved",
+                              "const listCostCentres = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteCostCentre = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Record created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "    listCostCentres((listErr, listRes, records) => {",
+                              "        pm.test(\"Record created by the rejected request is no longer listed\", function () {",
+                              "            pm.expect(listErr, \"list request error\").to.be.null;",
+                              "            pm.expect(listRes && listRes.code, \"list status\").to.eql(200);",
+                              "            pm.expect(records.map(r => String(r.id)), \"listed cost centre ids\").to.not.include(String(id));",
+                              "        });",
+                              "    });",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const createdId = norm(responseData.id);",
+                              "// creating on /costCentres/{id} is not a supported operation; the CSV lists the accepted rejections",
+                              "const allowedStatuses = norm(pm.iterationData.get(\"expectedStatuses\")).split(\"|\").map(Number);",
+                              "",
+                              "pm.test(`POST on the single-record route is rejected (${scenario})`, function () {",
+                              "    pm.expect(pm.response.code, \"status\").to.be.oneOf(allowedStatuses);",
+                              "});",
+                              "",
+                              "pm.test(`No cost centre is created (${scenario})`, function () {",
+                              "    pm.expect(createdId, \"id of a cost centre created on the single-record route\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "if (createdId !== \"\" && createdId !== norm(pm.environment.get(\"cost_centre_id\"))) {",
+                              "    deleteCostCentre(createdId);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres/{{cost_centre_id}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres",
+                            "{{cost_centre_id}}"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-097 get cost centre added by ADMIN-095 to check it is unchanged",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"cost_centre_id\") || !pm.environment.get(\"cost_centre_code\")) {",
+                              "    throw new Error(\"Precondition failed: cost centre not created by ADMIN-095\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(\"Cost centre is retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the cost centre schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"costCentrePostSchema\");",
+                              "    pm.expect(raw, \"costCentrePostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(`Cost centre added in ADMIN-095 is not overwritten (${scenario})`, function () {",
+                              "    pm.expect(norm(responseData.id), \"id\").to.eql(norm(pm.environment.get(\"cost_centre_id\")));",
+                              "    pm.expect(norm(responseData.cost_code), \"cost_code\").to.eql(norm(pm.environment.get(\"cost_centre_code\")));",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"cost_centre_name\")));",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres/{{cost_centre_id}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres",
+                            "{{cost_centre_id}}"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "ADMIN-098 delete cost centre created by ADMIN-095",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"cost_centre_id\")) {",
+                              "    throw new Error(\"Precondition failed: cost_centre_id not set by ADMIN-095\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const deletedId = String(pm.environment.get(\"cost_centre_id\"));",
+                              "",
+                              "pm.test(\"Cost centre created by ADMIN-095 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// lists active cost centres; used to confirm a delete (soft delete, 204 has no body) or that nothing was saved",
+                              "const listCostCentres = callback => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/costCentres`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the caller's assertions report the failed lookup",
+                              "    }",
+                              "    callback(err, res, records);",
+                              "});",
+                              "",
+                              "listCostCentres((err, res, records) => {",
+                              "    pm.test(\"Cost centre created by ADMIN-095 is no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"list status\").to.eql(200);",
+                              "        pm.expect(records.map(r => String(r.id)), \"listed cost centre ids\").to.not.include(deletedId);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"cost_centre_id\");",
+                              "pm.environment.unset(\"cost_centre_code\");",
+                              "pm.environment.unset(\"cost_centre_name\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/costCentres",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "costCentres"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"data\": [\"{{cost_centre_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -8376,6 +10611,14 @@
     {
       "key": "jobCategoryGetSchema",
       "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Job category list response\",\n  \"type\": \"object\",\n  \"required\": [\n    \"data\",\n    \"meta\"\n  ],\n  \"properties\": {\n    \"data\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"id\",\n          \"name\"\n        ],\n        \"properties\": {\n          \"id\": {\n            \"type\": \"string\",\n            \"pattern\": \"^[0-9]+$\"\n          },\n          \"name\": {\n            \"type\": \"string\",\n            \"maxLength\": 50\n          }\n        }\n      }\n    },\n    \"meta\": {\n      \"type\": \"object\",\n      \"required\": [\n        \"total\"\n      ],\n      \"properties\": {\n        \"total\": {\n          \"type\": \"integer\",\n          \"minimum\": 0\n        }\n      }\n    }\n  }\n}"
+    },
+    {
+      "key": "costCentrePostSchema",
+      "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Add cost centre response\",\n  \"type\": \"object\",\n  \"required\": [\n    \"data\"\n  ],\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"data\": {\n      \"type\": \"object\",\n      \"required\": [\n        \"id\",\n        \"cost_code\",\n        \"name\",\n        \"description\",\n        \"is_deleted\"\n      ],\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[0-9]+$\"\n        },\n        \"cost_code\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 20\n        },\n        \"name\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"maxLength\": 40\n        },\n        \"description\": {\n          \"type\": \"string\",\n          \"maxLength\": 255\n        },\n        \"is_deleted\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"0\"\n          ]\n        }\n      }\n    }\n  }\n}"
+    },
+    {
+      "key": "costCentreGetSchema",
+      "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Cost centre list response\",\n  \"type\": \"object\",\n  \"required\": [\n    \"data\",\n    \"meta\"\n  ],\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"data\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"id\",\n          \"cost_code\",\n          \"name\",\n          \"description\",\n          \"is_deleted\"\n        ],\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"id\": {\n            \"type\": \"string\",\n            \"pattern\": \"^[0-9]+$\"\n          },\n          \"cost_code\": {\n            \"type\": \"string\",\n            \"minLength\": 1,\n            \"maxLength\": 20\n          },\n          \"name\": {\n            \"type\": \"string\",\n            \"minLength\": 1,\n            \"maxLength\": 40\n          },\n          \"description\": {\n            \"type\": \"string\",\n            \"maxLength\": 255\n          },\n          \"is_deleted\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"0\",\n              \"1\"\n            ]\n          }\n        }\n      }\n    },\n    \"meta\": {\n      \"type\": \"object\",\n      \"required\": [\n        \"total\"\n      ],\n      \"properties\": {\n        \"total\": {\n          \"type\": \"integer\",\n          \"minimum\": 0\n        }\n      }\n    }\n  }\n}"
     }
   ]
 }

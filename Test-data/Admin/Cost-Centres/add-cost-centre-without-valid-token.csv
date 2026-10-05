@@ -1,0 +1,2 @@
+"cc_code","cc_name","invalidToken","expectedStatus","expectedError","expectedErrorDescription"
+"AUTH","Auth Check","invalid-token-for-api-test",401,"invalid_token","The access token provided is invalid"
