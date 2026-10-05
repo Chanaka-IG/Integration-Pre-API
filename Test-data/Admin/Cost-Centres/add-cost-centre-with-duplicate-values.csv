@@ -1,0 +1,5 @@
+"scenario","cc_code","cc_name","cc_duplicateMode","expectedStatus"
+"same cost code","DUP","Duplicate Code","exactCode",400
+"same cost code in lower case","DUP","Lower Case Code","lowerCaseCode",400
+"same cost code with surrounding spaces","DUP","Padded Code","paddedCode",400
+"same name","DUP","Duplicate Name","sameName",400

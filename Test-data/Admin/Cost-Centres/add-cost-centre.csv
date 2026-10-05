@@ -1,0 +1,4 @@
+"scenario","cc_code","cc_name","cc_descriptionMode","cc_description","cc_expectedDescription"
+"all fields","FIN","Finance","string","Finance cost centre","Finance cost centre"
+"mandatory fields only","OPS","Operations","omit","",""
+"SQL-like values","' OR '1'='1","Robert'); DROP TABLE x;--","string","' OR 1=1 --","' OR 1=1 --"
