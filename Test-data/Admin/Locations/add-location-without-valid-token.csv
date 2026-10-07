@@ -1,0 +1,2 @@
+"loc_name","loc_countryCode","loc_city","loc_zipCode","loc_time_zone","invalidToken","expectedStatus","expectedError","expectedErrorDescription"
+"Auth Check","LK","Colombo","00100","Asia/Colombo","invalid-token-for-api-test",401,"invalid_token","The access token provided is invalid"

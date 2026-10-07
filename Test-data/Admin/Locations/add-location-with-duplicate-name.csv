@@ -1,0 +1,4 @@
+"scenario","loc_name","loc_countryCode","loc_city","loc_zipCode","loc_time_zone","loc_duplicateMode","expectedStatus","expectedError"
+"same name","Duplicate","LK","Colombo","00100","Asia/Colombo","exact",400,"Already Exists"
+"same name in lower case","Duplicate","LK","Colombo","00100","Asia/Colombo","lowerCase",400,"Already Exists"
+"same name with surrounding spaces","Duplicate","LK","Colombo","00100","Asia/Colombo","padded",400,"Already Exists"

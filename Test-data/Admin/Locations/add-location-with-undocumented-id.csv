@@ -1,0 +1,3 @@
+"scenario","loc_name","loc_countryCode","loc_city","loc_zipCode","loc_time_zone","loc_idSource","expectedStatuses"
+"next unused id","Next Id","LK","Colombo","00100","Asia/Colombo","next","201|400"
+"id of an existing location","Existing Id","LK","Colombo","00100","Asia/Colombo","existing","201|400"
