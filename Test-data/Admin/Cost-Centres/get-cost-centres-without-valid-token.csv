@@ -1,0 +1,3 @@
+"scenario","authorizationHeader","expectedStatus","expectedError","expectedErrorDescription"
+"invalid bearer token","Bearer invalid-token-for-api-test",401,"invalid_token","The access token provided is invalid"
+"wrong authorization scheme","Basic invalid-token-for-api-test",401,"invalid_request","Malformed auth header"

@@ -1,0 +1,2 @@
+"scenario","loc_name","loc_countryCode","loc_city","loc_zipCode","loc_time_zone","expectedStatuses"
+"POST with an id in the path","Single Route","LK","Colombo","00100","Asia/Colombo","400|405"

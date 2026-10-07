@@ -1,0 +1,7 @@
+"scenario","loc_name","loc_countryCode","loc_city","loc_zipCode","loc_time_zone","loc_province","loc_address","loc_phone","loc_fax","loc_notes","loc_eeoMode","loc_eeo","loc_expectedEeo"
+"all fields","All Fields","AU","Sydney","2000","Australia/Sydney","NSW","1 George St","+61 (2) 1234-5678","02/9999 8888","All fields note","number",1,"1"
+"mandatory fields only","Mandatory Only","LK","Colombo","00100","Asia/Colombo","","","","","","omit","",""
+"not EEO applicable","Not EEO","GB","London","EC1A 1BB","Europe/London","Greater London","","","","","number",0,"0"
+"EEO applicable sent as a string","EEO String","LK","Kandy","20000","Asia/Colombo","Central","","","","","string","1","1"
+"phone and fax with all allowed characters","Phone Formats","LK","Colombo","00300","Asia/Colombo","","","+94-(11)/2 345678","(011) 234 5678","","omit","",""
+"HTML and SQL-like values","<b>Bold</b> ' OR '1'='1","LK","O'Brien","00400","Asia/Colombo","","<script>alert(1)</script>","","","Robert'); DROP TABLE ohrm_location;--","omit","",""

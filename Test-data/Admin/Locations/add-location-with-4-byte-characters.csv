@@ -1,0 +1,2 @@
+"scenario","loc_name","loc_countryCode","loc_city","loc_zipCode","loc_time_zone","loc_notes","expectedStatuses"
+"emoji in the name and notes","Emoji ✓😀","LK","Colombo","00100","Asia/Colombo","Launch 🚀","201|400"

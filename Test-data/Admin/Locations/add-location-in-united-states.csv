@@ -1,0 +1,3 @@
+"scenario","loc_name","loc_countryCode","loc_city","loc_zipCode","loc_time_zone","loc_state","loc_provinceMode","loc_expectedProvince","loc_expectPayPolicyLink"
+"state without province","US State","US","Portland","04101","America/New_York","ME","omit","ME","true"
+"state with empty province","US Empty Province","US","Austin","73301","America/Chicago","TX","empty","TX","true"
