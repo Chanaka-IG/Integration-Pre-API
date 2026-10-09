@@ -479,22 +479,22 @@
                       "name": "PIM-008 create employee for get all",
                       "event": [
                         {
-                          "listen": "test",
                           "script": {
-                            "type": "text/javascript",
                             "exec": [
                               "const DEBUG = pm.environment.get(\"debug\") === \"true\";\n\npm.test(\"Employee is created\", function () {\n    pm.response.to.have.status(201);\n});\n\nconst responseData = (pm.response.json() || {}).data || {};\n\npm.test(\"Response contains empNumber\", function () {\n    pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;\n});\n\n// ---- side effect, outside the tests ----\nif (responseData.empNumber) {\n    let list = [];\n    try {\n        const parsed = JSON.parse(pm.collectionVariables.get(\"createdEmployees\") || \"[]\");\n        list = Array.isArray(parsed) ? parsed : [];\n    } catch (e) {\n        list = [];\n    }\n\n    list = list.filter(e => String(e.empID) !== String(responseData.employeeId));\n    list.push({ empID: responseData.employeeId, empNumber: responseData.empNumber });\n\n    pm.collectionVariables.set(\"createdEmployees\", JSON.stringify(list));\n    if (DEBUG) console.log(\"createdEmployees:\", list);\n}"
-                            ]
-                          }
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
                         },
                         {
-                          "listen": "prerequest",
                           "script": {
-                            "type": "text/javascript",
                             "exec": [
                               "// set employee id as a auto generated one\npm.variables.set(\"employeeId\", `DDGET-${Date.now().toString().slice(-6)}`);"
-                            ]
-                          }
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
                         }
                       ],
                       "request": {
@@ -594,22 +594,22 @@
                       "name": "PIM-010 create employee for basic successful termination",
                       "event": [
                         {
-                          "listen": "test",
                           "script": {
                             "type": "text/javascript",
                             "exec": [
                               "const DEBUG = pm.environment.get(\"debug\") === \"true\";\n\npm.test(\"Employee is created\", function () {\n    pm.response.to.have.status(201);\n});\n\nconst responseData = (pm.response.json() || {}).data || {};\n\npm.test(\"Response contains empNumber\", function () {\n    pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;\n});\n\n// ---- side effect, outside the tests ----\nif (responseData.empNumber) {\n    let list = [];\n    try {\n        const parsed = JSON.parse(pm.collectionVariables.get(\"createdEmployees\") || \"[]\");\n        list = Array.isArray(parsed) ? parsed : [];\n    } catch (e) {\n        list = [];\n    }\n\n    list = list.filter(e => String(e.empID) !== String(responseData.employeeId));\n    list.push({ empID: responseData.employeeId, empNumber: responseData.empNumber });\n\n    pm.collectionVariables.set(\"createdEmployees\", JSON.stringify(list));\n    if (DEBUG) console.log(\"createdEmployees:\", list);\n}"
                             ]
-                          }
+                          },
+                          "listen": "test"
                         },
                         {
-                          "listen": "prerequest",
                           "script": {
                             "type": "text/javascript",
                             "exec": [
                               "// set employee id as a auto generated one\npm.variables.set(\"employeeId\", `DDGET-${Date.now().toString().slice(-6)}`);"
                             ]
-                          }
+                          },
+                          "listen": "prerequest"
                         }
                       ],
                       "request": {
@@ -874,7 +874,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const SCENARIO = pm.variables.get(\"scenarioTag\");\n\nconst dataProperties = [\n    \"id\", \"empNumber\", \"reasonId\", \"date\",\n    \"termination_time\", \"terminationTimeZoneName\",\n    \"termination_performed_user_id\", \"termination_job_record_history_id\",\n    \"reactivationDate\", \"reactivation_time\", \"reactivationTimeZoneName\",\n    \"reactivation_performed_user_id\", \"reactivation_job_record_history_id\",\n    \"reactivated\", \"update_joined_date\", \"reactivation_failed\",\n    \"note\", \"flaged\", \"terminateinfuture\"\n];\n\npm.test(\"Termination is saved\", function () {\n    pm.response.to.have.status(200);   // change to 201 if that is what the API returns\n});\n\nconst body = pm.response.json();\nconst respnoseData = body.data || {};\n\npm.test(\"Success message is returned\", function () {\n    pm.expect(body.messages && body.messages.success).to.eql(\"Successfully Saved\");\n});\n\npm.test(\"Response matches the termination schema\", function () {\n    const raw = pm.collectionVariables.get(\"terminateEmployeeSchema\");\n    pm.expect(raw, \"terminateEmployeeSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"All expected termination properties are present\", function () {\n    dataProperties.forEach(p => pm.expect(respnoseData).to.have.property(p));\n});\n\npm.test(\"Termination record has an id\", function () {\n    pm.expect(respnoseData.id, \"termination record id\").to.exist;\n});\n\npm.test(\"Termination is recorded against the correct employee\", function () {\n    pm.expect(String(respnoseData.empNumber)).to.eql(String(pm.variables.get(\"expectedEmpNumber\")));\n});\n\npm.test(\"Termination details match what was sent\", function () {\n    pm.expect(respnoseData.date).to.eql(pm.variables.get(\"terminationDate\"));\n    pm.expect(respnoseData.note).to.eql(pm.variables.get(\"terminationNote\"));\n    pm.expect(Number(respnoseData.reasonId)).to.eql(Number(pm.variables.get(\"terminationReason\")));\n    pm.expect(respnoseData.termination_time).to.include(pm.variables.get(\"time\"));\n    pm.expect(respnoseData.terminationTimeZoneName).to.include(pm.variables.get(\"timezone\"));\n});\n\npm.test(`terminateinfuture is correct for the '${SCENARIO}' scenario`, function () {\n    pm.expect(respnoseData.terminateinfuture).to.eql(pm.variables.get(\"expectFutureFlag\"));\n});"
+                              "const SCENARIO = pm.variables.get(\"scenarioTag\");\n\nconst dataProperties = [\n    \"id\", \"empNumber\", \"reasonId\", \"date\",\n    \"termination_time\", \"terminationTimeZoneName\",\n    \"termination_performed_user_id\", \"termination_job_record_history_id\",\n    \"reactivationDate\", \"reactivation_time\", \"reactivationTimeZoneName\",\n    \"reactivation_performed_user_id\", \"reactivation_job_record_history_id\",\n    \"reactivated\", \"update_joined_date\", \"reactivation_failed\",\n    \"note\", \"flaged\", \"terminateinfuture\"\n];\n\npm.test(\"Termination is saved\", function () {\n    pm.response.to.have.status(201);   \n\nconst body = pm.response.json();\nconst respnoseData = body.data || {};\n\npm.test(\"Success message is returned\", function () {\n    pm.expect(body.messages && body.messages.success).to.eql(\"Successfully Saved\");\n});\n\npm.test(\"Response matches the termination schema\", function () {\n    const raw = pm.collectionVariables.get(\"terminateEmployeeSchema\");\n    pm.expect(raw, \"terminateEmployeeSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"All expected termination properties are present\", function () {\n    dataProperties.forEach(p => pm.expect(respnoseData).to.have.property(p));\n});\n\npm.test(\"Termination record has an id\", function () {\n    pm.expect(respnoseData.id, \"termination record id\").to.exist;\n});\n\npm.test(\"Termination is recorded against the correct employee\", function () {\n    pm.expect(String(respnoseData.empNumber)).to.eql(String(pm.variables.get(\"expectedEmpNumber\")));\n});\n\npm.test(\"Termination details match what was sent\", function () {\n    pm.expect(respnoseData.date).to.eql(pm.variables.get(\"terminationDate\"));\n    pm.expect(respnoseData.note).to.eql(pm.variables.get(\"terminationNote\"));\n    pm.expect(Number(respnoseData.reasonId)).to.eql(Number(pm.variables.get(\"terminationReason\")));\n    pm.expect(respnoseData.termination_time).to.include(pm.variables.get(\"time\"));\n    pm.expect(respnoseData.terminationTimeZoneName).to.include(pm.variables.get(\"timezone\"));\n});\n\npm.test(`terminateinfuture is correct for the '${SCENARIO}' scenario`, function () {\n    pm.expect(respnoseData.terminateinfuture).to.eql(pm.variables.get(\"expectFutureFlag\"));\n});"
                             ]
                           }
                         }
@@ -928,7 +928,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const SCENARIO = pm.variables.get(\"scenarioTag\");\n\nconst dataProperties = [\n    \"id\", \"empNumber\", \"reasonId\", \"date\",\n    \"termination_time\", \"terminationTimeZoneName\",\n    \"termination_performed_user_id\", \"termination_job_record_history_id\",\n    \"reactivationDate\", \"reactivation_time\", \"reactivationTimeZoneName\",\n    \"reactivation_performed_user_id\", \"reactivation_job_record_history_id\",\n    \"reactivated\", \"update_joined_date\", \"reactivation_failed\",\n    \"note\", \"flaged\", \"terminateinfuture\"\n];\n\npm.test(\"Termination is saved\", function () {\n    pm.response.to.have.status(200);   // change to 201 if that is what the API returns\n});\n\nconst body = pm.response.json();\nconst respnoseData = body.data || {};\n\npm.test(\"Success message is returned\", function () {\n    pm.expect(body.messages && body.messages.success).to.eql(\"Successfully Saved\");\n});\n\npm.test(\"Response matches the termination schema\", function () {\n    const raw = pm.collectionVariables.get(\"terminateEmployeeSchema\");\n    pm.expect(raw, \"terminateEmployeeSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"All expected termination properties are present\", function () {\n    dataProperties.forEach(p => pm.expect(respnoseData).to.have.property(p));\n});\n\npm.test(\"Termination record has an id\", function () {\n    pm.expect(respnoseData.id, \"termination record id\").to.exist;\n});\n\npm.test(\"Termination is recorded against the correct employee\", function () {\n    pm.expect(String(respnoseData.empNumber)).to.eql(String(pm.variables.get(\"expectedEmpNumber\")));\n});\n\npm.test(\"Termination details match what was sent\", function () {\n    pm.expect(respnoseData.date).to.eql(pm.variables.get(\"terminationDate\"));\n    pm.expect(respnoseData.note).to.eql(pm.variables.get(\"terminationNote\"));\n    pm.expect(Number(respnoseData.reasonId)).to.eql(Number(pm.variables.get(\"terminationReason\")));\n    pm.expect(respnoseData.termination_time).to.include(pm.variables.get(\"time\"));\n    pm.expect(respnoseData.terminationTimeZoneName).to.include(pm.variables.get(\"timezone\"));\n});\n\npm.test(`terminateinfuture is correct for the '${SCENARIO}' scenario`, function () {\n    pm.expect(respnoseData.terminateinfuture).to.eql(pm.variables.get(\"expectFutureFlag\"));\n});"
+                              "const SCENARIO = pm.variables.get(\"scenarioTag\");\n\nconst dataProperties = [\n    \"id\", \"empNumber\", \"reasonId\", \"date\",\n    \"termination_time\", \"terminationTimeZoneName\",\n    \"termination_performed_user_id\", \"termination_job_record_history_id\",\n    \"reactivationDate\", \"reactivation_time\", \"reactivationTimeZoneName\",\n    \"reactivation_performed_user_id\", \"reactivation_job_record_history_id\",\n    \"reactivated\", \"update_joined_date\", \"reactivation_failed\",\n    \"note\", \"flaged\", \"terminateinfuture\"\n];\n\npm.test(\"Termination is saved\", function () {\n    pm.response.to.have.status(201); \n});\n\nconst body = pm.response.json();\nconst respnoseData = body.data || {};\n\npm.test(\"Success message is returned\", function () {\n    pm.expect(body.messages && body.messages.success).to.eql(\"Successfully Saved\");\n});\n\npm.test(\"Response matches the termination schema\", function () {\n    const raw = pm.collectionVariables.get(\"terminateEmployeeSchema\");\n    pm.expect(raw, \"terminateEmployeeSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"All expected termination properties are present\", function () {\n    dataProperties.forEach(p => pm.expect(respnoseData).to.have.property(p));\n});\n\npm.test(\"Termination record has an id\", function () {\n    pm.expect(respnoseData.id, \"termination record id\").to.exist;\n});\n\npm.test(\"Termination is recorded against the correct employee\", function () {\n    pm.expect(String(respnoseData.empNumber)).to.eql(String(pm.variables.get(\"expectedEmpNumber\")));\n});\n\npm.test(\"Termination details match what was sent\", function () {\n    pm.expect(respnoseData.date).to.eql(pm.variables.get(\"terminationDate\"));\n    pm.expect(respnoseData.note).to.eql(pm.variables.get(\"terminationNote\"));\n    pm.expect(Number(respnoseData.reasonId)).to.eql(Number(pm.variables.get(\"terminationReason\")));\n    pm.expect(respnoseData.termination_time).to.include(pm.variables.get(\"time\"));\n    pm.expect(respnoseData.terminationTimeZoneName).to.include(pm.variables.get(\"timezone\"));\n});\n\npm.test(`terminateinfuture is correct for the '${SCENARIO}' scenario`, function () {\n    pm.expect(respnoseData.terminateinfuture).to.eql(pm.variables.get(\"expectFutureFlag\"));\n});"
                             ]
                           }
                         }
@@ -982,7 +982,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const SCENARIO = pm.variables.get(\"scenarioTag\");\n\nconst dataProperties = [\n    \"id\", \"empNumber\", \"reasonId\", \"date\",\n    \"termination_time\", \"terminationTimeZoneName\",\n    \"termination_performed_user_id\", \"termination_job_record_history_id\",\n    \"reactivationDate\", \"reactivation_time\", \"reactivationTimeZoneName\",\n    \"reactivation_performed_user_id\", \"reactivation_job_record_history_id\",\n    \"reactivated\", \"update_joined_date\", \"reactivation_failed\",\n    \"note\", \"flaged\", \"terminateinfuture\"\n];\n\npm.test(\"Termination is saved\", function () {\n    pm.response.to.have.status(200);   // change to 201 if that is what the API returns\n});\n\nconst body = pm.response.json();\nconst respnoseData = body.data || {};\n\npm.test(\"Success message is returned\", function () {\n    pm.expect(body.messages && body.messages.success).to.eql(\"Successfully Saved\");\n});\n\npm.test(\"Response matches the termination schema\", function () {\n    const raw = pm.collectionVariables.get(\"terminateEmployeeSchema\");\n    pm.expect(raw, \"terminateEmployeeSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"All expected termination properties are present\", function () {\n    dataProperties.forEach(p => pm.expect(respnoseData).to.have.property(p));\n});\n\npm.test(\"Termination record has an id\", function () {\n    pm.expect(respnoseData.id, \"termination record id\").to.exist;\n});\n\npm.test(\"Termination is recorded against the correct employee\", function () {\n    pm.expect(String(respnoseData.empNumber)).to.eql(String(pm.variables.get(\"expectedEmpNumber\")));\n});\n\npm.test(\"Termination details match what was sent\", function () {\n    pm.expect(respnoseData.date).to.eql(pm.variables.get(\"terminationDate\"));\n    pm.expect(respnoseData.note).to.eql(pm.variables.get(\"terminationNote\"));\n    pm.expect(Number(respnoseData.reasonId)).to.eql(Number(pm.variables.get(\"terminationReason\")));\n    pm.expect(respnoseData.termination_time).to.include(pm.variables.get(\"time\"));\n    pm.expect(respnoseData.terminationTimeZoneName).to.include(pm.variables.get(\"timezone\"));\n});\n\npm.test(`terminateinfuture is correct for the '${SCENARIO}' scenario`, function () {\n    pm.expect(respnoseData.terminateinfuture).to.eql(pm.variables.get(\"expectFutureFlag\"));\n});"
+                              "const SCENARIO = pm.variables.get(\"scenarioTag\");\n\nconst dataProperties = [\n    \"id\", \"empNumber\", \"reasonId\", \"date\",\n    \"termination_time\", \"terminationTimeZoneName\",\n    \"termination_performed_user_id\", \"termination_job_record_history_id\",\n    \"reactivationDate\", \"reactivation_time\", \"reactivationTimeZoneName\",\n    \"reactivation_performed_user_id\", \"reactivation_job_record_history_id\",\n    \"reactivated\", \"update_joined_date\", \"reactivation_failed\",\n    \"note\", \"flaged\", \"terminateinfuture\"\n];\n\npm.test(\"Termination is saved\", function () {\n    pm.response.to.have.status(201);   \n});\n\nconst body = pm.response.json();\nconst respnoseData = body.data || {};\n\npm.test(\"Success message is returned\", function () {\n    pm.expect(body.messages && body.messages.success).to.eql(\"Successfully Saved\");\n});\n\npm.test(\"Response matches the termination schema\", function () {\n    const raw = pm.collectionVariables.get(\"terminateEmployeeSchema\");\n    pm.expect(raw, \"terminateEmployeeSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"All expected termination properties are present\", function () {\n    dataProperties.forEach(p => pm.expect(respnoseData).to.have.property(p));\n});\n\npm.test(\"Termination record has an id\", function () {\n    pm.expect(respnoseData.id, \"termination record id\").to.exist;\n});\n\npm.test(\"Termination is recorded against the correct employee\", function () {\n    pm.expect(String(respnoseData.empNumber)).to.eql(String(pm.variables.get(\"expectedEmpNumber\")));\n});\n\npm.test(\"Termination details match what was sent\", function () {\n    pm.expect(respnoseData.date).to.eql(pm.variables.get(\"terminationDate\"));\n    pm.expect(respnoseData.note).to.eql(pm.variables.get(\"terminationNote\"));\n    pm.expect(Number(respnoseData.reasonId)).to.eql(Number(pm.variables.get(\"terminationReason\")));\n    pm.expect(respnoseData.termination_time).to.include(pm.variables.get(\"time\"));\n    pm.expect(respnoseData.terminationTimeZoneName).to.include(pm.variables.get(\"timezone\"));\n});\n\npm.test(`terminateinfuture is correct for the '${SCENARIO}' scenario`, function () {\n    pm.expect(respnoseData.terminateinfuture).to.eql(pm.variables.get(\"expectFutureFlag\"));\n});"
                             ]
                           }
                         }
@@ -7075,7 +7075,6 @@
                       "name": "ADMIN-111 get locations before add",
                       "event": [
                         {
-                          "listen": "prerequest",
                           "script": {
                             "exec": [
                               "// clear values left over from earlier folders or earlier runs",
@@ -7084,10 +7083,10 @@
                               "pm.environment.unset(\"location_baseline\");"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "prerequest"
                         },
                         {
-                          "listen": "test",
                           "script": {
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
@@ -7110,7 +7109,8 @@
                               "}))));"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -7133,8 +7133,8 @@
                       "name": "ADMIN-112 add location",
                       "event": [
                         {
-                          "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "const cell = key => norm(pm.iterationData.get(key));",
@@ -7188,13 +7188,13 @@
                               "// side effect: checked by ADMIN-112 to ADMIN-114",
                               "pm.environment.set(\"location_expected\", JSON.stringify(expected));",
                               "pm.variables.set(\"requestBody\", JSON.stringify(body));"
-                            ],
-                            "type": "text/javascript"
-                          }
+                            ]
+                          },
+                          "listen": "prerequest"
                         },
                         {
-                          "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "const responseData = (pm.response.json() || {}).data || {};",
@@ -7229,9 +7229,9 @@
                               "if (norm(responseData.id) !== \"\") {",
                               "    pm.environment.set(\"location_id\", String(responseData.id));",
                               "}"
-                            ],
-                            "type": "text/javascript"
-                          }
+                            ]
+                          },
+                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -7265,17 +7265,18 @@
                         {
                           "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "if (!pm.environment.get(\"location_id\")) {",
                               "    throw new Error(\"Precondition failed: location_id not set by ADMIN-112\");",
                               "}"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         },
                         {
                           "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "const responseData = (pm.response.json() || {}).data || {};",
@@ -7302,8 +7303,7 @@
                               "        pm.expect(norm(responseData[field]), field).to.eql(expected[field]);",
                               "    });",
                               "});"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         }
                       ],
@@ -7416,7 +7416,6 @@
                       "name": "ADMIN-115 delete location created by ADMIN-112",
                       "event": [
                         {
-                          "listen": "prerequest",
                           "script": {
                             "exec": [
                               "if (!pm.environment.get(\"location_id\")) {",
@@ -7424,10 +7423,10 @@
                               "}"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "prerequest"
                         },
                         {
-                          "listen": "test",
                           "script": {
                             "exec": [
                               "const deletedId = String(pm.environment.get(\"location_id\"));",
@@ -7454,7 +7453,8 @@
                               "pm.environment.unset(\"location_baseline\");"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -7493,6 +7493,7 @@
                         {
                           "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "// clear values left over from earlier folders or earlier runs",
                               "pm.environment.unset(\"location_id\");",
@@ -7544,13 +7545,13 @@
                               "// side effect: checked by ADMIN-116 and ADMIN-117",
                               "pm.environment.set(\"location_expected\", JSON.stringify(expected));",
                               "pm.variables.set(\"requestBody\", JSON.stringify(body));"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         },
                         {
                           "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "const responseData = (pm.response.json() || {}).data || {};",
@@ -7591,8 +7592,7 @@
                               "if (norm(responseData.id) !== \"\") {",
                               "    pm.environment.set(\"location_id\", String(responseData.id));",
                               "}"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         }
                       ],
@@ -7625,19 +7625,19 @@
                       "name": "ADMIN-117 get location added by ADMIN-116",
                       "event": [
                         {
-                          "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "if (!pm.environment.get(\"location_id\")) {",
                               "    throw new Error(\"Precondition failed: location_id not set by ADMIN-116\");",
                               "}"
-                            ],
-                            "type": "text/javascript"
-                          }
+                            ]
+                          },
+                          "listen": "prerequest"
                         },
                         {
-                          "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "const responseData = (pm.response.json() || {}).data || {};",
@@ -7660,9 +7660,9 @@
                               "        pm.expect(norm(responseData[field]), field).to.eql(expected[field]);",
                               "    });",
                               "});"
-                            ],
-                            "type": "text/javascript"
-                          }
+                            ]
+                          },
+                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -7686,7 +7686,6 @@
                       "name": "ADMIN-118 delete location created by ADMIN-116",
                       "event": [
                         {
-                          "listen": "prerequest",
                           "script": {
                             "exec": [
                               "if (!pm.environment.get(\"location_id\")) {",
@@ -7694,10 +7693,10 @@
                               "}"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "prerequest"
                         },
                         {
-                          "listen": "test",
                           "script": {
                             "exec": [
                               "const deletedId = String(pm.environment.get(\"location_id\"));",
@@ -7723,7 +7722,8 @@
                               "pm.environment.unset(\"location_expected\");"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -7762,6 +7762,7 @@
                         {
                           "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "// clear values left over from earlier folders or earlier runs",
                               "pm.environment.unset(\"location_id\");",
@@ -7799,13 +7800,13 @@
                               "pm.environment.set(\"location_notes\", body.notes);",
                               "pm.environment.set(\"location_search\", `LOC-${runId}`);",
                               "pm.variables.set(\"requestBody\", JSON.stringify(body));"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         },
                         {
                           "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "let responseData = {};",
@@ -7840,8 +7841,7 @@
                               "if (norm(responseData.id) !== \"\") {",
                               "    pm.environment.set(\"location_id\", String(responseData.id));",
                               "}"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         }
                       ],
@@ -7876,6 +7876,7 @@
                         {
                           "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "if (!pm.environment.get(\"location_search\")) {",
                               "    throw new Error(\"Precondition failed: location_search not set by ADMIN-119\");",
@@ -7883,13 +7884,13 @@
                               "",
                               "// only this run's locations: the name filter matches part of the name",
                               "pm.request.url.addQueryParams([{ key: \"filter[name]\", value: pm.environment.get(\"location_search\") }]);"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         },
                         {
                           "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "const response = pm.response.json() || {};",
@@ -7927,8 +7928,7 @@
                               "        pm.expect(records.map(r => norm(r.id)), \"locations saved by the rejected request\").to.eql([]);",
                               "    });",
                               "}"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         }
                       ],
@@ -7952,20 +7952,20 @@
                       "name": "ADMIN-121 delete location created by ADMIN-119",
                       "event": [
                         {
-                          "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "// nothing to delete when ADMIN-119 was rejected",
                               "if (!pm.environment.get(\"location_id\")) {",
                               "    pm.execution.skipRequest();",
                               "}"
-                            ],
-                            "type": "text/javascript"
-                          }
+                            ]
+                          },
+                          "listen": "prerequest"
                         },
                         {
-                          "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const deletedId = String(pm.environment.get(\"location_id\"));",
                               "",
@@ -7990,9 +7990,9 @@
                               "pm.environment.unset(\"location_name\");",
                               "pm.environment.unset(\"location_notes\");",
                               "pm.environment.unset(\"location_search\");"
-                            ],
-                            "type": "text/javascript"
-                          }
+                            ]
+                          },
+                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -8001,6 +8001,731 @@
                         "body": {
                           "mode": "raw",
                           "raw": "{\n    \"data\": [\"{{location_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/locations",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "locations"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-locations",
+                  "item": [
+                    {
+                      "name": "ADMIN-136 add location A for the list checks",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"location_fixtures\");",
+                              "pm.environment.unset(\"location_baseline_total\");",
+                              "",
+                              "// a new prefix per iteration keeps the filters limited to this folder's locations",
+                              "// side effect: used by ADMIN-137…ADMIN-142",
+                              "pm.environment.set(\"location_prefix\", `LOCGET-${Date.now().toString().slice(-6)}`);",
+                              "",
+                              "// total before this folder adds anything; ADMIN-141 checks the change on rows with loc_expectedTotalChange",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/locations`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    if (err || !res || res.code !== 200) {",
+                              "        throw new Error(\"Precondition failed: could not list locations before adding the fixtures\");",
+                              "    }",
+                              "    // side effect: consumed by ADMIN-141",
+                              "    pm.environment.set(\"location_baseline_total\", String(((res.json() || {}).meta || {}).total));",
+                              "});",
+                              "",
+                              "const prefix = pm.environment.get(\"location_prefix\");",
+                              "// all fields; name sorts second, phone sorts last",
+                              "const fixture = {",
+                              "    name: `${prefix} Mu`,",
+                              "    countryCode: \"LK\",",
+                              "    city: `${prefix} Kandy Ünïcode`,",
+                              "    zipCode: \"20000\",",
+                              "    time_zone: \"Asia/Colombo\",",
+                              "    province: \"Central\",",
+                              "    address: \"1 Temple Rd\",",
+                              "    phone: \"+94 81 222 3333\",",
+                              "    fax: \"081-2223334\",",
+                              "    notes: \"Location A for the list checks\",",
+                              "    eeo_applicable: 1",
+                              "};",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(fixture));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "",
+                              "pm.test(\"Location A is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Location A details match what was sent\", function () {",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(sent.name);",
+                              "    pm.expect(norm(responseData.countryCode), \"countryCode\").to.eql(sent.countryCode);",
+                              "    pm.expect(norm(responseData.city), \"city\").to.eql(sent.city);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-141, ADMIN-142",
+                              "// the sent values (not the response) are kept, so ADMIN-141 compares the list with what was sent;",
+                              "// numberOfEmployees comes from the response, because it is not sent",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"location_fixtures\") || \"{}\");",
+                              "    fixtures[\"A\"] = Object.assign({ id: String(responseData.id), numberOfEmployees: norm(responseData.numberOfEmployees) }, sent);",
+                              "    pm.environment.set(\"location_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/locations",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "locations"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-137 add location B for the list checks",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"location_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: location_prefix not set by ADMIN-136\");",
+                              "}",
+                              "",
+                              "const prefix = pm.environment.get(\"location_prefix\");",
+                              "// mandatory fields only; lower-case name sorts first, empty phone sorts first",
+                              "const fixture = {",
+                              "    name: `${prefix} alpha`,",
+                              "    countryCode: \"CA\",",
+                              "    city: `${prefix} Toronto`,",
+                              "    zipCode: \"M5H 2N2\",",
+                              "    time_zone: \"America/Toronto\"",
+                              "};",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(fixture));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "",
+                              "pm.test(\"Location B is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Location B details match what was sent\", function () {",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(sent.name);",
+                              "    pm.expect(norm(responseData.countryCode), \"countryCode\").to.eql(sent.countryCode);",
+                              "    pm.expect(norm(responseData.city), \"city\").to.eql(sent.city);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-141, ADMIN-142",
+                              "// the sent values (not the response) are kept, so ADMIN-141 compares the list with what was sent;",
+                              "// numberOfEmployees comes from the response, because it is not sent",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"location_fixtures\") || \"{}\");",
+                              "    fixtures[\"B\"] = Object.assign({ id: String(responseData.id), numberOfEmployees: norm(responseData.numberOfEmployees) }, sent);",
+                              "    pm.environment.set(\"location_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/locations",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "locations"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-138 add location C for the list checks",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"location_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: location_prefix not set by ADMIN-136\");",
+                              "}",
+                              "",
+                              "const prefix = pm.environment.get(\"location_prefix\");",
+                              "// name sorts last, phone sorts second",
+                              "const fixture = {",
+                              "    name: `${prefix} Zeta`,",
+                              "    countryCode: \"AU\",",
+                              "    city: `${prefix} Sydney`,",
+                              "    zipCode: \"2000\",",
+                              "    time_zone: \"Australia/Sydney\",",
+                              "    phone: \"+61 2 9999 0000\"",
+                              "};",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(fixture));"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "",
+                              "pm.test(\"Location C is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Location C details match what was sent\", function () {",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(sent.name);",
+                              "    pm.expect(norm(responseData.countryCode), \"countryCode\").to.eql(sent.countryCode);",
+                              "    pm.expect(norm(responseData.city), \"city\").to.eql(sent.city);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-141, ADMIN-142",
+                              "// the sent values (not the response) are kept, so ADMIN-141 compares the list with what was sent;",
+                              "// numberOfEmployees comes from the response, because it is not sent",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"location_fixtures\") || \"{}\");",
+                              "    fixtures[\"C\"] = Object.assign({ id: String(responseData.id), numberOfEmployees: norm(responseData.numberOfEmployees) }, sent);",
+                              "    pm.environment.set(\"location_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/locations",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "locations"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-139 add location D to be deleted",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"location_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: location_prefix not set by ADMIN-136\");",
+                              "}",
+                              "",
+                              "const prefix = pm.environment.get(\"location_prefix\");",
+                              "// deleted by ADMIN-140, so it must never be listed",
+                              "const fixture = {",
+                              "    name: `${prefix} Beta`,",
+                              "    countryCode: \"LK\",",
+                              "    city: `${prefix} Galle`,",
+                              "    zipCode: \"80000\",",
+                              "    time_zone: \"Asia/Colombo\"",
+                              "};",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(fixture));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "",
+                              "pm.test(\"Location D is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Location D details match what was sent\", function () {",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(sent.name);",
+                              "    pm.expect(norm(responseData.countryCode), \"countryCode\").to.eql(sent.countryCode);",
+                              "    pm.expect(norm(responseData.city), \"city\").to.eql(sent.city);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-140…ADMIN-142",
+                              "// the sent values (not the response) are kept, so ADMIN-141 compares the list with what was sent;",
+                              "// numberOfEmployees comes from the response, because it is not sent",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"location_fixtures\") || \"{}\");",
+                              "    fixtures[\"D\"] = Object.assign({ id: String(responseData.id), numberOfEmployees: norm(responseData.numberOfEmployees) }, sent);",
+                              "    pm.environment.set(\"location_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/locations",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "locations"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-140 delete location D created by ADMIN-139",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "// clear the previous request's body, so a failed precondition below cannot resend it",
+                              "pm.variables.unset(\"requestBody\");",
+                              "",
+                              "const fixtures = JSON.parse(pm.environment.get(\"location_fixtures\") || \"{}\");",
+                              "if (!fixtures.D) {",
+                              "    throw new Error(\"Precondition failed: location D not created by ADMIN-139\");",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ data: [fixtures.D.id] }));"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "pm.test(\"Location D is deleted, so it can be used as a deleted record\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// side effect: ADMIN-142 skips D once it is gone (hard delete)",
+                              "if (pm.response.code === 204) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"location_fixtures\") || \"{}\");",
+                              "    if (fixtures.D) {",
+                              "        fixtures.D.deleted = true;",
+                              "        pm.environment.set(\"location_fixtures\", JSON.stringify(fixtures));",
+                              "    }",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/locations",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "locations"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-141 get locations with the query from the CSV",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const fixtures = JSON.parse(pm.environment.get(\"location_fixtures\") || \"{}\");",
+                              "const missing = [\"A\", \"B\", \"C\", \"D\"].filter(k => !fixtures[k]);",
+                              "if (missing.length) {",
+                              "    throw new Error(`Precondition failed: locations ${missing.join(\", \")} not created by ADMIN-136…ADMIN-139`);",
+                              "}",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const prefix = pm.environment.get(\"location_prefix\");",
+                              "",
+                              "// build the query from the CSV row; a blank cell means the parameter is not sent,",
+                              "// and a row with no parameters checks the default list.",
+                              "// __PREFIX__ becomes this iteration's prefix; __EMPTY__ sends the parameter with an empty value.",
+                              "// filter values are not trimmed, so a row can check that the API trims them",
+                              "const params = {",
+                              "    \"filter[name]\": \"loc_filterName\",",
+                              "    \"filter[city]\": \"loc_filterCity\",",
+                              "    \"filter[country]\": \"loc_filterCountry\",",
+                              "    limit: \"loc_limit\",",
+                              "    offset: \"loc_offset\",",
+                              "    sortingFeild: \"loc_sortingFeild\",",
+                              "    sortingOrder: \"loc_sortingOrder\"",
+                              "};",
+                              "const query = [];",
+                              "Object.keys(params).forEach(key => {",
+                              "    const value = norm(pm.iterationData.get(params[key]));",
+                              "    if (value.trim() === \"\") {",
+                              "        return;",
+                              "    }",
+                              "    const text = value === \"__EMPTY__\" ? \"\" : value.split(\"__PREFIX__\").join(prefix);",
+                              "    query.push({ key, value: encodeURIComponent(text) });",
+                              "});",
+                              "",
+                              "if (query.length) {",
+                              "    pm.request.url.addQueryParams(query);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const meta = response.meta || {};",
+                              "const fixtures = JSON.parse(pm.environment.get(\"location_fixtures\") || \"{}\");",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const cell = key => norm(pm.iterationData.get(key)).trim();",
+                              "// rows that check a known defect name it in loc_knownDefect, so a failure reads as expected in the report",
+                              "const knownDefect = cell(\"loc_knownDefect\") ? ` [known defect ${cell(\"loc_knownDefect\")}]` : \"\";",
+                              "",
+                              "// a name or city filter with the run prefix limits the list to this folder's locations",
+                              "const ownOnly = [\"loc_filterName\", \"loc_filterCity\"].some(k => cell(k).includes(\"__PREFIX__\"));",
+                              "const expectedTotal = cell(\"loc_expectedTotal\");",
+                              "const expectedTotalChange = cell(\"loc_expectedTotalChange\");",
+                              "const expectedCountries = cell(\"loc_expectedCountries\").split(\"|\").filter(Boolean);",
+                              "",
+                              "// expected result from the CSV: fixture keys in the expected order",
+                              "const expectedKeys = cell(\"loc_expectedLocations\").split(\"|\").filter(Boolean);",
+                              "const unknownKeys = expectedKeys.filter(k => !fixtures[k]);",
+                              "if (unknownKeys.length) {",
+                              "    throw new Error(`Test data error: loc_expectedLocations has unknown keys ${unknownKeys.join(\", \")}`);",
+                              "}",
+                              "const expectedIds = expectedKeys.map(k => fixtures[k].id);",
+                              "const keyById = Object.keys(fixtures).reduce((acc, k) => Object.assign(acc, { [fixtures[k].id]: k }), {});",
+                              "// other QA users' locations can be in an unfiltered list, so compare only this folder's records",
+                              "const ownRecords = records.filter(r => keyById[norm(r.id)]);",
+                              "",
+                              "pm.test(`Locations are retrieved (${scenario})`, function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the location list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"locationListSchema\");",
+                              "    pm.expect(raw, \"locationListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(`The expected locations of this folder are returned in order (${scenario})${knownDefect}`, function () {",
+                              "    pm.expect(ownRecords.map(r => norm(r.id)), \"ids of this folder's locations\").to.eql(expectedIds);",
+                              "});",
+                              "",
+                              "pm.test(`The deleted location is not listed (${scenario})`, function () {",
+                              "    pm.expect(records.map(r => norm(r.id)), \"ids returned\").to.not.include(fixtures.D.id);",
+                              "});",
+                              "",
+                              "// the run prefix is unique, so a prefix filter must not return anyone else's locations",
+                              "if (ownOnly) {",
+                              "    pm.test(`Only locations matching the filter are returned (${scenario})`, function () {",
+                              "        const others = records.filter(r => !keyById[norm(r.id)]).map(r => norm(r.id));",
+                              "        pm.expect(others, \"ids returned that do not match the filter\").to.eql([]);",
+                              "    });",
+                              "}",
+                              "",
+                              "if (expectedCountries.length) {",
+                              "    pm.test(`Only locations in ${expectedCountries.join(\", \")} are returned (${scenario})`, function () {",
+                              "        const others = records.filter(r => !expectedCountries.includes(norm(r.countryCode))).map(r => norm(r.id));",
+                              "        pm.expect(others, \"ids returned from other countries\").to.eql([]);",
+                              "    });",
+                              "}",
+                              "",
+                              "// meta.total counts the filtered result, not the page",
+                              "if (expectedTotal !== \"\") {",
+                              "    pm.test(`Total count matches the filtered result (${scenario})${knownDefect}`, function () {",
+                              "        pm.expect(meta.total, \"meta.total\").to.eql(Number(expectedTotal));",
+                              "    });",
+                              "}",
+                              "",
+                              "// unfiltered list: the total grows by the locations this folder added and didn't delete.",
+                              "// accepted risk: another QA user adding or deleting a location mid-run fails this check (triage as environment first)",
+                              "if (expectedTotalChange !== \"\") {",
+                              "    pm.test(`Total count changes only by this folder's locations (${scenario})`, function () {",
+                              "        const baseline = pm.environment.get(\"location_baseline_total\");",
+                              "        pm.expect(baseline, \"location_baseline_total set by ADMIN-136\").to.match(/^\\d+$/);",
+                              "        pm.expect(meta.total, \"meta.total\").to.eql(Number(baseline) + Number(expectedTotalChange));",
+                              "    });",
+                              "}",
+                              "",
+                              "const fields = [\"name\", \"countryCode\", \"time_zone\", \"province\", \"city\", \"address\", \"zipCode\", \"phone\", \"fax\", \"notes\", \"eeo_applicable\"];",
+                              "ownRecords.forEach(r => {",
+                              "    const key = keyById[norm(r.id)];",
+                              "    const sent = fixtures[key];",
+                              "    pm.test(`Location ${key} shows the saved values (${scenario})`, function () {",
+                              "        // optional fields that were not sent come back empty",
+                              "        fields.forEach(f => pm.expect(norm(r[f]), `${key}.${f}`).to.eql(norm(sent[f])));",
+                              "        pm.expect(norm((r.country || {}).cou_code), `${key}.country.cou_code`).to.eql(sent.countryCode);",
+                              "        // same count as the POST response (D9: string in the list, number in the POST, so compare as numbers)",
+                              "        pm.expect(Number(r.numberOfEmployees), `${key}.numberOfEmployees`).to.eql(Number(sent.numberOfEmployees));",
+                              "    });",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/locations",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "locations"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-142 delete locations created by ADMIN-136…ADMIN-139",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear the previous request's body, so a failed precondition below cannot resend it",
+                              "pm.variables.unset(\"requestBody\");",
+                              "",
+                              "const fixtures = JSON.parse(pm.environment.get(\"location_fixtures\") || \"{}\");",
+                              "// D is included only if ADMIN-140 did not delete it",
+                              "const ids = [\"A\", \"B\", \"C\", \"D\"].filter(k => fixtures[k] && !fixtures[k].deleted).map(k => fixtures[k].id);",
+                              "if (ids.length === 0) {",
+                              "    throw new Error(\"Precondition failed: no locations created by ADMIN-136…ADMIN-139\");",
+                              "}",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ data: ids }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const prefix = pm.environment.get(\"location_prefix\");",
+                              "",
+                              "pm.test(\"Locations created by ADMIN-136…ADMIN-139 are deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// 204 has no body, so filter by the run prefix to confirm the hard delete",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/locations?filter[name]=${encodeURIComponent(prefix)}`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let body = {};",
+                              "    try {",
+                              "        body = res.json() || {};",
+                              "    } catch (e) {",
+                              "        // body stays empty; the assertions below report the failed lookup",
+                              "    }",
+                              "    pm.test(\"Locations created by this folder are no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"list status\").to.eql(200);",
+                              "        pm.expect((body.data || []).map(r => String(r.id)), \"ids of this folder's locations still listed\").to.eql([]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"location_fixtures\");",
+                              "pm.environment.unset(\"location_prefix\");",
+                              "pm.environment.unset(\"location_baseline_total\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
                           "options": {
                             "raw": {
                               "language": "json"
@@ -12485,7 +13210,6 @@
                       "name": "ADMIN-122 add location with invalid data",
                       "event": [
                         {
-                          "listen": "prerequest",
                           "script": {
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
@@ -12551,10 +13275,10 @@
                               "});"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "prerequest"
                         },
                         {
-                          "listen": "test",
                           "script": {
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
@@ -12638,7 +13362,8 @@
                               "});"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -12677,6 +13402,7 @@
                         {
                           "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "// clear values left over from earlier folders or earlier runs",
                               "pm.environment.unset(\"location_id\");",
@@ -12709,13 +13435,13 @@
                               "// side effect: consumed by ADMIN-124 and ADMIN-125",
                               "pm.environment.set(\"location_name\", name);",
                               "pm.variables.set(\"requestBody\", JSON.stringify(body));"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         },
                         {
                           "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "const responseData = (pm.response.json() || {}).data || {};",
@@ -12732,8 +13458,7 @@
                               "if (norm(responseData.id) !== \"\") {",
                               "    pm.environment.set(\"location_id\", String(responseData.id));",
                               "}"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         }
                       ],
@@ -12766,8 +13491,8 @@
                       "name": "ADMIN-124 add location with duplicate name",
                       "event": [
                         {
-                          "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "if (!pm.environment.get(\"location_id\") || !pm.environment.get(\"location_name\")) {",
                               "    throw new Error(\"Precondition failed: location not created by ADMIN-123\");",
@@ -12800,13 +13525,13 @@
                               "});",
                               "",
                               "pm.variables.set(\"requestBody\", JSON.stringify(body));"
-                            ],
-                            "type": "text/javascript"
-                          }
+                            ]
+                          },
+                          "listen": "prerequest"
                         },
                         {
-                          "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "let responseData = {};",
@@ -12851,9 +13576,9 @@
                               "if (createdId !== \"\" && createdId !== norm(pm.environment.get(\"location_id\"))) {",
                               "    deleteLocation(createdId);",
                               "}"
-                            ],
-                            "type": "text/javascript"
-                          }
+                            ]
+                          },
+                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -12887,17 +13612,18 @@
                         {
                           "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "if (!pm.environment.get(\"location_id\")) {",
                               "    throw new Error(\"Precondition failed: location_id not set by ADMIN-123\");",
                               "}"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         },
                         {
                           "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const deletedId = String(pm.environment.get(\"location_id\"));",
                               "",
@@ -12920,8 +13646,7 @@
                               "// clear hand-off values so later folders cannot pick them up",
                               "pm.environment.unset(\"location_id\");",
                               "pm.environment.unset(\"location_name\");"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         }
                       ],
@@ -12961,6 +13686,7 @@
                         {
                           "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "// clear values left over from earlier folders or earlier runs",
                               "pm.environment.unset(\"location_id\");",
@@ -12993,13 +13719,13 @@
                               "// side effect: consumed by ADMIN-127 to ADMIN-129",
                               "pm.environment.set(\"location_name\", name);",
                               "pm.variables.set(\"requestBody\", JSON.stringify(body));"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         },
                         {
                           "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "const responseData = (pm.response.json() || {}).data || {};",
@@ -13016,8 +13742,7 @@
                               "if (norm(responseData.id) !== \"\") {",
                               "    pm.environment.set(\"location_id\", String(responseData.id));",
                               "}"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         }
                       ],
@@ -13050,7 +13775,6 @@
                       "name": "ADMIN-127 add location with undocumented id",
                       "event": [
                         {
-                          "listen": "prerequest",
                           "script": {
                             "exec": [
                               "if (!pm.environment.get(\"location_id\") || !pm.environment.get(\"location_name\")) {",
@@ -13090,10 +13814,10 @@
                               "pm.variables.set(\"requestBody\", JSON.stringify(body));"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "prerequest"
                         },
                         {
-                          "listen": "test",
                           "script": {
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
@@ -13142,7 +13866,8 @@
                               "}"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -13174,7 +13899,6 @@
                       "name": "ADMIN-128 get location added by ADMIN-126 to check it is unchanged",
                       "event": [
                         {
-                          "listen": "prerequest",
                           "script": {
                             "exec": [
                               "if (!pm.environment.get(\"location_id\") || !pm.environment.get(\"location_name\")) {",
@@ -13182,10 +13906,10 @@
                               "}"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "prerequest"
                         },
                         {
-                          "listen": "test",
                           "script": {
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
@@ -13209,7 +13933,8 @@
                               "});"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -13235,17 +13960,18 @@
                         {
                           "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "if (!pm.environment.get(\"location_id\")) {",
                               "    throw new Error(\"Precondition failed: location_id not set by ADMIN-126\");",
                               "}"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         },
                         {
                           "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const deletedId = String(pm.environment.get(\"location_id\"));",
                               "",
@@ -13268,8 +13994,7 @@
                               "// clear hand-off values so later folders cannot pick them up",
                               "pm.environment.unset(\"location_id\");",
                               "pm.environment.unset(\"location_name\");"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         }
                       ],
@@ -13309,6 +14034,7 @@
                         {
                           "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "// clear values left over from earlier folders or earlier runs",
                               "pm.environment.unset(\"location_name\");",
@@ -13340,13 +14066,13 @@
                               "// side effect: ADMIN-131 sends the same body",
                               "pm.environment.set(\"location_name\", name);",
                               "pm.variables.set(\"requestBody\", JSON.stringify(body));"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         },
                         {
                           "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "let responseData = {};",
@@ -13383,8 +14109,7 @@
                               "if (norm(responseData.id) !== \"\") {",
                               "    deleteLocation(responseData.id);",
                               "}"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         }
                       ],
@@ -13420,7 +14145,6 @@
                       "name": "ADMIN-131 add location with invalid token",
                       "event": [
                         {
-                          "listen": "prerequest",
                           "script": {
                             "exec": [
                               "if (!pm.environment.get(\"location_name\")) {",
@@ -13446,10 +14170,10 @@
                               "pm.variables.set(\"requestBody\", JSON.stringify(body));"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "prerequest"
                         },
                         {
-                          "listen": "test",
                           "script": {
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
@@ -13502,7 +14226,8 @@
                               "pm.environment.unset(\"location_name\");"
                             ],
                             "type": "text/javascript"
-                          }
+                          },
+                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -13551,6 +14276,7 @@
                         {
                           "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "// clear values left over from earlier folders or earlier runs",
                               "pm.environment.unset(\"location_id\");",
@@ -13583,13 +14309,13 @@
                               "// side effect: consumed by ADMIN-133 to ADMIN-135",
                               "pm.environment.set(\"location_name\", name);",
                               "pm.variables.set(\"requestBody\", JSON.stringify(body));"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         },
                         {
                           "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "const responseData = (pm.response.json() || {}).data || {};",
@@ -13606,8 +14332,7 @@
                               "if (norm(responseData.id) !== \"\") {",
                               "    pm.environment.set(\"location_id\", String(responseData.id));",
                               "}"
-                            ],
-                            "type": "text/javascript"
+                            ]
                           }
                         }
                       ],
@@ -13803,19 +14528,19 @@
                       "name": "ADMIN-135 delete location created by ADMIN-132",
                       "event": [
                         {
-                          "listen": "prerequest",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "if (!pm.environment.get(\"location_id\")) {",
                               "    throw new Error(\"Precondition failed: location_id not set by ADMIN-132\");",
                               "}"
-                            ],
-                            "type": "text/javascript"
-                          }
+                            ]
+                          },
+                          "listen": "prerequest"
                         },
                         {
-                          "listen": "test",
                           "script": {
+                            "type": "text/javascript",
                             "exec": [
                               "const deletedId = String(pm.environment.get(\"location_id\"));",
                               "",
@@ -13838,9 +14563,9 @@
                               "// clear hand-off values so later folders cannot pick them up",
                               "pm.environment.unset(\"location_id\");",
                               "pm.environment.unset(\"location_name\");"
-                            ],
-                            "type": "text/javascript"
-                          }
+                            ]
+                          },
+                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -13855,6 +14580,222 @@
                             }
                           }
                         },
+                        "url": {
+                          "raw": "{{baseURL}}/api/locations",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "locations"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-locations-with-invalid-query-parameters",
+                  "item": [
+                    {
+                      "name": "ADMIN-143 get locations with invalid query parameter",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// add the query parameters from the CSV row; a blank cell means the parameter is not sent",
+                              "const params = { sortingFeild: \"loc_sortingFeild\", sortingOrder: \"loc_sortingOrder\", limit: \"loc_limit\", offset: \"loc_offset\" };",
+                              "const query = [];",
+                              "Object.keys(params).forEach(key => {",
+                              "    const value = pm.iterationData.get(params[key]);",
+                              "    if (value !== undefined && value !== null && String(value) !== \"\") {",
+                              "        query.push({ key, value: encodeURIComponent(String(value)) });",
+                              "    }",
+                              "});",
+                              "// loc_otherParam / loc_otherValue send a parameter under any key, e.g. filter or filter[name][]",
+                              "const otherParam = String(pm.iterationData.get(\"loc_otherParam\") || \"\").trim();",
+                              "if (otherParam) {",
+                              "    query.push({ key: otherParam, value: encodeURIComponent(String(pm.iterationData.get(\"loc_otherValue\") || \"\")) });",
+                              "}",
+                              "if (query.length === 0) {",
+                              "    throw new Error(\"Test data error: the CSV row sends no query parameter\");",
+                              "}",
+                              "pm.request.url.addQueryParams(query);"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "// rows that check a known defect name it in loc_knownDefect, so a failure reads as expected in the report",
+                              "const knownDefect = norm(pm.iterationData.get(\"loc_knownDefect\")).trim();",
+                              "const defectNote = knownDefect ? ` [known defect ${knownDefect}]` : \"\";",
+                              "",
+                              "pm.test(`Invalid query parameter is rejected (${scenario})${defectNote}`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error message says the request is not supported (${scenario})${defectNote}`, function () {",
+                              "    pm.expect(pm.response.text().trim(), \"error body\").to.eql(norm(pm.iterationData.get(\"expectedError\")));",
+                              "});",
+                              "",
+                              "pm.test(`No locations are returned (${scenario})`, function () {",
+                              "    pm.expect(records.length, \"number of locations returned for an invalid query\").to.eql(0);",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/locations",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "locations"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-locations-without-valid-token",
+                  "item": [
+                    {
+                      "name": "ADMIN-144 get locations without token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// sent without an Authorization header (request auth: No Auth)"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "// runs once per CSV row of this folder; the row name keeps the report readable",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(`Request without a token is rejected as unauthorized (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`No locations are returned without a token (${scenario})`, function () {",
+                              "    pm.expect(records.length, \"number of locations returned without a token\").to.eql(0);",
+                              "});"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/locations",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "locations"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-145 get locations with invalid authorization header",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// request auth is No Auth, so the Authorization header below is sent exactly as the CSV row gives it",
+                              "if (!pm.iterationData.get(\"authorizationHeader\")) {",
+                              "    throw new Error(\"Test data error: authorizationHeader is blank in the CSV row\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // error responses from this endpoint are plain text, not JSON",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(`Request is rejected as unauthorized (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`No locations are returned (${scenario})`, function () {",
+                              "    pm.expect(records.length, \"number of locations returned with an invalid authorization header\").to.eql(0);",
+                              "});",
+                              "",
+                              "pm.test(`Error explains why the authorization header is rejected (${scenario})`, function () {",
+                              "    pm.expect(norm(response.error), \"error\").to.eql(norm(pm.iterationData.get(\"expectedError\")));",
+                              "    pm.expect(norm(response.error_description), \"error_description\").to.eql(norm(pm.iterationData.get(\"expectedErrorDescription\")));",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "{{authorizationHeader}}"
+                          }
+                        ],
                         "url": {
                           "raw": "{{baseURL}}/api/locations",
                           "host": [
