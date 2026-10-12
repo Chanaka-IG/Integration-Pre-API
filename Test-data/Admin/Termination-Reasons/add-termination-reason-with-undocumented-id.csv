@@ -1,0 +1,3 @@
+"scenario","tr_name","tr_idSource","expectedStatus","expectedMessage","expectedErrorKey","expectedError"
+"next unused id","Id Check","next",422,"Invalid Data Submitted","keySet","Must not have keys `{ ""id"" }`"
+"id of an existing termination reason","Id Check","existing",422,"Invalid Data Submitted","keySet","Must not have keys `{ ""id"" }`"

@@ -1,0 +1,2 @@
+"scenario","tr_name","expectedStatuses","tr_knownDefect"
+"emoji in the name","Emoji ✓😀","201|422","D4"

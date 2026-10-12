@@ -8748,6 +8748,662 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Termination-Reasons",
+              "item": [
+                {
+                  "name": "add-termination-reason",
+                  "item": [
+                    {
+                      "name": "ADMIN-146 get termination reasons before add",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"termination_reason_id\");",
+                              "pm.environment.unset(\"termination_reason_name\");",
+                              "pm.environment.unset(\"termination_reason_baseline\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks below report it",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "",
+                              "pm.test(\"Termination reasons are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the termination reason list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"terminationReasonListSchema\");",
+                              "    pm.expect(raw, \"terminationReasonListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "// side effect: ADMIN-149 checks these records are unchanged after the add",
+                              "pm.environment.set(\"termination_reason_baseline\", JSON.stringify(records.map(r => ({ id: norm(r.id), name: norm(r.name) }))));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-147 add termination reason",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const baseName = cell(\"tr_name\").trim();",
+                              "if (baseName === \"\") {",
+                              "    throw new Error(\"Test data error: tr_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps names unique across runs (names must be unique); max length is 100",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const name = `TR-${runId} ${baseName}`;",
+                              "if (name.length > 100) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 100`);",
+                              "}",
+                              "",
+                              "// side effect: checked by ADMIN-147 to ADMIN-149",
+                              "pm.environment.set(\"termination_reason_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const response = pm.response.json() || {};",
+                              "const responseData = response.data || {};",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(`Termination reason is added (${scenario})`, function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the termination reason schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"terminationReasonPostSchema\");",
+                              "    pm.expect(raw, \"terminationReasonPostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(`Termination reason name matches what was sent (${scenario})`, function () {",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"termination_reason_name\")));",
+                              "});",
+                              "",
+                              "pm.test(\"Response shows the expected create permission\", function () {",
+                              "    pm.expect(norm(((response.meta || {}).permissions || {}).create), \"meta.permissions.create\").to.eql(norm(pm.iterationData.get(\"tr_expectedCreatePermission\")));",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-148 to ADMIN-150",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"termination_reason_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-148 get termination reason added by ADMIN-147",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"termination_reason_id\")) {",
+                              "    throw new Error(\"Precondition failed: termination_reason_id not set by ADMIN-147\");",
+                              "}",
+                              "",
+                              "// only the record added by ADMIN-147",
+                              "pm.request.url.addQueryParams([{ key: \"filter[ids][]\", value: pm.environment.get(\"termination_reason_id\") }]);"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks below report it",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const terminationReasonId = norm(pm.environment.get(\"termination_reason_id\"));",
+                              "const selectedRecord = records.find(r => norm(r.id) === terminationReasonId);",
+                              "",
+                              "pm.test(\"Termination reasons are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the termination reason list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"terminationReasonListSchema\");",
+                              "    pm.expect(raw, \"terminationReasonListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Termination reason added in ADMIN-147 is the only record returned\", function () {",
+                              "    pm.expect(records.map(r => norm(r.id)), \"ids returned for the id filter\").to.eql([terminationReasonId]);",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "// the check below only makes sense once the record is found",
+                              "if (selectedRecord) {",
+                              "    pm.test(`Saved name matches what was sent (${scenario})`, function () {",
+                              "        pm.expect(norm(selectedRecord.name), \"name\").to.eql(norm(pm.environment.get(\"termination_reason_name\")));",
+                              "    });",
+                              "}",
+                              "",
+                              "pm.test(\"New termination reason is not in use\", function () {",
+                              "    const idsInUse = ((response.meta || {}).idsInUse || []).map(norm);",
+                              "    pm.expect(idsInUse, \"meta.idsInUse\").to.not.include(terminationReasonId);",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-149 get termination reasons after add",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"termination_reason_id\")) {",
+                              "    throw new Error(\"Precondition failed: termination_reason_id not set by ADMIN-147\");",
+                              "}",
+                              "if (!pm.environment.get(\"termination_reason_baseline\")) {",
+                              "    throw new Error(\"Precondition failed: termination_reason_baseline not set by ADMIN-146\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks below report it",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const terminationReasonId = norm(pm.environment.get(\"termination_reason_id\"));",
+                              "const name = norm(pm.environment.get(\"termination_reason_name\"));",
+                              "const baseline = JSON.parse(pm.environment.get(\"termination_reason_baseline\"));",
+                              "const selectedRecord = records.find(r => norm(r.id) === terminationReasonId);",
+                              "",
+                              "pm.test(\"Termination reasons are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the termination reason list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"terminationReasonListSchema\");",
+                              "    pm.expect(raw, \"terminationReasonListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Termination reason added in ADMIN-147 is in the list\", function () {",
+                              "    pm.expect(selectedRecord, `id ${terminationReasonId} not found in response`).to.exist;",
+                              "});",
+                              "",
+                              "pm.test(\"The termination reason name is saved only once\", function () {",
+                              "    const sameName = records.filter(r => norm(r.name).toLowerCase() === name.toLowerCase());",
+                              "    pm.expect(sameName.length, `termination reasons named \"${name}\"`).to.eql(1);",
+                              "});",
+                              "",
+                              "pm.test(\"Existing termination reasons are unchanged\", function () {",
+                              "    const changed = baseline.filter(b => {",
+                              "        const current = records.find(r => norm(r.id) === b.id);",
+                              "        return !current || norm(current.name) !== b.name;",
+                              "    });",
+                              "    pm.expect(changed, \"termination reasons missing or changed after the add\").to.eql([]);",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-150 delete termination reason created by ADMIN-147",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"termination_reason_id\")) {",
+                              "    throw new Error(\"Precondition failed: termination_reason_id not set by ADMIN-147\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const deletedId = String(pm.environment.get(\"termination_reason_id\"));",
+                              "",
+                              "pm.test(\"Termination reason created by ADMIN-147 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// delete is a hard delete, so the record must be gone",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/termination-reasons?filter%5Bids%5D%5B%5D=${deletedId}`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Termination reason created by ADMIN-147 is no longer listed\", function () {",
+                              "        pm.expect(err, \"lookup request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"lookup status\").to.eql(200);",
+                              "        pm.expect(((res && res.json()) || {}).data, \"termination reasons with the deleted id\").to.eql([]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"termination_reason_id\");",
+                              "pm.environment.unset(\"termination_reason_name\");",
+                              "pm.environment.unset(\"termination_reason_baseline\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"ids\": [\"{{termination_reason_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-termination-reason-with-4-byte-characters",
+                  "item": [
+                    {
+                      "name": "ADMIN-151 add termination reason with 4-byte characters",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"termination_reason_id\");",
+                              "pm.environment.unset(\"termination_reason_name\");",
+                              "",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const baseName = cell(\"tr_name\").trim();",
+                              "if (baseName === \"\") {",
+                              "    throw new Error(\"Test data error: tr_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps names unique across runs (names must be unique); max length is 100",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const name = `TR-${runId} ${baseName}`;",
+                              "if (name.length > 100) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 100`);",
+                              "}",
+                              "",
+                              "// side effect: checked by ADMIN-151 and ADMIN-152",
+                              "pm.environment.set(\"termination_reason_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: responseData stays empty and the checks below report it",
+                              "}",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "// the docs don't say whether 4-byte characters are supported, so the CSV lists the accepted statuses",
+                              "const allowedStatuses = norm(pm.iterationData.get(\"expectedStatuses\")).split(\"|\").map(Number);",
+                              "",
+                              "pm.test(`Termination reason with 4-byte characters is saved or rejected (${scenario})`, function () {",
+                              "    pm.expect(pm.response.code, \"status\").to.be.oneOf(allowedStatuses);",
+                              "});",
+                              "",
+                              "if (pm.response.code === 201) {",
+                              "    pm.test(\"Response matches the termination reason schema\", function () {",
+                              "        const raw = pm.collectionVariables.get(\"terminationReasonPostSchema\");",
+                              "        pm.expect(raw, \"terminationReasonPostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "        pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "    });",
+                              "",
+                              "    pm.test(`Response name matches what was sent (${scenario})`, function () {",
+                              "        pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"termination_reason_name\")));",
+                              "    });",
+                              "}",
+                              "",
+                              "// side effect: consumed by ADMIN-152 and ADMIN-153",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"termination_reason_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-152 get termination reason added by ADMIN-151",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"termination_reason_name\")) {",
+                              "    throw new Error(\"Precondition failed: termination_reason_name not set by ADMIN-151\");",
+                              "}",
+                              "",
+                              "// the saved record by id; when ADMIN-151 was rejected, look for the sent name instead",
+                              "const terminationReasonId = pm.environment.get(\"termination_reason_id\");",
+                              "if (terminationReasonId) {",
+                              "    pm.request.url.addQueryParams([{ key: \"filter[ids][]\", value: terminationReasonId }]);",
+                              "} else {",
+                              "    pm.request.url.addQueryParams([{ key: \"filter[name]\", value: pm.environment.get(\"termination_reason_name\") }]);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks below report it",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const terminationReasonId = norm(pm.environment.get(\"termination_reason_id\"));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const knownDefect = cell(\"tr_knownDefect\").trim();",
+                              "const defectTag = knownDefect !== \"\" ? ` [known defect ${knownDefect}]` : \"\";",
+                              "",
+                              "pm.test(\"Termination reasons are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the termination reason list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"terminationReasonListSchema\");",
+                              "    pm.expect(raw, \"terminationReasonListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "if (terminationReasonId !== \"\") {",
+                              "    const selectedRecord = records.find(r => norm(r.id) === terminationReasonId);",
+                              "",
+                              "    pm.test(`Termination reason added in ADMIN-151 is found (${scenario})`, function () {",
+                              "        pm.expect(selectedRecord, `id ${terminationReasonId} not found in response`).to.exist;",
+                              "    });",
+                              "",
+                              "    // the check below only makes sense once the record is found",
+                              "    if (selectedRecord) {",
+                              "        pm.test(`Stored name matches what was sent (${scenario})${defectTag}`, function () {",
+                              "            pm.expect(norm(selectedRecord.name), \"name\").to.eql(norm(pm.environment.get(\"termination_reason_name\")));",
+                              "        });",
+                              "    }",
+                              "} else {",
+                              "    // ADMIN-151 rejected the name, so nothing may have been saved under it",
+                              "    pm.test(`Rejected termination reason is not saved (${scenario})`, function () {",
+                              "        pm.expect(records.map(r => norm(r.id)), \"termination reasons saved by the rejected request\").to.eql([]);",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-153 delete termination reason created by ADMIN-151",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// nothing to delete when ADMIN-151 was rejected",
+                              "if (!pm.environment.get(\"termination_reason_id\")) {",
+                              "    pm.execution.skipRequest();",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const deletedId = String(pm.environment.get(\"termination_reason_id\"));",
+                              "",
+                              "pm.test(\"Termination reason created by ADMIN-151 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// delete is a hard delete, so the record must be gone",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/termination-reasons?filter%5Bids%5D%5B%5D=${deletedId}`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Termination reason created by ADMIN-151 is no longer listed\", function () {",
+                              "        pm.expect(err, \"lookup request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"lookup status\").to.eql(200);",
+                              "        pm.expect(((res && res.json()) || {}).data, \"termination reasons with the deleted id\").to.eql([]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"termination_reason_id\");",
+                              "pm.environment.unset(\"termination_reason_name\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"ids\": [\"{{termination_reason_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -14812,6 +15468,1057 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Termination-Reasons",
+              "item": [
+                {
+                  "name": "add-termination-reason-with-invalid-name",
+                  "item": [
+                    {
+                      "name": "ADMIN-154 add termination reason with invalid name",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the name is omitted, null, a string, or a JSON value (number, array, object), as the CSV row says",
+                              "const mode = cell(\"tr_valueMode\").trim();",
+                              "const rawValue = cell(\"tr_value\");",
+                              "const body = {};",
+                              "if (mode === \"null\") {",
+                              "    body.name = null;",
+                              "} else if (mode === \"string\") {",
+                              "    body.name = rawValue;",
+                              "} else if (mode === \"json\") {",
+                              "    try {",
+                              "        body.name = JSON.parse(rawValue);",
+                              "    } catch (e) {",
+                              "        throw new Error(`Test data error: tr_value is not valid JSON for mode json: ${rawValue}`);",
+                              "    }",
+                              "} else if (mode !== \"omit\") {",
+                              "    throw new Error(`Test data error: tr_valueMode must be omit, null, string or json, got \"${mode}\"`);",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));",
+                              "",
+                              "// list the ids before and after to prove that nothing was saved",
+                              "pm.variables.set(\"idsBefore\", \"\");",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/termination-reasons`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    if (err || !res || res.code !== 200) {",
+                              "        throw new Error(\"Precondition failed: could not list termination reasons before the request\");",
+                              "    }",
+                              "    // side effect: compared by the tests of this request",
+                              "    pm.variables.set(\"idsBefore\", JSON.stringify(((res.json() || {}).data || []).map(r => String(r.id))));",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: responseData stays empty and the checks below report it",
+                              "}",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteTerminationReason = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/termination-reasons`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ ids: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Termination reason created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const knownDefect = cell(\"tr_knownDefect\").trim();",
+                              "const defectTag = knownDefect !== \"\" ? ` [known defect ${knownDefect}]` : \"\";",
+                              "const expectedError = cell(\"expectedError\");",
+                              "const idsBefore = pm.variables.get(\"idsBefore\");",
+                              "",
+                              "pm.test(`Invalid name is rejected (${scenario})${defectTag}`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "// rows for known defects have no error text: the API accepts those values today",
+                              "if (expectedError !== \"\") {",
+                              "    pm.test(`Error explains the invalid name (${scenario})`, function () {",
+                              "        let errorBody = {};",
+                              "        try {",
+                              "            errorBody = pm.response.json() || {};",
+                              "        } catch (e) {",
+                              "            // not JSON: the field checks below fail with the field name",
+                              "        }",
+                              "        pm.expect(norm(errorBody.message), \"message\").to.eql(cell(\"expectedMessage\"));",
+                              "        pm.expect(errorBody.errors, \"errors\").to.eql({ [cell(\"expectedErrorKey\")]: expectedError });",
+                              "    });",
+                              "}",
+                              "",
+                              "pm.test(`No termination reason is created (${scenario})${defectTag}`, function () {",
+                              "    pm.expect(norm(responseData.id), \"id of a termination reason created by an invalid request\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "// the teardown runs after the lookup, so the lookup sees what the request saved",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/termination-reasons`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the assertions below report the failed lookup",
+                              "    }",
+                              "    pm.test(`Nothing is saved by the rejected request (${scenario})${defectTag}`, function () {",
+                              "        pm.expect(idsBefore, \"ids listed before the request\").to.be.a(\"string\").and.not.empty;",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        const before = JSON.parse(idsBefore);",
+                              "        const newIds = records.map(r => String(r.id)).filter(id => !before.includes(id));",
+                              "        pm.expect(newIds, \"termination reason ids added by the rejected request\").to.eql([]);",
+                              "    });",
+                              "",
+                              "    if (norm(responseData.id) !== \"\") {",
+                              "        deleteTerminationReason(responseData.id);",
+                              "    }",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-termination-reason-with-undocumented-id",
+                  "item": [
+                    {
+                      "name": "ADMIN-155 add termination reason for undocumented id check",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"termination_reason_id\");",
+                              "pm.environment.unset(\"termination_reason_name\");",
+                              "",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const baseName = cell(\"tr_name\").trim();",
+                              "if (baseName === \"\") {",
+                              "    throw new Error(\"Test data error: tr_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps names unique across runs (names must be unique); max length is 100",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const name = `TR-${runId} ${baseName}`;",
+                              "if (name.length > 100) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 100`);",
+                              "}",
+                              "",
+                              "// side effect: consumed by ADMIN-156 to ADMIN-158",
+                              "pm.environment.set(\"termination_reason_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Termination reason is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Termination reason name matches what was sent\", function () {",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"termination_reason_name\")));",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-156 to ADMIN-158",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"termination_reason_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-156 add termination reason with undocumented id",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"termination_reason_id\") || !pm.environment.get(\"termination_reason_name\")) {",
+                              "    throw new Error(\"Precondition failed: termination reason not created by ADMIN-155\");",
+                              "}",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the record just added by ADMIN-155 has the highest id, so id + 1 is the value the server",
+                              "// would use next anyway: sending it can never move the shared auto-increment counter",
+                              "const source = cell(\"tr_idSource\").trim();",
+                              "let sentId;",
+                              "if (source === \"next\") {",
+                              "    sentId = Number(pm.environment.get(\"termination_reason_id\")) + 1;",
+                              "} else if (source === \"existing\") {",
+                              "    sentId = Number(pm.environment.get(\"termination_reason_id\"));",
+                              "} else {",
+                              "    throw new Error(`Test data error: tr_idSource must be next or existing, got \"${source}\"`);",
+                              "}",
+                              "",
+                              "// a different name from ADMIN-155, so a rejection can't come from the duplicate check",
+                              "const name = `${pm.environment.get(\"termination_reason_name\")} 2`;",
+                              "",
+                              "// side effect: checked by the tests of this request",
+                              "pm.variables.set(\"sentName\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name, id: sentId }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: responseData stays empty and the checks below report it",
+                              "}",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteTerminationReason = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/termination-reasons`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ ids: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Termination reason created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const createdId = norm(responseData.id);",
+                              "const sentName = norm(pm.variables.get(\"sentName\"));",
+                              "",
+                              "pm.test(`Request with an undocumented id is rejected (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error names the undocumented field (${scenario})`, function () {",
+                              "    let errorBody = {};",
+                              "    try {",
+                              "        errorBody = pm.response.json() || {};",
+                              "    } catch (e) {",
+                              "        // not JSON: the field checks below fail with the field name",
+                              "    }",
+                              "    pm.expect(norm(errorBody.message), \"message\").to.eql(cell(\"expectedMessage\"));",
+                              "    pm.expect(errorBody.errors, \"errors\").to.eql({ [cell(\"expectedErrorKey\")]: cell(\"expectedError\") });",
+                              "});",
+                              "",
+                              "pm.test(`No termination reason is created (${scenario})`, function () {",
+                              "    pm.expect(createdId, \"id of a termination reason created with an undocumented id\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "// the name filter is an exact match, so it finds only a record saved by this request",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/termination-reasons?filter%5Bname%5D=${encodeURIComponent(sentName)}`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    let records = [];",
+                              "    try {",
+                              "        records = (res.json() || {}).data || [];",
+                              "    } catch (e) {",
+                              "        // records stays empty; the assertions below report the failed lookup",
+                              "    }",
+                              "    pm.test(`Nothing is saved by the rejected request (${scenario})`, function () {",
+                              "        pm.expect(err, \"lookup request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"lookup status\").to.eql(200);",
+                              "        pm.expect(records.map(r => String(r.id)), \"termination reasons saved by the rejected request\").to.eql([]);",
+                              "    });",
+                              "",
+                              "    if (createdId !== \"\" && createdId !== norm(pm.environment.get(\"termination_reason_id\"))) {",
+                              "        deleteTerminationReason(createdId);",
+                              "    }",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-157 get termination reason added by ADMIN-155 to check it is unchanged",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"termination_reason_id\")) {",
+                              "    throw new Error(\"Precondition failed: termination_reason_id not set by ADMIN-155\");",
+                              "}",
+                              "",
+                              "// only the record added by ADMIN-155",
+                              "pm.request.url.addQueryParams([{ key: \"filter[ids][]\", value: pm.environment.get(\"termination_reason_id\") }]);"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks below report it",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const terminationReasonId = norm(pm.environment.get(\"termination_reason_id\"));",
+                              "const selectedRecord = records.find(r => norm(r.id) === terminationReasonId);",
+                              "",
+                              "pm.test(\"Termination reasons are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the termination reason list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"terminationReasonListSchema\");",
+                              "    pm.expect(raw, \"terminationReasonListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Termination reason added in ADMIN-155 is the only record returned\", function () {",
+                              "    pm.expect(records.map(r => norm(r.id)), \"ids returned for the id filter\").to.eql([terminationReasonId]);",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "// the check below only makes sense once the record is found",
+                              "if (selectedRecord) {",
+                              "    pm.test(`Termination reason added in ADMIN-155 is not overwritten (${scenario})`, function () {",
+                              "        pm.expect(norm(selectedRecord.name), \"name\").to.eql(norm(pm.environment.get(\"termination_reason_name\")));",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-158 delete termination reason created by ADMIN-155",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"termination_reason_id\")) {",
+                              "    throw new Error(\"Precondition failed: termination_reason_id not set by ADMIN-155\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const deletedId = String(pm.environment.get(\"termination_reason_id\"));",
+                              "",
+                              "pm.test(\"Termination reason created by ADMIN-155 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// delete is a hard delete, so the record must be gone",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/termination-reasons?filter%5Bids%5D%5B%5D=${deletedId}`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Termination reason created by ADMIN-155 is no longer listed\", function () {",
+                              "        pm.expect(err, \"lookup request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"lookup status\").to.eql(200);",
+                              "        pm.expect(((res && res.json()) || {}).data, \"termination reasons with the deleted id\").to.eql([]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"termination_reason_id\");",
+                              "pm.environment.unset(\"termination_reason_name\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"ids\": [\"{{termination_reason_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-termination-reason-with-duplicate-name",
+                  "item": [
+                    {
+                      "name": "ADMIN-159 add termination reason for duplicate check",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"termination_reason_id\");",
+                              "pm.environment.unset(\"termination_reason_name\");",
+                              "",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const baseName = cell(\"tr_name\").trim();",
+                              "if (baseName === \"\") {",
+                              "    throw new Error(\"Test data error: tr_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps names unique across runs (names must be unique); max length is 100",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const name = `TR-${runId} ${baseName}`;",
+                              "if (name.length > 100) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 100`);",
+                              "}",
+                              "",
+                              "// side effect: consumed by ADMIN-160 and ADMIN-161",
+                              "pm.environment.set(\"termination_reason_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Termination reason is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Termination reason name matches what was sent\", function () {",
+                              "    pm.expect(norm(responseData.name), \"name\").to.eql(norm(pm.environment.get(\"termination_reason_name\")));",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-160 and ADMIN-161",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"termination_reason_id\", String(responseData.id));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-160 add termination reason with duplicate name",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"termination_reason_id\") || !pm.environment.get(\"termination_reason_name\")) {",
+                              "    throw new Error(\"Precondition failed: termination reason not created by ADMIN-159\");",
+                              "}",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// reuse the name of the ADMIN-159 record, or of a record that existed before this folder, as the CSV row says",
+                              "const ownId = norm(pm.environment.get(\"termination_reason_id\"));",
+                              "const ownName = pm.environment.get(\"termination_reason_name\");",
+                              "const mode = cell(\"tr_duplicateMode\").trim();",
+                              "pm.variables.set(\"requestBody\", \"\");",
+                              "pm.variables.set(\"preconditionError\", \"\");",
+                              "if (mode === \"exact\") {",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({ name: ownName }));",
+                              "} else if (mode === \"leadingSpaces\") {",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({ name: `   ${ownName}` }));",
+                              "} else if (mode === \"leadingTab\") {",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({ name: `\\t${ownName}` }));",
+                              "} else if (mode === \"existing\") {",
+                              "    pm.sendRequest({",
+                              "        url: `${pm.environment.get(\"baseURL\")}/api/termination-reasons`,",
+                              "        method: \"GET\",",
+                              "        header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "    }, (err, res) => {",
+                              "        const other = (err || !res || res.code !== 200) ? undefined",
+                              "            : ((res.json() || {}).data || []).find(r => norm(r.id) !== ownId && norm(r.name).trim() !== \"\");",
+                              "        // a throw here would not stop the request, so the failure is recorded for the tests instead",
+                              "        if (!other) {",
+                              "            pm.variables.set(\"preconditionError\", \"Precondition failed: no other termination reason found to duplicate\");",
+                              "            return;",
+                              "        }",
+                              "        pm.variables.set(\"requestBody\", JSON.stringify({ name: other.name }));",
+                              "    });",
+                              "} else {",
+                              "    throw new Error(`Test data error: tr_duplicateMode must be exact, existing, leadingSpaces or leadingTab, got \"${mode}\"`);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: responseData stays empty and the checks below report it",
+                              "}",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteTerminationReason = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/termination-reasons`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ ids: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Termination reason created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "});",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const knownDefect = cell(\"tr_knownDefect\").trim();",
+                              "const defectTag = knownDefect !== \"\" ? ` [known defect ${knownDefect}]` : \"\";",
+                              "const createdId = norm(responseData.id);",
+                              "",
+                              "pm.test(`Request had a name to duplicate (${scenario})`, function () {",
+                              "    pm.expect(norm(pm.variables.get(\"preconditionError\")), \"precondition error\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "pm.test(`Duplicate name is rejected (${scenario})${defectTag}`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error says the name already exists (${scenario})${defectTag}`, function () {",
+                              "    let errorBody = {};",
+                              "    try {",
+                              "        errorBody = pm.response.json() || {};",
+                              "    } catch (e) {",
+                              "        // not JSON: the field checks below fail with the field name",
+                              "    }",
+                              "    pm.expect(norm(errorBody.message), \"message\").to.eql(cell(\"expectedMessage\"));",
+                              "    pm.expect((errorBody.errors || {}).general, \"errors.general\").to.eql([cell(\"expectedError\")]);",
+                              "});",
+                              "",
+                              "pm.test(`No second termination reason is created (${scenario})${defectTag}`, function () {",
+                              "    pm.expect(createdId, \"id of a duplicate termination reason\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "if (createdId !== \"\" && createdId !== norm(pm.environment.get(\"termination_reason_id\"))) {",
+                              "    deleteTerminationReason(createdId);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-161 delete termination reason created by ADMIN-159",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"termination_reason_id\")) {",
+                              "    throw new Error(\"Precondition failed: termination_reason_id not set by ADMIN-159\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const deletedId = String(pm.environment.get(\"termination_reason_id\"));",
+                              "",
+                              "pm.test(\"Termination reason created by ADMIN-159 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// delete is a hard delete, so the record must be gone",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/termination-reasons?filter%5Bids%5D%5B%5D=${deletedId}`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Termination reason created by ADMIN-159 is no longer listed\", function () {",
+                              "        pm.expect(err, \"lookup request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"lookup status\").to.eql(200);",
+                              "        pm.expect(((res && res.json()) || {}).data, \"termination reasons with the deleted id\").to.eql([]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "pm.environment.unset(\"termination_reason_id\");",
+                              "pm.environment.unset(\"termination_reason_name\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"ids\": [\"{{termination_reason_id}}\"]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-termination-reason-without-valid-token",
+                  "item": [
+                    {
+                      "name": "ADMIN-162 add termination reason without token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"termination_reason_name\");",
+                              "",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const baseName = cell(\"tr_name\").trim();",
+                              "if (baseName === \"\") {",
+                              "    throw new Error(\"Test data error: tr_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps names unique across runs (names must be unique); max length is 100",
+                              "const runId = Date.now().toString().slice(-6);",
+                              "const name = `TR-${runId} ${baseName}`;",
+                              "if (name.length > 100) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 100`);",
+                              "}",
+                              "",
+                              "// side effect: ADMIN-163 sends the same body",
+                              "pm.environment.set(\"termination_reason_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: responseData stays empty and the checks below report it",
+                              "}",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteTerminationReason = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/termination-reasons`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ ids: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Termination reason created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "});",
+                              "",
+                              "pm.test(\"Request is rejected as unauthorized\", function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No termination reason is created\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id of a termination reason created without a token\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    deleteTerminationReason(responseData.id);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-163 add termination reason with invalid token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"termination_reason_name\")) {",
+                              "    throw new Error(\"Precondition failed: termination_reason_name not set by ADMIN-162\");",
+                              "}",
+                              "if (!pm.iterationData.get(\"invalidToken\")) {",
+                              "    throw new Error(\"Test data error: invalidToken is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name: pm.environment.get(\"termination_reason_name\") }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: responseData stays empty and the checks below report it",
+                              "}",
+                              "",
+                              "// teardown: remove a record the request should not have created, so later runs are not affected",
+                              "const deleteTerminationReason = id => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/termination-reasons`,",
+                              "    method: \"DELETE\",",
+                              "    header: {",
+                              "        \"Content-Type\": \"application/json\",",
+                              "        \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}`",
+                              "    },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ ids: [String(id)] }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Termination reason created by the rejected request is cleaned up\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "});",
+                              "",
+                              "pm.test(\"Request is rejected as unauthorized\", function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No termination reason is created\", function () {",
+                              "    pm.expect(norm(responseData.id), \"id of a termination reason created with an invalid token\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "pm.test(\"Error says the access token is invalid\", function () {",
+                              "    let errorBody = {};",
+                              "    try {",
+                              "        errorBody = pm.response.json() || {};",
+                              "    } catch (e) {",
+                              "        // not JSON: the field checks below fail with the field name",
+                              "    }",
+                              "    pm.expect(norm(errorBody.error), \"error\").to.eql(cell(\"expectedError\"));",
+                              "    pm.expect(norm(errorBody.error_description), \"error_description\").to.eql(cell(\"expectedErrorDescription\"));",
+                              "});",
+                              "",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    deleteTerminationReason(responseData.id);",
+                              "}",
+                              "",
+                              "pm.environment.unset(\"termination_reason_name\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{invalidToken}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/termination-reasons",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "termination-reasons"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -15015,6 +16722,14 @@
     {
       "key": "locationListSchema",
       "value": "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"type\": \"object\", \"required\": [\"data\", \"meta\"], \"properties\": {\"data\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"additionalProperties\": false, \"required\": [\"id\", \"name\", \"countryCode\", \"time_zone\", \"province\", \"city\", \"address\", \"zipCode\", \"phone\", \"fax\", \"notes\", \"eeo_applicable\", \"country\", \"numberOfEmployees\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"name\": {\"type\": \"string\", \"minLength\": 1}, \"countryCode\": {\"type\": \"string\"}, \"time_zone\": {\"type\": [\"string\", \"null\"]}, \"province\": {\"type\": [\"string\", \"null\"]}, \"city\": {\"type\": [\"string\", \"null\"]}, \"address\": {\"type\": [\"string\", \"null\"]}, \"zipCode\": {\"type\": [\"string\", \"null\"]}, \"phone\": {\"type\": [\"string\", \"null\"]}, \"fax\": {\"type\": [\"string\", \"null\"]}, \"notes\": {\"type\": [\"string\", \"null\"]}, \"eeo_applicable\": {\"type\": [\"string\", \"null\"]}, \"country\": {\"type\": \"object\", \"required\": [\"cou_code\", \"name\", \"cou_name\", \"iso3\", \"numcode\"], \"properties\": {\"cou_code\": {\"type\": \"string\"}, \"name\": {\"type\": \"string\"}, \"cou_name\": {\"type\": \"string\"}, \"iso3\": {\"type\": \"string\"}, \"numcode\": {\"type\": \"string\"}}}, \"numberOfEmployees\": {\"type\": [\"string\", \"integer\"], \"pattern\": \"^[0-9]+$\"}}}}, \"meta\": {\"type\": \"object\", \"required\": [\"total\"], \"properties\": {\"total\": {\"type\": \"integer\", \"minimum\": 0}}}}}"
+    },
+    {
+      "key": "terminationReasonPostSchema",
+      "value": "{\"type\":\"object\",\"required\":[\"data\",\"meta\"],\"additionalProperties\":false,\"properties\":{\"data\":{\"type\":\"object\",\"required\":[\"id\",\"name\"],\"additionalProperties\":false,\"properties\":{\"id\":{\"type\":\"string\",\"pattern\":\"^[0-9]+$\"},\"name\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":100}}},\"meta\":{\"type\":\"object\",\"required\":[\"permissions\"],\"properties\":{\"permissions\":{\"type\":\"object\",\"required\":[\"read\",\"create\",\"update\",\"delete\"],\"additionalProperties\":false,\"properties\":{\"read\":{\"type\":\"boolean\"},\"create\":{\"type\":\"boolean\"},\"update\":{\"type\":\"boolean\"},\"delete\":{\"type\":\"boolean\"}}}}}}}"
+    },
+    {
+      "key": "terminationReasonListSchema",
+      "value": "{\"type\":\"object\",\"required\":[\"data\",\"meta\"],\"additionalProperties\":false,\"properties\":{\"data\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"id\",\"name\"],\"additionalProperties\":false,\"properties\":{\"id\":{\"type\":\"string\",\"pattern\":\"^[0-9]+$\"},\"name\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":100}}}},\"meta\":{\"type\":\"object\",\"required\":[\"total\",\"permissions\",\"idsInUse\"],\"properties\":{\"total\":{\"type\":\"integer\",\"minimum\":0},\"permissions\":{\"type\":\"object\",\"required\":[\"read\",\"create\",\"update\",\"delete\"],\"additionalProperties\":false,\"properties\":{\"read\":{\"type\":\"boolean\"},\"create\":{\"type\":\"boolean\"},\"update\":{\"type\":\"boolean\"},\"delete\":{\"type\":\"boolean\"}}},\"idsInUse\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"pattern\":\"^[0-9]+$\"}}}}}}"
     }
   ]
 }
