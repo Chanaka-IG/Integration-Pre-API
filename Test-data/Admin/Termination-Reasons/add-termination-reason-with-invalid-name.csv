@@ -1,0 +1,8 @@
+"scenario","tr_valueMode","tr_value","expectedStatus","expectedMessage","expectedErrorKey","expectedError","tr_knownDefect"
+"name missing","omit","",422,"Invalid Data Submitted","keySet","Must have keys `{ ""name"" }`",""
+"name is empty","string","",422,"Invalid Data Submitted","allOf","name must have a length between 1 and 100",""
+"name is null","null","",422,"Invalid Data Submitted","allOf","name must have a length between 1 and 100",""
+"name is whitespace only","string","   ",422,"Invalid Data Submitted","","","D2"
+"name is a number","json","1234",422,"Invalid Data Submitted","allOf","name must be of type string",""
+"name is an array","json","[""a""]",422,"Invalid Data Submitted","allOf","name must be of type string",""
+"name is an object","json","{""x"":""y""}",422,"Invalid Data Submitted","allOf","name must be of type string",""

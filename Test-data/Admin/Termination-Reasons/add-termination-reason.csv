@@ -1,0 +1,3 @@
+"scenario","tr_name","tr_expectedCreatePermission"
+"valid name","Contract Ended","true"
+"SQL-like name","' OR '1'='1","true"

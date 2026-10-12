@@ -1,0 +1,5 @@
+"scenario","tr_name","tr_duplicateMode","expectedStatus","expectedMessage","expectedError","tr_knownDefect"
+"same name","Duplicate","exact",409,"An error occurred while processing the request","Name already exists",""
+"name of a termination reason that already existed","Duplicate","existing",409,"An error occurred while processing the request","Name already exists",""
+"same name with leading spaces","Duplicate","leadingSpaces",409,"An error occurred while processing the request","Name already exists","D1"
+"same name with a leading tab","Duplicate","leadingTab",409,"An error occurred while processing the request","Name already exists","D1"
