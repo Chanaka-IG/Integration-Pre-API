@@ -1,0 +1,6 @@
+"scenario","tr_name","tr_filterIds","tr_filterName","tr_expectedRecords","tr_onlyExpected","tr_expectedPermissions","tr_checkIdsInUse","tr_knownDefect"
+"no query parameters","List Check","","","A|B","false","true","true",""
+"filter by several ids","List Check","A|B","","A|B","true","true","true","D8"
+"filter by an id that no longer exists","List Check","DELETED","","","true","true","false",""
+"filter by exact name","List Check","","{A}","A","true","true","false",""
+"filter by SQL-like name","List Check","","' OR '1'='1","","true","true","false",""

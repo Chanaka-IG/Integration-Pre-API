@@ -1,0 +1,3 @@
+"scenario","firstName","middleName","lastName","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","sub_name","sub_unitId","sub_description","sub_hodMode","sub_expectedCostCentre","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"head of department as a string","Subunit","Head","One",2,"2024-06-20","false","false","HOD String","U-HOD-01","Subunit with a head of department","string","","2026-09-01",1,"Subunit API test teardown",1,"23:55","Asia/Kolkata"
+"head of department as a number","Subunit","Head","Two",2,"2024-06-20","false","false","HOD Number","U-HOD-02","Head of department sent as a JSON number","number","","2026-09-01",1,"Subunit API test teardown",1,"23:55","Asia/Kolkata"

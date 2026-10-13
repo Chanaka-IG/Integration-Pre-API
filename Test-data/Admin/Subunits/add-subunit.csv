@@ -1,0 +1,4 @@
+"scenario","sub_name","sub_unitId","sub_description","sub_costCentreMode","sub_expectedCostCentre"
+"mandatory fields only","Mandatory","","","omit",""
+"all fields","All Fields","U-ALL-01","Subunit with all fields","empty",""
+"SQL-like and HTML text","' OR '1'='1","'; DROP TABLE ohrm_subunit;--","<b>bold</b> description","omit",""

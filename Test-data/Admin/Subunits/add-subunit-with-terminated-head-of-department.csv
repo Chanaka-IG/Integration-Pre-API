@@ -1,0 +1,2 @@
+"scenario","firstName","middleName","lastName","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","terminationDate","flagValue","terminationNote","terminationReason","time","timezone","expectedStatus","expectedTitle","expectedDetails"
+"terminated employee","Subunit","Head","Terminated",2,"2024-06-20","false","false","2026-09-01",1,"Subunit API test head of department check",1,"23:55","Asia/Kolkata",400,"unsupported resource request","head_of_department_employee [Invalid.]"

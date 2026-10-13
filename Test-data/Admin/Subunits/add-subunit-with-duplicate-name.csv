@@ -1,0 +1,5 @@
+"scenario","sub_name","sub_duplicateMode","sub_parentMode","expectedStatus","expectedTitle","sub_knownDefect"
+"exact name under the same parent","Duplicate","exact","sameParent",400,"Duplicate Entry '{name}'","D1"
+"exact name under another parent","Duplicate","exact","otherParent",400,"Duplicate Entry '{name}'","D1"
+"name in lower case","Duplicate","lowerCase","sameParent",400,"Duplicate Entry '{name}'","D1"
+"name padded with spaces","Duplicate","padded","sameParent",400,"Duplicate Entry '{name}'","D1"
