@@ -11139,6 +11139,1562 @@
                       "response": []
                     }
                   ]
+                },
+                {
+                  "name": "get-subunits",
+                  "item": [
+                    {
+                      "name": "ADMIN-207 add parent subunit for the list checks",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "[\"subunit_run_prefix\", \"subunit_parent_id\", \"subunit_fixtures\", \"subunit_deleted_id\"].forEach(key => pm.environment.unset(key));",
+                              "",
+                              "// run-specific prefix keeps names unique across runs; max length is 100",
+                              "const prefix = `SUBGET-${Date.now().toString().slice(-6)}`;",
+                              "// side effect: the other subunits of this folder are named with the same prefix",
+                              "pm.environment.set(\"subunit_run_prefix\", prefix);",
+                              "",
+                              "// the folder's own parent under the root subunit (id 1); deleting it at the end removes everything below it",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name: `${prefix} Parent`, parent_id: \"1\" }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "",
+                              "pm.test(\"Parent subunit is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-208 to ADMIN-214",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"subunit_parent_id\", String(responseData.id));",
+                              "    pm.environment.set(\"subunit_fixtures\", JSON.stringify([{",
+                              "        key: \"P\", id: String(responseData.id), parentKey: \"\", head: \"\",",
+                              "        name: sent.name, unitId: \"\", description: \"\", level: norm(responseData.level)",
+                              "    }]));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-208 add child subunit with all fields under the parent from ADMIN-207",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "const parent = fixtures.find(f => f.key === \"P\");",
+                              "if (!parent || !pm.environment.get(\"subunit_run_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: subunit P not added by ADMIN-207\");",
+                              "}",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "const body = { name: `${pm.environment.get(\"subunit_run_prefix\")} A`, parent_id: parent.id };",
+                              "if (cell(\"sub_childUnitId\") === \"\") {",
+                              "    throw new Error(\"Test data error: sub_childUnitId is blank in the CSV row\");",
+                              "}",
+                              "body.unit_id = cell(\"sub_childUnitId\");",
+                              "if (cell(\"sub_childDescription\") === \"\") {",
+                              "    throw new Error(\"Test data error: sub_childDescription is blank in the CSV row\");",
+                              "}",
+                              "body.description = cell(\"sub_childDescription\");",
+                              "",
+                              "// expected values: what was sent (the API trims text); optional fields left out come back as null",
+                              "// side effect: read by the test script below",
+                              "pm.variables.set(\"subunit_expected\", JSON.stringify({ unitId: cell(\"sub_childUnitId\"), description: cell(\"sub_childDescription\") }));",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "const expected = JSON.parse(pm.variables.get(\"subunit_expected\"));",
+                              "",
+                              "pm.test(\"Subunit A is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-209, ADMIN-213 and ADMIN-214",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "    fixtures.push({",
+                              "        key: \"A\", id: String(responseData.id), parentKey: \"P\", head: \"\",",
+                              "        name: sent.name, unitId: expected.unitId, description: expected.description, level: norm(responseData.level)",
+                              "    });",
+                              "    pm.environment.set(\"subunit_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-209 add grandchild subunit under the subunit from ADMIN-208",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "const parent = fixtures.find(f => f.key === \"A\");",
+                              "if (!parent || !pm.environment.get(\"subunit_run_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: subunit A not added by ADMIN-208\");",
+                              "}",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const label = cell(\"sub_grandchildName\").trim();",
+                              "if (label === \"\") {",
+                              "    throw new Error(\"Test data error: sub_grandchildName is blank in the CSV row\");",
+                              "}",
+                              "const name = `${pm.environment.get(\"subunit_run_prefix\")} ${label}`;",
+                              "if (name.length > 100) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 100`);",
+                              "}",
+                              "",
+                              "const body = { name: name, parent_id: parent.id };",
+                              "if (cell(\"sub_grandchildUnitId\") === \"\") {",
+                              "    throw new Error(\"Test data error: sub_grandchildUnitId is blank in the CSV row\");",
+                              "}",
+                              "body.unit_id = cell(\"sub_grandchildUnitId\");",
+                              "",
+                              "// expected values: what was sent (the API trims text); optional fields left out come back as null",
+                              "// side effect: read by the test script below",
+                              "pm.variables.set(\"subunit_expected\", JSON.stringify({ unitId: cell(\"sub_expectedGrandchildUnitId\"), description: \"\" }));",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "const expected = JSON.parse(pm.variables.get(\"subunit_expected\"));",
+                              "",
+                              "pm.test(\"Subunit A1 is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-213 and ADMIN-214",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "    fixtures.push({",
+                              "        key: \"A1\", id: String(responseData.id), parentKey: \"A\", head: \"\",",
+                              "        name: sent.name, unitId: expected.unitId, description: expected.description, level: norm(responseData.level)",
+                              "    });",
+                              "    pm.environment.set(\"subunit_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-210 add child subunit with mandatory fields under the parent from ADMIN-207",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "const parent = fixtures.find(f => f.key === \"P\");",
+                              "if (!parent || !pm.environment.get(\"subunit_run_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: subunit P not added by ADMIN-207\");",
+                              "}",
+                              "",
+                              "const body = { name: `${pm.environment.get(\"subunit_run_prefix\")} B`, parent_id: parent.id };",
+                              "",
+                              "// expected values: what was sent (the API trims text); optional fields left out come back as null",
+                              "// side effect: read by the test script below",
+                              "pm.variables.set(\"subunit_expected\", JSON.stringify({ unitId: \"\", description: \"\" }));",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "const expected = JSON.parse(pm.variables.get(\"subunit_expected\"));",
+                              "",
+                              "pm.test(\"Subunit B is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-213 and ADMIN-214",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "    fixtures.push({",
+                              "        key: \"B\", id: String(responseData.id), parentKey: \"P\", head: \"\",",
+                              "        name: sent.name, unitId: expected.unitId, description: expected.description, level: norm(responseData.level)",
+                              "    });",
+                              "    pm.environment.set(\"subunit_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-211 add child subunit to be deleted under the parent from ADMIN-207",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "const parent = fixtures.find(f => f.key === \"P\");",
+                              "if (!parent || !pm.environment.get(\"subunit_run_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: subunit P not added by ADMIN-207\");",
+                              "}",
+                              "",
+                              "const body = { name: `${pm.environment.get(\"subunit_run_prefix\")} C`, parent_id: parent.id };",
+                              "",
+                              "// expected values: what was sent (the API trims text); optional fields left out come back as null",
+                              "// side effect: read by the test script below",
+                              "pm.variables.set(\"subunit_expected\", JSON.stringify({ unitId: \"\", description: \"\" }));",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "const expected = JSON.parse(pm.variables.get(\"subunit_expected\"));",
+                              "",
+                              "pm.test(\"Subunit C is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-212",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "    fixtures.push({",
+                              "        key: \"C\", id: String(responseData.id), parentKey: \"P\", head: \"\",",
+                              "        name: sent.name, unitId: expected.unitId, description: expected.description, level: norm(responseData.level)",
+                              "    });",
+                              "    pm.environment.set(\"subunit_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-212 delete child subunit created by ADMIN-211",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "const deleted = fixtures.find(f => f.key === \"C\");",
+                              "if (!deleted) {",
+                              "    throw new Error(\"Precondition failed: subunit C not added by ADMIN-211\");",
+                              "}",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ id: deleted.id }));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the check below fails with the field name",
+                              "}",
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "const deletedId = JSON.parse(pm.variables.get(\"requestBody\")).id;",
+                              "",
+                              "pm.test(\"Subunit C created by ADMIN-211 is deleted\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "    pm.expect((response.data || {}).success, \"data.success\").to.eql(true);",
+                              "});",
+                              "",
+                              "// side effect: ADMIN-213 checks the deleted subunit is not listed; ADMIN-214 checks it is gone",
+                              "pm.environment.set(\"subunit_deleted_id\", deletedId);",
+                              "pm.environment.set(\"subunit_fixtures\", JSON.stringify(fixtures.filter(f => f.id !== deletedId)));"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-213 get subunits",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "[\"P\", \"A\", \"A1\", \"B\"].forEach(key => {",
+                              "    if (!fixtures.some(f => f.key === key)) {",
+                              "        throw new Error(`Precondition failed: subunit ${key} not added by ADMIN-207 to ADMIN-210`);",
+                              "    }",
+                              "});",
+                              "if (!pm.environment.get(\"subunit_deleted_id\")) {",
+                              "    throw new Error(\"Precondition failed: subunit_deleted_id not set by ADMIN-212\");",
+                              "}",
+                              "",
+                              "// sub_query holds key=value pairs separated by \"&\" (blank = no query parameters); they are added here,",
+                              "// not in the URL, so bracket keys and empty values are sent as written",
+                              "pm.request.url.query.clear();",
+                              "const query = cell(\"sub_query\");",
+                              "if (query !== \"\") {",
+                              "    query.split(\"&\").forEach(pair => {",
+                              "        const at = pair.indexOf(\"=\");",
+                              "        if (at < 1) {",
+                              "            throw new Error(`Test data error: \"${pair}\" in sub_query is not key=value`);",
+                              "        }",
+                              "        pm.request.url.addQueryParams([{ key: pair.slice(0, at), value: pair.slice(at + 1) }]);",
+                              "    });",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below fail with the field name",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "const deletedId = norm(pm.environment.get(\"subunit_deleted_id\"));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const shape = cell(\"sub_shape\");",
+                              "const knownDefect = cell(\"sub_knownDefect\");",
+                              "const suffix = knownDefect === \"\" ? \"\" : ` [known defect ${knownDefect}]`;",
+                              "const byId = id => records.filter(r => norm(r.id) === norm(id));",
+                              "const fixture = key => fixtures.find(f => f.key === key) || {};",
+                              "const listSchema = { flat: \"subunitListSchema\", tree: \"subunitTreeSchema\" }[shape];",
+                              "",
+                              "if (![\"flat\", \"tree\", \"fields\", \"empty\"].includes(shape)) {",
+                              "    throw new Error(`Test data error: sub_shape must be flat, tree, fields or empty, got \"${shape}\"`);",
+                              "}",
+                              "",
+                              "pm.test(`Subunits are retrieved (${scenario})${suffix}`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "if (listSchema) {",
+                              "    pm.test(`Response matches the ${shape} subunit list schema`, function () {",
+                              "        const raw = pm.collectionVariables.get(listSchema);",
+                              "        pm.expect(raw, `${listSchema} fixture is missing`).to.be.a(\"string\").and.not.empty;",
+                              "        pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "    });",
+                              "}",
+                              "",
+                              "if (shape === \"empty\") {",
+                              "    pm.test(`No subunits are returned (${scenario})${suffix}`, function () {",
+                              "        pm.expect(response.data, \"data\").to.eql([]);",
+                              "    });",
+                              "} else {",
+                              "    pm.test(`Root subunit is ${cell(\"sub_expectRoot\") === \"yes\" ? \"\" : \"not \"}listed (${scenario})`, function () {",
+                              "        pm.expect(byId(\"1\").length, \"rows for root subunit 1\").to.eql(cell(\"sub_expectRoot\") === \"yes\" ? 1 : 0);",
+                              "    });",
+                              "",
+                              "    pm.test(`Subunit deleted by ADMIN-212 is not listed (${scenario})`, function () {",
+                              "        pm.expect(byId(deletedId).length, `rows for deleted subunit ${deletedId}`).to.eql(0);",
+                              "    });",
+                              "",
+                              "    pm.test(`Each subunit added by ADMIN-207 to ADMIN-210 is listed once (${scenario})`, function () {",
+                              "        fixtures.forEach(f => pm.expect(byId(f.id).length, `rows for subunit ${f.key} (${f.id})`).to.eql(1));",
+                              "    });",
+                              "",
+                              "    // fields rows return the requested fields plus id (GD3, observed behaviour)",
+                              "    if (shape === \"fields\") {",
+                              "        pm.test(`Only the requested fields and id are returned (${scenario})`, function () {",
+                              "            const expectedKeys = cell(\"sub_expectedKeys\").split(\"|\").sort();",
+                              "            const wrong = records.filter(r => JSON.stringify(Object.keys(r).sort()) !== JSON.stringify(expectedKeys));",
+                              "            pm.expect(wrong.length, `rows whose keys are not ${expectedKeys.join(\", \")}`).to.eql(0);",
+                              "        });",
+                              "    }",
+                              "",
+                              "    const found = fixtures.map(f => ({ f, r: byId(f.id)[0] })).filter(x => x.r);",
+                              "    if (found.length === fixtures.length) {",
+                              "        pm.test(`Listed subunits match what was saved (${scenario})`, function () {",
+                              "            const expectedValue = (f, field) => field === \"cost_centre_id\" ? cell(\"sub_expectedCostCentre\") : f[field];",
+                              "            found.forEach(({ f, r }) => {",
+                              "                [\"name\", \"unitId\", \"description\", \"cost_centre_id\", \"level\"].filter(field => field in r).forEach(field => {",
+                              "                    pm.expect(norm(r[field]), `${f.key} ${field}`).to.eql(expectedValue(f, field));",
+                              "                });",
+                              "            });",
+                              "        });",
+                              "",
+                              "        if (found.every(({ r }) => \"lft\" in r && \"rgt\" in r && \"level\" in r)) {",
+                              "            // nested set: a child's lft/rgt range lies inside its parent's range, one level deeper",
+                              "            pm.test(`Subunit tree nests the added subunits correctly (${scenario})`, function () {",
+                              "                const node = key => {",
+                              "                    const r = byId(fixture(key).id)[0] || {};",
+                              "                    return { lft: Number(r.lft), rgt: Number(r.rgt), level: Number(r.level) };",
+                              "                };",
+                              "                found.filter(({ f }) => f.parentKey !== \"\").forEach(({ f }) => {",
+                              "                    const [p, c] = [node(f.parentKey), node(f.key)];",
+                              "                    pm.expect(p.lft < c.lft && c.rgt < p.rgt, `${f.key} range inside ${f.parentKey} range`).to.be.true;",
+                              "                    pm.expect(c.level, `${f.key} level`).to.eql(p.level + 1);",
+                              "                });",
+                              "            });",
+                              "        }",
+                              "",
+                              "        if (shape === \"tree\") {",
+                              "            // the tree lists subunits in nested-set order: each parent comes before its children",
+                              "            pm.test(`Added subunits are listed in tree order (${scenario})`, function () {",
+                              "                const ownIds = fixtures.map(f => f.id);",
+                              "                const order = records.map(r => norm(r.id)).filter(id => ownIds.includes(id))",
+                              "                    .map(id => fixtures.find(f => f.id === id).key);",
+                              "                pm.expect(order, \"order of the added subunits\").to.eql(cell(\"sub_expectedOrder\").split(\"|\"));",
+                              "            });",
+                              "        }",
+                              "    }",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-214 delete parent subunit created by ADMIN-207",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"subunit_parent_id\")) {",
+                              "    throw new Error(\"Precondition failed: subunit_parent_id not set by ADMIN-207\");",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the check below fails with the field name",
+                              "}",
+                              "const createdIds = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\").map(f => f.id)",
+                              "    .concat(norm(pm.environment.get(\"subunit_deleted_id\"))).filter(id => id !== \"\");",
+                              "",
+                              "pm.test(\"Parent subunit created by ADMIN-207 is deleted\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "    pm.expect((response.data || {}).success, \"data.success\").to.eql(true);",
+                              "});",
+                              "",
+                              "// delete removes the whole subtree, so none of the folder's subunits may be left",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/subunits`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Subunits created by ADMIN-207 to ADMIN-211 are no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        const left = ((res.json() || {}).data || []).map(r => norm(r.id)).filter(id => createdIds.includes(id));",
+                              "        pm.expect(left, \"subunit ids still listed\").to.eql([]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "[\"subunit_run_prefix\", \"subunit_parent_id\", \"subunit_fixtures\", \"subunit_deleted_id\"].forEach(key => pm.environment.unset(key));"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"id\": \"{{subunit_parent_id}}\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-subunits-by-head-of-department",
+                  "item": [
+                    {
+                      "name": "ADMIN-215 add employee for the first head of department",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "[\"subunit_head_a_emp_number\", \"subunit_head_b_emp_number\"].forEach(key => pm.environment.unset(key));",
+                              "",
+                              "// unquoted body values must not be blank, or the body is not valid JSON",
+                              "[\"chkLogin\", \"autoGenerateEmployeeId\"].forEach(key => {",
+                              "    if (String(pm.iterationData.get(key) ?? \"\").trim() === \"\") {",
+                              "        throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "    }",
+                              "});",
+                              "",
+                              "pm.variables.set(\"employeeId\", `SUBGHA-${Date.now().toString().slice(-6)}`);"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Employee is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Response contains empNumber\", function () {",
+                              "    pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-218, ADMIN-219, ADMIN-222, ADMIN-223 and ADMIN-224",
+                              "if (responseData.empNumber) {",
+                              "    pm.environment.set(\"subunit_head_a_emp_number\", String(responseData.empNumber));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{headAFirstName}}\",\n    \"middleName\": \"{{headAMiddleName}}\",\n    \"lastName\": \"{{headALastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-216 add employee for the second head of department",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "// unquoted body values must not be blank, or the body is not valid JSON",
+                              "[\"chkLogin\", \"autoGenerateEmployeeId\"].forEach(key => {",
+                              "    if (String(pm.iterationData.get(key) ?? \"\").trim() === \"\") {",
+                              "        throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "    }",
+                              "});",
+                              "",
+                              "pm.variables.set(\"employeeId\", `SUBGHB-${Date.now().toString().slice(-6)}`);"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Employee is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Response contains empNumber\", function () {",
+                              "    pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-220, ADMIN-222, ADMIN-223 and ADMIN-225",
+                              "if (responseData.empNumber) {",
+                              "    pm.environment.set(\"subunit_head_b_emp_number\", String(responseData.empNumber));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{headBFirstName}}\",\n    \"middleName\": \"{{headBMiddleName}}\",\n    \"lastName\": \"{{headBLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-217 add parent subunit for the head of department checks",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "[\"subunit_run_prefix\", \"subunit_parent_id\", \"subunit_fixtures\", \"subunit_deleted_id\"].forEach(key => pm.environment.unset(key));",
+                              "",
+                              "// run-specific prefix keeps names unique across runs; max length is 100",
+                              "const prefix = `SUBGET-${Date.now().toString().slice(-6)}`;",
+                              "// side effect: the other subunits of this folder are named with the same prefix",
+                              "pm.environment.set(\"subunit_run_prefix\", prefix);",
+                              "",
+                              "// the folder's own parent under the root subunit (id 1); deleting it at the end removes everything below it",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name: `${prefix} Parent`, parent_id: \"1\" }));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "",
+                              "pm.test(\"Parent subunit is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-218 to ADMIN-223",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"subunit_parent_id\", String(responseData.id));",
+                              "    pm.environment.set(\"subunit_fixtures\", JSON.stringify([{",
+                              "        key: \"P\", id: String(responseData.id), parentKey: \"\", head: \"\",",
+                              "        name: sent.name, unitId: \"\", description: \"\", level: norm(responseData.level)",
+                              "    }]));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-218 add subunit headed by the employee from ADMIN-215",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "const parent = fixtures.find(f => f.key === \"P\");",
+                              "if (!parent || !pm.environment.get(\"subunit_run_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: subunit P not added by ADMIN-217\");",
+                              "}",
+                              "const empNumber = pm.environment.get(\"subunit_head_a_emp_number\");",
+                              "if (!empNumber) {",
+                              "    throw new Error(\"Precondition failed: subunit_head_a_emp_number not set by ADMIN-215\");",
+                              "}",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "const body = { name: `${pm.environment.get(\"subunit_run_prefix\")} A`, parent_id: parent.id };",
+                              "if (cell(\"sub_aUnitId\") === \"\") {",
+                              "    throw new Error(\"Test data error: sub_aUnitId is blank in the CSV row\");",
+                              "}",
+                              "body.unit_id = cell(\"sub_aUnitId\");",
+                              "if (cell(\"sub_aDescription\") === \"\") {",
+                              "    throw new Error(\"Test data error: sub_aDescription is blank in the CSV row\");",
+                              "}",
+                              "body.description = cell(\"sub_aDescription\");",
+                              "body.head_of_department_employee = String(empNumber);",
+                              "",
+                              "// expected values: what was sent (the API trims text); optional fields left out come back as null",
+                              "// side effect: read by the test script below",
+                              "pm.variables.set(\"subunit_expected\", JSON.stringify({ unitId: cell(\"sub_aUnitId\"), description: cell(\"sub_aDescription\") }));",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "const expected = JSON.parse(pm.variables.get(\"subunit_expected\"));",
+                              "",
+                              "pm.test(\"Subunit A is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-222 and ADMIN-223",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "    fixtures.push({",
+                              "        key: \"A\", id: String(responseData.id), parentKey: \"P\", head: \"a\",",
+                              "        name: sent.name, unitId: expected.unitId, description: expected.description, level: norm(responseData.level)",
+                              "    });",
+                              "    pm.environment.set(\"subunit_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-219 add second subunit headed by the employee from ADMIN-215",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "const parent = fixtures.find(f => f.key === \"P\");",
+                              "if (!parent || !pm.environment.get(\"subunit_run_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: subunit P not added by ADMIN-217\");",
+                              "}",
+                              "const empNumber = pm.environment.get(\"subunit_head_a_emp_number\");",
+                              "if (!empNumber) {",
+                              "    throw new Error(\"Precondition failed: subunit_head_a_emp_number not set by ADMIN-215\");",
+                              "}",
+                              "",
+                              "const body = { name: `${pm.environment.get(\"subunit_run_prefix\")} B`, parent_id: parent.id };",
+                              "body.head_of_department_employee = String(empNumber);",
+                              "",
+                              "// expected values: what was sent (the API trims text); optional fields left out come back as null",
+                              "// side effect: read by the test script below",
+                              "pm.variables.set(\"subunit_expected\", JSON.stringify({ unitId: \"\", description: \"\" }));",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "const expected = JSON.parse(pm.variables.get(\"subunit_expected\"));",
+                              "",
+                              "pm.test(\"Subunit B is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-222 and ADMIN-223",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "    fixtures.push({",
+                              "        key: \"B\", id: String(responseData.id), parentKey: \"P\", head: \"a\",",
+                              "        name: sent.name, unitId: expected.unitId, description: expected.description, level: norm(responseData.level)",
+                              "    });",
+                              "    pm.environment.set(\"subunit_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-220 add subunit headed by the employee from ADMIN-216",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "const parent = fixtures.find(f => f.key === \"P\");",
+                              "if (!parent || !pm.environment.get(\"subunit_run_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: subunit P not added by ADMIN-217\");",
+                              "}",
+                              "const empNumber = pm.environment.get(\"subunit_head_b_emp_number\");",
+                              "if (!empNumber) {",
+                              "    throw new Error(\"Precondition failed: subunit_head_b_emp_number not set by ADMIN-216\");",
+                              "}",
+                              "",
+                              "const body = { name: `${pm.environment.get(\"subunit_run_prefix\")} C`, parent_id: parent.id };",
+                              "body.head_of_department_employee = String(empNumber);",
+                              "",
+                              "// expected values: what was sent (the API trims text); optional fields left out come back as null",
+                              "// side effect: read by the test script below",
+                              "pm.variables.set(\"subunit_expected\", JSON.stringify({ unitId: \"\", description: \"\" }));",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "const expected = JSON.parse(pm.variables.get(\"subunit_expected\"));",
+                              "",
+                              "pm.test(\"Subunit C is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-222 and ADMIN-223",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "    fixtures.push({",
+                              "        key: \"C\", id: String(responseData.id), parentKey: \"P\", head: \"b\",",
+                              "        name: sent.name, unitId: expected.unitId, description: expected.description, level: norm(responseData.level)",
+                              "    });",
+                              "    pm.environment.set(\"subunit_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-221 add subunit without a head of department",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "const parent = fixtures.find(f => f.key === \"P\");",
+                              "if (!parent || !pm.environment.get(\"subunit_run_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: subunit P not added by ADMIN-217\");",
+                              "}",
+                              "",
+                              "const body = { name: `${pm.environment.get(\"subunit_run_prefix\")} D`, parent_id: parent.id };",
+                              "",
+                              "// expected values: what was sent (the API trims text); optional fields left out come back as null",
+                              "// side effect: read by the test script below",
+                              "pm.variables.set(\"subunit_expected\", JSON.stringify({ unitId: \"\", description: \"\" }));",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "const expected = JSON.parse(pm.variables.get(\"subunit_expected\"));",
+                              "",
+                              "pm.test(\"Subunit D is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-222 and ADMIN-223",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "    fixtures.push({",
+                              "        key: \"D\", id: String(responseData.id), parentKey: \"P\", head: \"\",",
+                              "        name: sent.name, unitId: expected.unitId, description: expected.description, level: norm(responseData.level)",
+                              "    });",
+                              "    pm.environment.set(\"subunit_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-222 get subunits filtered by head of department",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "[\"P\", \"A\", \"B\", \"C\", \"D\"].forEach(key => {",
+                              "    if (!fixtures.some(f => f.key === key)) {",
+                              "        throw new Error(`Precondition failed: subunit ${key} not added by ADMIN-217 to ADMIN-221`);",
+                              "    }",
+                              "});",
+                              "const heads = {",
+                              "    first: pm.environment.get(\"subunit_head_a_emp_number\"),",
+                              "    second: pm.environment.get(\"subunit_head_b_emp_number\")",
+                              "};",
+                              "if (!heads.first || !heads.second) {",
+                              "    throw new Error(\"Precondition failed: subunit_head_a_emp_number / subunit_head_b_emp_number not set by ADMIN-215 / ADMIN-216\");",
+                              "}",
+                              "",
+                              "// sub_filterHeads lists the heads to filter by, separated by \"|\": first, second, or a literal employee number;",
+                              "// added here, not in the URL, so the brackets and values are sent as written",
+                              "const tokens = cell(\"sub_filterHeads\").split(\"|\").map(t => t.trim()).filter(t => t !== \"\");",
+                              "if (tokens.length === 0) {",
+                              "    throw new Error(\"Test data error: sub_filterHeads is blank in the CSV row\");",
+                              "}",
+                              "pm.request.url.query.clear();",
+                              "pm.request.url.addQueryParams(tokens.map(t => ({ key: \"filter[headOfDepartmentEmpNumbers][]\", value: heads[t] || t })));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON (query errors are plain text): the checks below fail with the field name",
+                              "}",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const fixtures = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\");",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const expectedKeys = cell(\"sub_expectedSubunits\").split(\"|\");",
+                              "const ownIds = fixtures.map(f => f.id);",
+                              "",
+                              "pm.test(`Subunits are retrieved (${scenario})`, function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the subunit list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"subunitListSchema\");",
+                              "    pm.expect(raw, \"subunitListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "// the employees are new, so the folder's subunits are the only ones they head; P and D have no head",
+                              "pm.test(`Exactly the subunits headed by the filtered employees are returned (${scenario})`, function () {",
+                              "    const returned = records.map(r => {",
+                              "        const own = fixtures.find(f => f.id === norm(r.id));",
+                              "        return own ? own.key : `other subunit ${norm(r.id)}`;",
+                              "    });",
+                              "    pm.expect(returned.sort(), \"subunits returned\").to.eql(expectedKeys.slice().sort());",
+                              "});",
+                              "",
+                              "const matched = records.filter(r => ownIds.includes(norm(r.id)));",
+                              "if (matched.length > 0) {",
+                              "    pm.test(`Returned subunits match what was saved (${scenario})`, function () {",
+                              "        matched.forEach(r => {",
+                              "            const f = fixtures.find(x => x.id === norm(r.id));",
+                              "            [\"name\", \"unitId\", \"description\", \"level\"].forEach(field => {",
+                              "                pm.expect(norm(r[field]), `${f.key} ${field}`).to.eql(f[field]);",
+                              "            });",
+                              "        });",
+                              "    });",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-223 delete parent subunit created by ADMIN-217",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"subunit_parent_id\")) {",
+                              "    throw new Error(\"Precondition failed: subunit_parent_id not set by ADMIN-217\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the check below fails with the field name",
+                              "}",
+                              "const createdIds = JSON.parse(pm.environment.get(\"subunit_fixtures\") || \"[]\").map(f => f.id)",
+                              "    .concat(norm(pm.environment.get(\"subunit_deleted_id\"))).filter(id => id !== \"\");",
+                              "",
+                              "pm.test(\"Parent subunit created by ADMIN-217 is deleted\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "    pm.expect((response.data || {}).success, \"data.success\").to.eql(true);",
+                              "});",
+                              "",
+                              "// delete removes the whole subtree, so none of the folder's subunits may be left",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/subunits`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Subunits created by ADMIN-217 to ADMIN-221 are no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        const left = ((res.json() || {}).data || []).map(r => norm(r.id)).filter(id => createdIds.includes(id));",
+                              "        pm.expect(left, \"subunit ids still listed\").to.eql([]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// the head of department links go with the subunits",
+                              "const headQuery = [\"subunit_head_a_emp_number\", \"subunit_head_b_emp_number\"]",
+                              "    .map(key => `filter%5BheadOfDepartmentEmpNumbers%5D%5B%5D=${pm.environment.get(key)}`).join(\"&\");",
+                              "pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}/api/subunits?${headQuery}`,",
+                              "    method: \"GET\",",
+                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Employees from ADMIN-215 and ADMIN-216 no longer head any subunit\", function () {",
+                              "        pm.expect(err, \"lookup request error\").to.be.null;",
+                              "        pm.expect(((res.json() || {}).data || []).map(r => norm(r.id)), \"subunits headed by the employees\").to.eql([]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "[\"subunit_run_prefix\", \"subunit_parent_id\", \"subunit_fixtures\", \"subunit_deleted_id\"].forEach(key => pm.environment.unset(key));"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"id\": \"{{subunit_parent_id}}\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-224 terminate employee created by ADMIN-215",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"subunit_head_a_emp_number\")) {",
+                              "    throw new Error(\"Precondition failed: subunit_head_a_emp_number not set by ADMIN-215\");",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Employee created by ADMIN-215 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(String(responseData.empNumber), \"empNumber\").to.eql(String(pm.environment.get(\"subunit_head_a_emp_number\")));",
+                              "});",
+                              "",
+                              "pm.environment.unset(\"subunit_head_a_emp_number\");"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"date\" : \"{{terminationDate}}\",\n    \"flaged\" : \"{{flagValue}}\",\n    \"note\" : \"{{terminationNote}}\",\n    \"reason\" : \"{{terminationReason}}\",\n    \"time\" : \"{{time}}\",\n    \"timezone\" : \"{{timezone}}\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{subunit_head_a_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{subunit_head_a_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-225 terminate employee created by ADMIN-216",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"subunit_head_b_emp_number\")) {",
+                              "    throw new Error(\"Precondition failed: subunit_head_b_emp_number not set by ADMIN-216\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Employee created by ADMIN-216 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(String(responseData.empNumber), \"empNumber\").to.eql(String(pm.environment.get(\"subunit_head_b_emp_number\")));",
+                              "});",
+                              "",
+                              "pm.environment.unset(\"subunit_head_b_emp_number\");"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"date\" : \"{{terminationDate}}\",\n    \"flaged\" : \"{{flagValue}}\",\n    \"note\" : \"{{terminationNote}}\",\n    \"reason\" : \"{{terminationReason}}\",\n    \"time\" : \"{{time}}\",\n    \"timezone\" : \"{{timezone}}\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{subunit_head_b_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{subunit_head_b_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
                 }
               ]
             }
@@ -20254,6 +21810,207 @@
                       "response": []
                     }
                   ]
+                },
+                {
+                  "name": "get-subunits-with-invalid-query-parameters",
+                  "item": [
+                    {
+                      "name": "ADMIN-226 get subunits with invalid query parameters",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "if (cell(\"sub_query\") === \"\") {",
+                              "    throw new Error(\"Test data error: sub_query is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// sub_query holds key=value pairs separated by \"&\" (blank = no query parameters); they are added here,",
+                              "// not in the URL, so bracket keys and empty values are sent as written",
+                              "pm.request.url.query.clear();",
+                              "const query = cell(\"sub_query\");",
+                              "if (query !== \"\") {",
+                              "    query.split(\"&\").forEach(pair => {",
+                              "        const at = pair.indexOf(\"=\");",
+                              "        if (at < 1) {",
+                              "            throw new Error(`Test data error: \"${pair}\" in sub_query is not key=value`);",
+                              "        }",
+                              "        pm.request.url.addQueryParams([{ key: pair.slice(0, at), value: pair.slice(at + 1) }]);",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(`Invalid query parameter is rejected (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "// query errors from this endpoint are plain text, so no subunit data can come back with them",
+                              "pm.test(`Error says the request is not supported (${scenario})`, function () {",
+                              "    pm.expect(pm.response.text(), \"response body\").to.eql(cell(\"expectedText\"));",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-subunits-without-valid-token",
+                  "item": [
+                    {
+                      "name": "ADMIN-227 get subunits without token",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "// no Authorization header is sent (request auth is No Auth)"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let body = {};",
+                              "try {",
+                              "    body = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the field checks below fail with the field name",
+                              "}",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(`Request is rejected as unauthorized (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`No subunits are returned (${scenario})`, function () {",
+                              "    pm.expect(body.data, \"data\").to.be.undefined;",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-228 get subunits with invalid authorization header",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.iterationData.get(\"authorizationHeader\")) {",
+                              "    throw new Error(\"Test data error: authorizationHeader is blank in the CSV row\");",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "let body = {};",
+                              "try {",
+                              "    body = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the field checks below fail with the field name",
+                              "}",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(`Request is rejected as unauthorized (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`No subunits are returned (${scenario})`, function () {",
+                              "    pm.expect(body.data, \"data\").to.be.undefined;",
+                              "});",
+                              "",
+                              "pm.test(`Error says why the authorization header is rejected (${scenario})`, function () {",
+                              "    pm.expect(norm(body.error), \"error\").to.eql(norm(pm.iterationData.get(\"expectedError\")));",
+                              "    pm.expect(norm(body.error_description), \"error_description\").to.eql(norm(pm.iterationData.get(\"expectedErrorDescription\")));",
+                              "});"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                          {
+                            "value": "{{authorizationHeader}}",
+                            "key": "Authorization"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseURL}}/api/subunits",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "subunits"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
                 }
               ]
             }
@@ -20467,6 +22224,22 @@
     {
       "key": "terminationReasonListSchema",
       "value": "{\"type\":\"object\",\"required\":[\"data\",\"meta\"],\"additionalProperties\":false,\"properties\":{\"data\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"id\",\"name\"],\"additionalProperties\":false,\"properties\":{\"id\":{\"type\":\"string\",\"pattern\":\"^[0-9]+$\"},\"name\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":100}}}},\"meta\":{\"type\":\"object\",\"required\":[\"total\",\"permissions\",\"idsInUse\"],\"properties\":{\"total\":{\"type\":\"integer\",\"minimum\":0},\"permissions\":{\"type\":\"object\",\"required\":[\"read\",\"create\",\"update\",\"delete\"],\"additionalProperties\":false,\"properties\":{\"read\":{\"type\":\"boolean\"},\"create\":{\"type\":\"boolean\"},\"update\":{\"type\":\"boolean\"},\"delete\":{\"type\":\"boolean\"}}},\"idsInUse\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"pattern\":\"^[0-9]+$\"}}}}}}"
+    },
+    {
+      "key": "subunitPostSchema",
+      "value": "{\"type\": \"object\", \"required\": [\"data\"], \"additionalProperties\": false, \"properties\": {\"data\": {\"type\": \"object\", \"required\": [\"id\", \"name\", \"unitId\", \"description\", \"cost_centre_id\", \"lft\", \"rgt\", \"level\", \"accruedEmployeeCount\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"name\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 100}, \"unitId\": {\"type\": [\"string\", \"null\"], \"maxLength\": 100}, \"description\": {\"type\": [\"string\", \"null\"], \"maxLength\": 400}, \"cost_centre_id\": {\"type\": [\"string\", \"null\"]}, \"lft\": {\"type\": [\"string\", \"integer\"]}, \"rgt\": {\"type\": [\"string\", \"integer\"]}, \"level\": {\"type\": [\"string\", \"integer\"]}, \"accruedEmployeeCount\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}}}}"
+    },
+    {
+      "key": "subunitGetSchema",
+      "value": "{\"type\": \"object\", \"required\": [\"data\"], \"additionalProperties\": false, \"properties\": {\"data\": {\"type\": \"object\", \"required\": [\"id\", \"name\", \"unitId\", \"description\", \"cost_centre_id\", \"lft\", \"rgt\", \"level\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"name\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 100}, \"unitId\": {\"type\": [\"string\", \"null\"], \"maxLength\": 100}, \"description\": {\"type\": [\"string\", \"null\"], \"maxLength\": 400}, \"cost_centre_id\": {\"type\": [\"string\", \"null\"]}, \"lft\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"rgt\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"level\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}}}}"
+    },
+    {
+      "key": "subunitListSchema",
+      "value": "{\"type\": \"object\", \"required\": [\"data\"], \"additionalProperties\": false, \"properties\": {\"data\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"name\", \"unitId\", \"description\", \"cost_centre_id\", \"lft\", \"rgt\", \"level\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"name\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 100}, \"unitId\": {\"type\": [\"string\", \"null\"], \"maxLength\": 100}, \"description\": {\"type\": [\"string\", \"null\"], \"maxLength\": 400}, \"cost_centre_id\": {\"type\": [\"string\", \"null\"]}, \"lft\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"rgt\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"level\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}}}}}"
+    },
+    {
+      "key": "subunitTreeSchema",
+      "value": "{\"type\": \"object\", \"required\": [\"data\"], \"additionalProperties\": false, \"properties\": {\"data\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"name\", \"level\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"name\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 100}, \"level\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}}}}}"
     }
   ]
 }

@@ -1,0 +1,8 @@
+"scenario","sub_query","sub_shape","sub_expectedKeys","sub_expectRoot","sub_expectedOrder","expectedStatus","sub_knownDefect","sub_childUnitId","sub_childDescription","sub_grandchildName","sub_grandchildUnitId","sub_expectedGrandchildUnitId","sub_expectedCostCentre"
+"no query parameters","","flat","","yes","",200,"","U-GET-A","Child subunit with all fields","A1 Ünïcödé 中文 <b>&</b>","  u-a1  ","u-a1",""
+"tree view","tree=true","tree","","no","P|A|A1|B",200,"","U-GET-A","Child subunit with all fields","A1 Ünïcödé 中文 <b>&</b>","  u-a1  ","u-a1",""
+"one field","fields[]=name","fields","id|name","yes","",200,"","U-GET-A","Child subunit with all fields","A1 Ünïcödé 中文 <b>&</b>","  u-a1  ","u-a1",""
+"documented field example","fields[]=name&fields[]=cost_centre_id","fields","id|name|cost_centre_id","yes","",200,"","U-GET-A","Child subunit with all fields","A1 Ünïcödé 中文 <b>&</b>","  u-a1  ","u-a1",""
+"nested set and description fields","fields[]=lft&fields[]=rgt&fields[]=level&fields[]=description","fields","id|lft|rgt|level|description","yes","",200,"","U-GET-A","Child subunit with all fields","A1 Ünïcödé 中文 <b>&</b>","  u-a1  ","u-a1",""
+"head of department filter with an employee who heads nothing","filter[headOfDepartmentEmpNumbers][]=99999999","empty","","","",200,"","U-GET-A","Child subunit with all fields","A1 Ünïcödé 中文 <b>&</b>","  u-a1  ","u-a1",""
+"head of department filter as a single number","filter[headOfDepartmentEmpNumbers]=99999999","empty","","","",200,"GD1","U-GET-A","Child subunit with all fields","A1 Ünïcödé 中文 <b>&</b>","  u-a1  ","u-a1",""
