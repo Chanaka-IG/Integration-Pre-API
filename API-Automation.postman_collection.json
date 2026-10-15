@@ -12697,6 +12697,361 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Salary-Components",
+              "item": [
+                {
+                  "name": "add-salary-component",
+                  "item": [
+                    {
+                      "name": "ADMIN-229 get salary components before add",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "[\"salary_component_id\", \"salary_component_expected\", \"salary_component_baseline\"].forEach(key => pm.environment.unset(key));"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "",
+                              "pm.test(\"Salary components are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the salary component list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"salaryComponentListSchema\");",
+                              "    pm.expect(raw, \"salaryComponentListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "// side effect: ADMIN-231 checks the total and that these components are unchanged after the add",
+                              "pm.environment.set(\"salary_component_baseline\", JSON.stringify({",
+                              "    total: Number((response.meta || {}).total),",
+                              "    records: records.map(r => ({",
+                              "        id: norm(r.id), name: norm(r.name), type: norm(r.type), value_type: norm(r.value_type),",
+                              "        is_cost_to_company: norm(r.is_cost_to_company), is_part_of_total_payable: norm(r.is_part_of_total_payable),",
+                              "        version: norm(r.version)",
+                              "    }))",
+                              "}));"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/salaryComponents",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "salaryComponents"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-230 add salary component",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"salary_component_baseline\")) {",
+                              "    throw new Error(\"Precondition failed: salary_component_baseline not set by ADMIN-229\");",
+                              "}",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const baseName = cell(\"sc_name\").trim();",
+                              "if (baseName === \"\") {",
+                              "    throw new Error(\"Test data error: sc_name is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific prefix keeps names unique across runs; max length is 60",
+                              "let name = `SC-${Date.now().toString().slice(-6)} ${baseName}`;",
+                              "const length = cell(\"sc_nameLength\");",
+                              "if (length !== \"\") {",
+                              "    name = name.padEnd(Number(length), \"x\");",
+                              "}",
+                              "if (name.length > 60) {",
+                              "    throw new Error(`Test data error: generated name is ${name.length} characters, max is 60`);",
+                              "}",
+                              "",
+                              "// optional fields: the CSV cell holds a JSON literal (true, false, \"true\", 1, 2); blank = not sent",
+                              "const body = { name };",
+                              "[[\"type\", \"sc_type\"], [\"is_part_of_total_payable\", \"sc_isPartOfTotalPayable\"], [\"is_cost_to_company\", \"sc_isCostToCompany\"],",
+                              " [\"amount\", \"sc_amount\"], [\"percentage\", \"sc_percentage\"]].forEach(([field, column]) => {",
+                              "    if (cell(column) !== \"\") {",
+                              "        try {",
+                              "            body[field] = JSON.parse(cell(column));",
+                              "        } catch (e) {",
+                              "            throw new Error(`Test data error: ${column} is not a JSON literal: ${cell(column)}`);",
+                              "        }",
+                              "    }",
+                              "});",
+                              "",
+                              "// side effect: checked by ADMIN-230 and ADMIN-231",
+                              "pm.environment.set(\"salary_component_expected\", JSON.stringify({",
+                              "    name,",
+                              "    type: cell(\"sc_expectedType\"),",
+                              "    value_type: cell(\"sc_expectedValueType\"),",
+                              "    is_part_of_total_payable: cell(\"sc_expectedPartOfTotalPayable\"),",
+                              "    is_cost_to_company: cell(\"sc_expectedCostToCompany\")",
+                              "}));",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const knownDefect = cell(\"sc_knownDefect\");",
+                              "const suffix = knownDefect === \"\" ? \"\" : ` [known defect ${knownDefect}]`;",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const expected = JSON.parse(pm.environment.get(\"salary_component_expected\") || \"{}\");",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(`Salary component is added (${scenario})`, function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the salary component schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"salaryComponentPostSchema\");",
+                              "    pm.expect(raw, \"salaryComponentPostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "// values are compared as strings: the response echoes some fields with the JSON type that was sent (D9)",
+                              "pm.test(`Salary component details match what was sent (${scenario})${suffix}`, function () {",
+                              "    [\"name\", \"type\", \"value_type\", \"is_part_of_total_payable\", \"is_cost_to_company\"].forEach(field => {",
+                              "        pm.expect(norm(responseData[field]), field).to.eql(expected[field]);",
+                              "    });",
+                              "});",
+                              "",
+                              "pm.test(\"New salary component is at its first version\", function () {",
+                              "    pm.expect(norm(responseData.version), \"version\").to.eql(\"1\");",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-231 and ADMIN-232",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"salary_component_id\", String(responseData.id));",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/salaryComponents",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "salaryComponents"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-231 get salary components after add",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "[\"salary_component_id\", \"salary_component_baseline\"].forEach(key => {",
+                              "    if (!pm.environment.get(key)) {",
+                              "        throw new Error(`Precondition failed: ${key} not set by ADMIN-229 / ADMIN-230`);",
+                              "    }",
+                              "});"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const knownDefect = cell(\"sc_knownDefect\");",
+                              "const suffix = knownDefect === \"\" ? \"\" : ` [known defect ${knownDefect}]`;",
+                              "const response = pm.response.json() || {};",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const expected = JSON.parse(pm.environment.get(\"salary_component_expected\") || \"{}\");",
+                              "const baseline = JSON.parse(pm.environment.get(\"salary_component_baseline\"));",
+                              "const id = norm(pm.environment.get(\"salary_component_id\"));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const listed = records.filter(r => norm(r.id) === id);",
+                              "const byId = recordId => records.find(r => norm(r.id) === recordId);",
+                              "",
+                              "pm.test(\"Salary components are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the salary component list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"salaryComponentListSchema\");",
+                              "    pm.expect(raw, \"salaryComponentListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"Salary component added by ADMIN-230 is listed once\", function () {",
+                              "    pm.expect(listed.length, `rows for salary component ${id}`).to.eql(1);",
+                              "});",
+                              "",
+                              "// the checks below only make sense once the record is found",
+                              "if (listed.length === 1) {",
+                              "    pm.test(`Listed salary component matches what was sent (${scenario})${suffix}`, function () {",
+                              "        [\"name\", \"type\", \"value_type\", \"is_part_of_total_payable\", \"is_cost_to_company\"].forEach(field => {",
+                              "            pm.expect(norm(listed[0][field]), field).to.eql(expected[field]);",
+                              "        });",
+                              "    });",
+                              "",
+                              "    pm.test(\"New salary component can be edited\", function () {",
+                              "        pm.expect(listed[0].isEditable, \"isEditable\").to.eql(true);",
+                              "    });",
+                              "}",
+                              "",
+                              "pm.test(\"Total grows by one\", function () {",
+                              "    pm.expect(Number((response.meta || {}).total), \"meta.total\").to.eql(baseline.total + 1);",
+                              "});",
+                              "",
+                              "pm.test(\"Existing salary components are unchanged\", function () {",
+                              "    const changed = baseline.records.filter(b => {",
+                              "        const current = byId(b.id);",
+                              "        return !current || Object.keys(b).some(field => norm(current[field]) !== b[field]);",
+                              "    });",
+                              "    pm.expect(changed.map(b => b.id), \"salary components missing or changed after the add\").to.eql([]);",
+                              "});"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/salaryComponents",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "salaryComponents"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-232 delete salary component created by ADMIN-230",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const ids = [pm.environment.get(\"salary_component_id\")].map(norm).filter(id => id !== \"\");",
+                              "if (ids.length === 0) {",
+                              "    throw new Error(\"Precondition failed: salary_component_id not set by ADMIN-230\");",
+                              "}",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ data: ids }));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const knownDefect = cell(\"sc_deleteKnownDefect\");",
+                              "const suffix = knownDefect === \"\" ? \"\" : ` [known defect ${knownDefect}]`;",
+                              "const ids = JSON.parse(pm.variables.get(\"requestBody\")).data;",
+                              "",
+                              "pm.test(`Salary components created by ADMIN-230 are deleted${suffix}`, function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// delete is a hard delete, so the records must be gone from the list",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    pm.test(\"Salary components created by ADMIN-230 are no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        const left = (((res.json() || {}).data) || []).map(r => String(r.id)).filter(id => ids.includes(id));",
+                              "        pm.expect(left, \"salary component ids still listed\").to.eql([]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "[\"salary_component_id\", \"salary_component_expected\", \"salary_component_baseline\"].forEach(key => pm.environment.unset(key));"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/salaryComponents",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "salaryComponents"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -22013,6 +22368,859 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Salary-Components",
+              "item": [
+                {
+                  "name": "add-salary-component-with-invalid-data",
+                  "item": [
+                    {
+                      "name": "ADMIN-233 add salary component with invalid data",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const template = cell(\"sc_body\");",
+                              "if (template === \"\") {",
+                              "    throw new Error(\"Test data error: sc_body is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// run-specific names keep the rows independent; {NAME61} is one character over the 60 limit",
+                              "const name = `SC-${Date.now().toString().slice(-6)} Invalid`;",
+                              "const body = template.split(\"{NAME}\").join(name).split(\"{NAME61}\").join(name.padEnd(61, \"x\"));",
+                              "// side effect: sent as the request body (raw, so malformed JSON rows stay malformed)",
+                              "pm.variables.set(\"requestBody\", body);",
+                              "",
+                              "// baseline of existing ids, so the test can find any record this request creates",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    const ids = err ? [] : (((res.json() || {}).data) || []).map(r => String(r.id));",
+                              "    // side effect: read by the test script of this request",
+                              "    pm.variables.set(\"salary_component_baseline_ids\", JSON.stringify(ids));",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const knownDefect = cell(\"sc_knownDefect\");",
+                              "const suffix = knownDefect === \"\" ? \"\" : ` [known defect ${knownDefect}]`;",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "let errorBody = {};",
+                              "try {",
+                              "    errorBody = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON (malformed-body errors and 500s are text): the field checks below fail with the field name",
+                              "}",
+                              "let sentBody = null;",
+                              "try {",
+                              "    sentBody = JSON.parse(pm.variables.get(\"requestBody\"));",
+                              "} catch (e) {",
+                              "    // malformed JSON row: nothing can be created under a name",
+                              "}",
+                              "",
+                              "pm.test(`Invalid salary component is rejected (${scenario})${suffix}`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "if (cell(\"expectedDetails\") !== \"\") {",
+                              "    pm.test(`Error names the invalid field (${scenario})`, function () {",
+                              "        pm.expect(norm(errorBody.title), \"title\").to.eql(\"unsupported resource request\");",
+                              "        pm.expect(norm(errorBody.details), \"details\").to.eql(cell(\"expectedDetails\"));",
+                              "    });",
+                              "}",
+                              "",
+                              "if (cell(\"expectedText\") !== \"\") {",
+                              "    pm.test(`Error says the request is not supported (${scenario})`, function () {",
+                              "        pm.expect(pm.response.text(), \"response body\").to.eql(cell(\"expectedText\"));",
+                              "    });",
+                              "}",
+                              "",
+                              "// teardown: find salary components this request created (new ids with the name that was sent) and delete them",
+                              "const baselineIds = JSON.parse(pm.variables.get(\"salary_component_baseline_ids\") || \"[]\");",
+                              "const sentName = sentBody && typeof sentBody.name === \"string\" ? sentBody.name : null;",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    const created = err ? [] : (((res.json() || {}).data) || [])",
+                              "        .filter(r => !baselineIds.includes(String(r.id)))",
+                              "        // only records carrying the exact name that was sent can be attributed to this request; a request",
+                              "        // without a text name (missing, null, list) is never matched, so other users' records are never deleted",
+                              "        .filter(r => typeof sentName === \"string\" && norm(r.name) === sentName)",
+                              "        .map(r => String(r.id));",
+                              "    pm.test(`No salary component is created (${scenario})${suffix}`, function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(created, \"ids of salary components created by an invalid request\").to.eql([]);",
+                              "    });",
+                              "    if (created.length > 0) {",
+                              "        pm.sendRequest({",
+                              "            url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`,",
+                              "            method: \"DELETE\",",
+                              "            header: Object.assign({ \"Content-Type\": \"application/json\" }, { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }),",
+                              "            body: { mode: \"raw\", raw: JSON.stringify({ data: created }) }",
+                              "        }, () => {",
+                              "            pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err2, res2) => {",
+                              "                pm.test(\"Salary components created by the rejected request are cleaned up\", function () {",
+                              "                    pm.expect(err2, \"list request error\").to.be.null;",
+                              "                    const left = (((res2.json() || {}).data) || []).map(r => String(r.id)).filter(id => created.includes(id));",
+                              "                    pm.expect(left, \"salary component ids still listed\").to.eql([]);",
+                              "                });",
+                              "            });",
+                              "        });",
+                              "    }",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/salaryComponents",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "salaryComponents"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-salary-component-with-duplicate-name",
+                  "item": [
+                    {
+                      "name": "ADMIN-234 add salary component for the duplicate check",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "[\"salary_component_id\", \"salary_component_name\"].forEach(key => pm.environment.unset(key));",
+                              "",
+                              "// run-specific prefix keeps names unique across runs; max length is 60",
+                              "const name = `SC-${Date.now().toString().slice(-6)} Duplicate Check`;",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name, type: 1, amount: true }));"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Salary component for the duplicate check is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-235 and ADMIN-236",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"salary_component_id\", String(responseData.id));",
+                              "    pm.environment.set(\"salary_component_name\", JSON.parse(pm.variables.get(\"requestBody\")).name);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/salaryComponents",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "salaryComponents"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-235 add salary component with duplicate name",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const ownId = pm.environment.get(\"salary_component_id\");",
+                              "const ownName = pm.environment.get(\"salary_component_name\");",
+                              "if (!ownId || !ownName) {",
+                              "    throw new Error(\"Precondition failed: salary_component_id / salary_component_name not set by ADMIN-234\");",
+                              "}",
+                              "",
+                              "// sc_duplicateOf: same / lower / upper = the name from ADMIN-234; existing = the name of another component,",
+                              "// picked at runtime (never hard-coded, never modified)",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    const records = err ? [] : (((res.json() || {}).data) || []);",
+                              "    // side effect: read by the test script of this request",
+                              "    pm.variables.set(\"salary_component_baseline_ids\", JSON.stringify(records.map(r => String(r.id))));",
+                              "    const other = records.find(r => norm(r.id) !== ownId && norm(r.name).trim() !== \"\");",
+                              "    const names = {",
+                              "        same: ownName,",
+                              "        lower: ownName.toLowerCase(),",
+                              "        upper: ownName.toUpperCase(),",
+                              "        existing: other ? norm(other.name) : \"\"",
+                              "    };",
+                              "    const name = names[cell(\"sc_duplicateOf\")];",
+                              "    if (!name) {",
+                              "        throw new Error(`Test data error: sc_duplicateOf must be same, lower, upper or existing (and another component must exist), got \"${cell(\"sc_duplicateOf\")}\"`);",
+                              "    }",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({ name, type: 1, amount: true }));",
+                              "});"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const knownDefect = cell(\"sc_knownDefect\");",
+                              "const suffix = knownDefect === \"\" ? \"\" : ` [known defect ${knownDefect}]`;",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(`Duplicate salary component name is rejected (${scenario})${suffix}`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "// teardown: find salary components this request created (new ids with the name that was sent) and delete them",
+                              "const baselineIds = JSON.parse(pm.variables.get(\"salary_component_baseline_ids\") || \"[]\");",
+                              "const sentName = JSON.parse(pm.variables.get(\"requestBody\") || \"{}\").name;",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    const created = err ? [] : (((res.json() || {}).data) || [])",
+                              "        .filter(r => !baselineIds.includes(String(r.id)))",
+                              "        // only records carrying the exact name that was sent can be attributed to this request; a request",
+                              "        // without a text name (missing, null, list) is never matched, so other users' records are never deleted",
+                              "        .filter(r => typeof sentName === \"string\" && norm(r.name) === sentName)",
+                              "        .map(r => String(r.id));",
+                              "    pm.test(`No salary component is created (${scenario})${suffix}`, function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(created, \"ids of duplicate salary components\").to.eql([]);",
+                              "    });",
+                              "    if (created.length > 0) {",
+                              "        pm.sendRequest({",
+                              "            url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`,",
+                              "            method: \"DELETE\",",
+                              "            header: Object.assign({ \"Content-Type\": \"application/json\" }, { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }),",
+                              "            body: { mode: \"raw\", raw: JSON.stringify({ data: created }) }",
+                              "        }, () => {",
+                              "            pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err2, res2) => {",
+                              "                pm.test(\"Salary components created by the rejected request are cleaned up\", function () {",
+                              "                    pm.expect(err2, \"list request error\").to.be.null;",
+                              "                    const left = (((res2.json() || {}).data) || []).map(r => String(r.id)).filter(id => created.includes(id));",
+                              "                    pm.expect(left, \"salary component ids still listed\").to.eql([]);",
+                              "                });",
+                              "            });",
+                              "        });",
+                              "    }",
+                              "});"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/salaryComponents",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "salaryComponents"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-236 delete salary component created by ADMIN-234",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const ids = [pm.environment.get(\"salary_component_id\")].map(norm).filter(id => id !== \"\");",
+                              "if (ids.length === 0) {",
+                              "    throw new Error(\"Precondition failed: salary_component_id not set by ADMIN-234\");",
+                              "}",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ data: ids }));"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const suffix = \"\";",
+                              "const ids = JSON.parse(pm.variables.get(\"requestBody\")).data;",
+                              "",
+                              "pm.test(`Salary components created by ADMIN-234 are deleted${suffix}`, function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// delete is a hard delete, so the records must be gone from the list",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    pm.test(\"Salary components created by ADMIN-234 are no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        const left = (((res.json() || {}).data) || []).map(r => String(r.id)).filter(id => ids.includes(id));",
+                              "        pm.expect(left, \"salary component ids still listed\").to.eql([]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "[\"salary_component_id\", \"salary_component_name\"].forEach(key => pm.environment.unset(key));"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/salaryComponents",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "salaryComponents"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-salary-component-with-undocumented-id",
+                  "item": [
+                    {
+                      "name": "ADMIN-237 add salary component for the undocumented id check",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "[\"salary_component_id\", \"salary_component_expected\", \"salary_component_new_id\"].forEach(key => pm.environment.unset(key));",
+                              "",
+                              "// run-specific prefix keeps names unique across runs; max length is 60",
+                              "const name = `SC-${Date.now().toString().slice(-6)} Id Check`;",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name, type: 1, amount: true }));"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "pm.test(\"Salary component for the undocumented id check is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "// side effect: ADMIN-238 sends this id; ADMIN-238 and ADMIN-239 check the component is unchanged",
+                              "if (norm(responseData.id) !== \"\") {",
+                              "    pm.environment.set(\"salary_component_id\", String(responseData.id));",
+                              "    pm.environment.set(\"salary_component_expected\", JSON.stringify({",
+                              "        name: norm(responseData.name), type: norm(responseData.type), value_type: norm(responseData.value_type),",
+                              "        version: norm(responseData.version)",
+                              "    }));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/salaryComponents",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "salaryComponents"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-238 add salary component with the id of the component from ADMIN-237",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const ownId = pm.environment.get(\"salary_component_id\");",
+                              "if (!ownId) {",
+                              "    throw new Error(\"Precondition failed: salary_component_id not set by ADMIN-237\");",
+                              "}",
+                              "",
+                              "// a create request that carries the id of the component from ADMIN-237 with different values",
+                              "const name = `SC-${Date.now().toString().slice(-6)} ${cell(\"sc_name\")}`;",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ id: ownId, name, type: 2, percentage: true }));"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const knownDefect = cell(\"sc_knownDefect\");",
+                              "const suffix = knownDefect === \"\" ? \"\" : ` [known defect ${knownDefect}]`;",
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "const ownId = norm(pm.environment.get(\"salary_component_id\"));",
+                              "const expected = JSON.parse(pm.environment.get(\"salary_component_expected\") || \"{}\");",
+                              "",
+                              "pm.test(\"Salary component with an undocumented id is added as a new record\", function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Response is not the component from ADMIN-237${suffix}`, function () {",
+                              "    pm.expect(norm(responseData.id), \"id\").to.not.eql(ownId);",
+                              "});",
+                              "",
+                              "// side effect: ADMIN-239 deletes a new record if one was created",
+                              "if (norm(responseData.id) !== \"\" && norm(responseData.id) !== ownId) {",
+                              "    pm.environment.set(\"salary_component_new_id\", String(responseData.id));",
+                              "}",
+                              "",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    pm.test(`Component from ADMIN-237 is unchanged${suffix}`, function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        const current = (((res.json() || {}).data) || []).find(r => norm(r.id) === ownId) || {};",
+                              "        Object.keys(expected).forEach(field => {",
+                              "            pm.expect(norm(current[field]), field).to.eql(expected[field]);",
+                              "        });",
+                              "    });",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/salaryComponents",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "salaryComponents"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-239 delete salary components created by ADMIN-237 and ADMIN-238",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const ids = [pm.environment.get(\"salary_component_id\") , pm.environment.get(\"salary_component_new_id\")].map(norm).filter(id => id !== \"\");",
+                              "if (ids.length === 0) {",
+                              "    throw new Error(\"Precondition failed: salary_component_id / salary_component_new_id not set by ADMIN-237 and ADMIN-238\");",
+                              "}",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ data: ids }));"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const suffix = \"\";",
+                              "const ids = JSON.parse(pm.variables.get(\"requestBody\")).data;",
+                              "",
+                              "pm.test(`Salary components created by ADMIN-237 and ADMIN-238 are deleted${suffix}`, function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// delete is a hard delete, so the records must be gone from the list",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    pm.test(\"Salary components created by ADMIN-237 and ADMIN-238 are no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        const left = (((res.json() || {}).data) || []).map(r => String(r.id)).filter(id => ids.includes(id));",
+                              "        pm.expect(left, \"salary component ids still listed\").to.eql([]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders cannot pick them up",
+                              "[\"salary_component_id\", \"salary_component_expected\", \"salary_component_new_id\"].forEach(key => pm.environment.unset(key));"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/salaryComponents",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "salaryComponents"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-salary-component-without-valid-token",
+                  "item": [
+                    {
+                      "name": "ADMIN-240 add salary component without token",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// clear values left over from earlier folders or earlier runs",
+                              "pm.environment.unset(\"salary_component_name\");",
+                              "",
+                              "// run-specific prefix keeps names unique across runs; max length is 60",
+                              "const name = `SC-${Date.now().toString().slice(-6)} Auth Check`;",
+                              "// side effect: ADMIN-241 sends the same body; both tests look for a record with this name",
+                              "pm.environment.set(\"salary_component_name\", name);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name, amount: true }));",
+                              "",
+                              "// baseline of existing ids, so the test can find any record this request creates",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    const ids = err ? [] : (((res.json() || {}).data) || []).map(r => String(r.id));",
+                              "    // side effect: read by the test script of this request",
+                              "    pm.variables.set(\"salary_component_baseline_ids\", JSON.stringify(ids));",
+                              "});"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let body = {};",
+                              "try {",
+                              "    body = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the field checks below fail with the field name",
+                              "}",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const suffix = \"\";",
+                              "",
+                              "pm.test(`Request is rejected as unauthorized (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "",
+                              "// teardown: find salary components this request created (new ids with the name that was sent) and delete them",
+                              "const baselineIds = JSON.parse(pm.variables.get(\"salary_component_baseline_ids\") || \"[]\");",
+                              "const sentName = pm.environment.get(\"salary_component_name\");",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    const created = err ? [] : (((res.json() || {}).data) || [])",
+                              "        .filter(r => !baselineIds.includes(String(r.id)))",
+                              "        // only records carrying the exact name that was sent can be attributed to this request; a request",
+                              "        // without a text name (missing, null, list) is never matched, so other users' records are never deleted",
+                              "        .filter(r => typeof sentName === \"string\" && norm(r.name) === sentName)",
+                              "        .map(r => String(r.id));",
+                              "    pm.test(`No salary component is created (${scenario})${suffix}`, function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(created, \"ids of salary components created without a valid token\").to.eql([]);",
+                              "    });",
+                              "    if (created.length > 0) {",
+                              "        pm.sendRequest({",
+                              "            url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`,",
+                              "            method: \"DELETE\",",
+                              "            header: Object.assign({ \"Content-Type\": \"application/json\" }, { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }),",
+                              "            body: { mode: \"raw\", raw: JSON.stringify({ data: created }) }",
+                              "        }, () => {",
+                              "            pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err2, res2) => {",
+                              "                pm.test(\"Salary components created by the rejected request are cleaned up\", function () {",
+                              "                    pm.expect(err2, \"list request error\").to.be.null;",
+                              "                    const left = (((res2.json() || {}).data) || []).map(r => String(r.id)).filter(id => created.includes(id));",
+                              "                    pm.expect(left, \"salary component ids still listed\").to.eql([]);",
+                              "                });",
+                              "            });",
+                              "        });",
+                              "    }",
+                              "});"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/salaryComponents",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "salaryComponents"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-241 add salary component with invalid authorization header",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"salary_component_name\")) {",
+                              "    throw new Error(\"Precondition failed: salary_component_name not set by ADMIN-240\");",
+                              "}",
+                              "if (!pm.iterationData.get(\"authorizationHeader\")) {",
+                              "    throw new Error(\"Test data error: authorizationHeader is blank in the CSV row\");",
+                              "}",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ name: pm.environment.get(\"salary_component_name\"), amount: true }));",
+                              "",
+                              "// baseline of existing ids, so the test can find any record this request creates",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    const ids = err ? [] : (((res.json() || {}).data) || []).map(r => String(r.id));",
+                              "    // side effect: read by the test script of this request",
+                              "    pm.variables.set(\"salary_component_baseline_ids\", JSON.stringify(ids));",
+                              "});"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let body = {};",
+                              "try {",
+                              "    body = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the field checks below fail with the field name",
+                              "}",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const suffix = \"\";",
+                              "",
+                              "pm.test(`Request is rejected as unauthorized (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error says why the authorization header is rejected (${scenario})`, function () {",
+                              "    pm.expect(norm(body.error), \"error\").to.eql(cell(\"expectedError\"));",
+                              "    pm.expect(norm(body.error_description), \"error_description\").to.eql(cell(\"expectedErrorDescription\"));",
+                              "});",
+                              "",
+                              "",
+                              "// teardown: find salary components this request created (new ids with the name that was sent) and delete them",
+                              "const baselineIds = JSON.parse(pm.variables.get(\"salary_component_baseline_ids\") || \"[]\");",
+                              "const sentName = pm.environment.get(\"salary_component_name\");",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    const created = err ? [] : (((res.json() || {}).data) || [])",
+                              "        .filter(r => !baselineIds.includes(String(r.id)))",
+                              "        // only records carrying the exact name that was sent can be attributed to this request; a request",
+                              "        // without a text name (missing, null, list) is never matched, so other users' records are never deleted",
+                              "        .filter(r => typeof sentName === \"string\" && norm(r.name) === sentName)",
+                              "        .map(r => String(r.id));",
+                              "    pm.test(`No salary component is created (${scenario})${suffix}`, function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        pm.expect(created, \"ids of salary components created without a valid token\").to.eql([]);",
+                              "    });",
+                              "    if (created.length > 0) {",
+                              "        pm.sendRequest({",
+                              "            url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`,",
+                              "            method: \"DELETE\",",
+                              "            header: Object.assign({ \"Content-Type\": \"application/json\" }, { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }),",
+                              "            body: { mode: \"raw\", raw: JSON.stringify({ data: created }) }",
+                              "        }, () => {",
+                              "            pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/salaryComponents`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err2, res2) => {",
+                              "                pm.test(\"Salary components created by the rejected request are cleaned up\", function () {",
+                              "                    pm.expect(err2, \"list request error\").to.be.null;",
+                              "                    const left = (((res2.json() || {}).data) || []).map(r => String(r.id)).filter(id => created.includes(id));",
+                              "                    pm.expect(left, \"salary component ids still listed\").to.eql([]);",
+                              "                });",
+                              "            });",
+                              "        });",
+                              "    }",
+                              "});",
+                              "",
+                              "pm.environment.unset(\"salary_component_name\");"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "{{authorizationHeader}}"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/salaryComponents",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "salaryComponents"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -22240,6 +23448,14 @@
     {
       "key": "subunitTreeSchema",
       "value": "{\"type\": \"object\", \"required\": [\"data\"], \"additionalProperties\": false, \"properties\": {\"data\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"name\", \"level\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"name\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 100}, \"level\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}}}}}"
+    },
+    {
+      "key": "salaryComponentPostSchema",
+      "value": "{\"type\": \"object\", \"required\": [\"data\"], \"additionalProperties\": false, \"properties\": {\"data\": {\"type\": \"object\", \"required\": [\"id\", \"name\", \"type\", \"value_type\", \"is_cost_to_company\", \"is_part_of_total_payable\", \"version\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"name\": {\"type\": [\"string\", \"integer\"]}, \"type\": {\"type\": [\"integer\", \"string\"]}, \"value_type\": {\"type\": [\"integer\", \"string\"]}, \"is_cost_to_company\": {\"type\": [\"integer\", \"null\"]}, \"is_part_of_total_payable\": {\"type\": [\"integer\", \"null\"]}, \"version\": {\"type\": [\"integer\", \"string\"]}}}}}"
+    },
+    {
+      "key": "salaryComponentListSchema",
+      "value": "{\"type\": \"object\", \"required\": [\"data\", \"meta\", \"uneditableIdList\"], \"properties\": {\"data\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"name\", \"type\", \"value_type\", \"is_cost_to_company\", \"is_part_of_total_payable\", \"version\", \"isEditable\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"name\": {\"type\": \"string\"}, \"type\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"value_type\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"is_cost_to_company\": {\"type\": [\"string\", \"null\"]}, \"is_part_of_total_payable\": {\"type\": [\"string\", \"null\"]}, \"version\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"isEditable\": {\"type\": \"boolean\"}}}}, \"meta\": {\"type\": \"object\", \"required\": [\"total\"], \"properties\": {\"total\": {\"type\": \"integer\"}, \"allowedToBypassValidation\": {\"type\": \"boolean\"}}}, \"uneditableIdList\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}}}"
     }
   ]
 }

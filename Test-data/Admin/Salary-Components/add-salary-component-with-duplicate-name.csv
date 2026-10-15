@@ -1,0 +1,4 @@
+"scenario","sc_duplicateOf","expectedStatus","sc_knownDefect"
+"exact name","same",400,"D2"
+"name in lower case","lower",400,"D2"
+"name of another existing component","existing",400,"D2"
