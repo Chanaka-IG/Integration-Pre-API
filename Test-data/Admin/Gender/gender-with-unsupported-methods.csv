@@ -1,0 +1,5 @@
+"scenario","gen_method","gen_body","expectedStatus","expectedMessage"
+"create with POST","POST","{""name"":""GEN-API-TEST""}",404,"API Endpoint Not Found"
+"replace with PUT","PUT","{""id"":1,""name"":""GEN-API-TEST""}",404,"API Endpoint Not Found"
+"rename with PATCH","PATCH","{""data"":[{""id"":1,""name"":""GEN-API-TEST""}]}",404,"API Endpoint Not Found"
+"delete with DELETE","DELETE","{""data"":[1]}",404,"API Endpoint Not Found"
