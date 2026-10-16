@@ -1,0 +1,7 @@
+"scenario","sc_query","expectedStatus","expectedError"
+"sorting field that is not sortable","sortingField=value_type",400,"unsupported resource request"
+"unknown sorting field","sortingField=foo",400,"unsupported resource request"
+"sorting field sent as a list","sortingField[]=id",400,"unsupported resource request"
+"unknown sorting order","sortingField=name&sortingOrder=foo",400,"unsupported resource request"
+"limit that is not a number","sortingField=id&sortingOrder=ASC&limit=abc",400,"unsupported resource request"
+"offset that is not a number","sortingField=id&sortingOrder=ASC&limit=2&offset=abc",400,"unsupported resource request"

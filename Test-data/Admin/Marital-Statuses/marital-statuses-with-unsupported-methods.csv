@@ -1,0 +1,5 @@
+"scenario","ms_method","ms_body","expectedStatus","expectedMessage"
+"create with POST","POST","{""name"":""MS-API-TEST""}",404,"API Endpoint Not Found"
+"replace with PUT","PUT","{""id"":1,""name"":""MS-API-TEST""}",404,"API Endpoint Not Found"
+"rename with PATCH","PATCH","{""data"":[{""id"":1,""name"":""MS-API-TEST""}]}",404,"API Endpoint Not Found"
+"delete with DELETE","DELETE","{""ids"":[1]}",404,"API Endpoint Not Found"

@@ -1,0 +1,8 @@
+"scenario","cur_currencyId","cur_code","cur_name","cur_decimals","cur_symbol","cur_query","cur_contentType","cur_body"
+"US dollar with new-style paging","USD","151","United States Dollar","2","$","page[limit]=1&page[offset]=0","",""
+"euro with limit and offset","EUR","42","Euro","2","€","limit=5&offset=2","",""
+"yen with no decimals and sort parameters","JPY","74","Japanese Yen","0","¥","sortField=code&sortOrder=DESC&orderField=code&orderBy=DESC","",""
+"rupee without a symbol and filters","LKR","85","Sri Lanka Rupee","2","__NULL__","filter[currency_id]=USD&currency_id=USD","",""
+"gold without decimals and SQL or HTML in parameters","XAU","160","Gold (oz.)","__NULL__","__NULL__","currency_id=' OR 1=1--&name=<script>alert(1)</script>","",""
+"pound with an unknown parameter and a JSON content type","GBP","51","Pound Sterling","2","£","foo=bar","application/json",""
+"indian rupee with a malformed JSON body","INR","67","Indian Rupee","2","₹","","application/json","{bad"

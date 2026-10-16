@@ -1,0 +1,23 @@
+"scenario","ms_orderField","ms_orderBy","ms_limit","ms_offset","ms_fields","ms_excludeFields","ms_expectedKeys","ms_defaultLimit"
+"sort by id ascending","id","ASC","","","","","id|name",50
+"sort by id descending","id","DESC","","","","","id|name",50
+"sort by name ascending","name","ASC","","","","","id|name",50
+"sort by name descending","name","DESC","","","","","id|name",50
+"sort by name only","name","","","","","","id|name",50
+"lower case sort order","id","desc","","","","","id|name",50
+"lower case ascending sort order","name","asc","","","","","id|name",50
+"first page","","","2","0","","","id|name",50
+"middle page","","","2","1","","","id|name",50
+"limit only","","","3","","","","id|name",50
+"offset only","","","","2","","","id|name",50
+"last page is partial","","","3","6","","","id|name",50
+"offset at the end","","","","COUNT","","","id|name",50
+"offset far beyond the end","","","","1000","","","id|name",50
+"maximum limit","","","100","","","","id|name",50
+"page of a sorted list","name","DESC","2","1","","","id|name",50
+"only id field","","","","","id","","id",50
+"only name field","","","","","name","","name",50
+"both fields","","","","","id,name","","id|name",50
+"exclude id","","","","","","id","name",50
+"exclude name","","","","","","name","id",50
+"name field with id excluded","","","","","name","id","name",50
