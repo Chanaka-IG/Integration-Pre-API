@@ -1,0 +1,4 @@
+"scenario","authorizationHeader","cfs_screenId","expectedStatus","expectedError","expectedErrorDescription"
+"no token","","9",401,"",""
+"invalid bearer token","Bearer invalid-token-for-api-test","9",401,"invalid_token","The access token provided is invalid"
+"basic authentication","Basic YWRtaW46YWRtaW4=","9",401,"invalid_request","Malformed auth header"

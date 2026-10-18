@@ -1,0 +1,5 @@
+"scenario","cfs_displayName","cfs_screenActionUrl","cfs_screenIdType","cfs_expectedDisplayOrder"
+"emergency contacts tab","CFS-Emergency-{run}","viewEmergencyContacts","string","0"
+"immigration tab","CFS-Immigration-{run}","viewImmigration","string","0"
+"qualifications tab","CFS-Qualifications-{run}","viewQualifications","string","0"
+"qualifications tab with numeric screen id","CFS-Numeric-Screen-{run}","viewQualifications","number","0"

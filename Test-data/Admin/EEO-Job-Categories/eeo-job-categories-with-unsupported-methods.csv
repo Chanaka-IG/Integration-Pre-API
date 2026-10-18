@@ -1,0 +1,5 @@
+"scenario","eeo_method","eeo_body","expectedStatus","expectedMessage"
+"create with POST","POST","{""name"":""EEOJC-API-TEST""}",400,"unsupported resource request"
+"replace with PUT","PUT","{""id"":999999,""name"":""EEOJC-API-TEST""}",400,"unsupported resource request"
+"rename with PATCH","PATCH","{""id"":999999,""name"":""EEOJC-API-TEST""}",400,"unsupported resource request"
+"delete with DELETE","DELETE","{""data"":[999999]}",400,"unsupported resource request"

@@ -1,0 +1,2 @@
+"scenario","firstName","middleName","lastName","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","vac_location","vac_jobTitle","cand_firstName","cand_lastName","expectedStatus","expectedTitle","expectedDetails","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"vacancy requires a resume and none is sent","Candidate","","Hiring Manager",1,"2024-06-20","false","false",1,1198,"Candidate","No Resume",400,"Invalid data","Must have keys","2026-09-01",1,"Recruitment API test teardown",1,"23:55","Asia/Kolkata"

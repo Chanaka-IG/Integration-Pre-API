@@ -1,0 +1,13 @@
+"scenario","eeo_query","expectedStatus"
+"unknown parameter","foo=bar",200
+"record id parameter","id=1",200
+"limit and offset","limit=1&offset=1",200
+"sorting by name descending","sortingField=name&sortingOrder=DESC",200
+"page limit","page[limit]=1",200
+"filter by id","filter[id]=1",200
+"field selection","fields[]=id",200
+"SQL-like value","name=x' OR 1=1--",200
+"HTML-like key","<script>=1",200
+"unicode value","n=é✓",200
+"unknown data group","dataGroup=xyz_not_a_group",200
+"empty data group","dataGroup=",200

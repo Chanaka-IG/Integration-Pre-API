@@ -1,0 +1,3 @@
+"scenario","emp_firstName","emp_lastName","emp_locationId","emp_joinedDate","emp_duplicateCase","expectedStatus","expectedTitle","expectedDetails","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"same employee ID","Api","Duplicate","2","2024-06-20","same",400,"Invalid data","employeeId must be valid","{TODAY}",1,"PIM API test teardown",1,"23:55","Asia/Kolkata"
+"same employee ID in lower case","Api","Duplicate","2","2024-06-20","lower",400,"Invalid data","employeeId must be valid","{TODAY}",1,"PIM API test teardown",1,"23:55","Asia/Kolkata"

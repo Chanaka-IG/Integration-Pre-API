@@ -1,0 +1,2 @@
+"scenario","firstName","middleName","lastName","locationId","joinedDate","epd_body","epd_activationBody","epd_expected","epd_successMessage","epd_knownDefect","terminationDate","flagValue","terminationNote","terminationReason","time","timezone","reterminationDate"
+"reactivate now","Api","","Reactivate","2","2024-06-20","{""city"":""Galle""}","{""activation_data"":{""activateNow"":1}}","{""city"":""Galle""}","Successfully Saved","","{DAYS:-1}",1,"PIM API test teardown",1,"23:55","Asia/Kolkata","{DAYS:+2}"

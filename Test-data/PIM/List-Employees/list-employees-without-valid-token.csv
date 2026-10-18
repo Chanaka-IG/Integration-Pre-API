@@ -1,0 +1,4 @@
+"scenario","authorizationHeader","lst_query","expectedStatus","expectedError","expectedErrorDescription"
+"no token","","page[limit]=1",401,"",""
+"invalid bearer token","Bearer invalid-token-for-api-test","page[limit]=1",401,"invalid_token","The access token provided is invalid"
+"basic authorization scheme","Basic YXBpOnRlc3Q=","page[limit]=1",401,"invalid_request","Malformed auth header"

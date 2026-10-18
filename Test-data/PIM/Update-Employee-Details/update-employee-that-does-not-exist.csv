@@ -1,0 +1,3 @@
+"scenario","epd_targetEmpNumber","epd_body","expectedStatus","expectedTitle","expectedDetails","epd_knownDefect"
+"unknown employee","99999999","{""firstName"":""Api""}",404,"","","D1"
+"unknown employee with an invalid body","99999999","{""foo"":""bar""}",400,"Invalid data","Must not have keys `{ ""foo"" }`",""

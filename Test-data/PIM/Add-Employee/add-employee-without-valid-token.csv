@@ -1,0 +1,3 @@
+"scenario","authorizationHeader","emp_locationId","emp_joinedDate","expectedStatus","expectedError","expectedErrorDescription"
+"invalid bearer token","Bearer invalid-token-for-api-test","2","2024-06-20",401,"invalid_token","The access token provided is invalid"
+"basic authorization scheme","Basic YWRtaW46YWRtaW4=","2","2024-06-20",401,"invalid_request","Malformed auth header"

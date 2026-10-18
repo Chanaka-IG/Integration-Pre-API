@@ -1,0 +1,2 @@
+"scenario","cfs_displayName","cfs_secondDisplayName","cfs_screenActionUrl","cfs_screenIdType"
+"two sections on the immigration tab","CFS-First-{run}","CFS-Second-{run}","viewImmigration","string"

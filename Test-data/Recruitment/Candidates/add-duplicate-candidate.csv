@@ -1,0 +1,2 @@
+"scenario","cand_firstName","cand_lastName","cand_emailDomain","cand_include"
+"same name and email as an earlier candidate","Candidate","Duplicate","example.com","DuplicateCandidates,PastEmployees"

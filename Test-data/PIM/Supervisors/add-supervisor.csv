@@ -1,0 +1,4 @@
+"scenario","supervisorFirstName","supervisorMiddleName","supervisorLastName","subordinateFirstName","subordinateMiddleName","subordinateLastName","locationId","joinedDate","sup_sendSubordinateId","sup_idsAsNumbers","sup_reportingMethodId","sup_reportingMethodName","sup_successMessage","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"all fields with ids as strings","Api","Sup","Direct","Api","Sub","Direct","2","2024-06-20","true","false","1","Direct","Successfully Saved","{TODAY}",1,"PIM API test teardown",1,"23:55","Asia/Kolkata"
+"mandatory fields only","Api","","Indirect","Api","","Indirect","2","2024-06-20","false","false","2","Indirect","Successfully Saved","{TODAY}",1,"PIM API test teardown",1,"23:55","Asia/Kolkata"
+"ids sent as JSON numbers","Api","Sup","Numeric","Api","Sub","Numeric","2","2024-06-20","true","true","4","HR UK","Successfully Saved","{TODAY}",1,"PIM API test teardown",1,"23:55","Asia/Kolkata"

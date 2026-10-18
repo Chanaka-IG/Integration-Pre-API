@@ -1,0 +1,2 @@
+"scenario","cand_firstName","cand_lastName","cand_email","cand_fileName","cand_expectedFileType","cand_expectedFileSize","cand_successMessage"
+"resume uploaded as a file part","Candidate","Multipart","candidate.multipart@example.com","candidate-resume.txt","text/plain",59,"Successfully Saved"

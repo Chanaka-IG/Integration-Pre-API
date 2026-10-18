@@ -1,0 +1,4 @@
+"scenario","sup_query","expectedStatus","expectedTitle","expectedDetails","employeeFirstName","employeeMiddleName","employeeLastName","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"pagination parameters","limit=1&offset=0",400,"Invalid data","Must not have keys||""limit""||""offset""","Query","","Check",2,"2024-06-20","false","false","{TODAY}",1,"PIM API test teardown",1,"23:55","Asia/Kolkata"
+"sort parameters","sortField=lastName&sortOrder=ASC",400,"Invalid data","Must not have keys||""sortField""||""sortOrder""","Query","","Check",2,"2024-06-20","false","false","{TODAY}",1,"PIM API test teardown",1,"23:55","Asia/Kolkata"
+"unknown parameter","foo=bar",400,"Invalid data","Must not have keys||""foo""","Query","","Check",2,"2024-06-20","false","false","{TODAY}",1,"PIM API test teardown",1,"23:55","Asia/Kolkata"

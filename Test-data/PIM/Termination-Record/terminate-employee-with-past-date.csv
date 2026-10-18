@@ -1,0 +1,4 @@
+"scenario","firstName","middleName","lastName","locationId","joinedDate","employeeIdPrefix","trm_reason","trm_date","trm_time","trm_timezone","trm_sendOptional","trm_note","trm_flaged","trm_expectedTime","trm_successMessage"
+"all fields with a time off the 5-minute step","Api","","Terminate All Fields",2,"2024-06-20","TRMPAST",1,"2025-01-15","10:07","Asia/Kolkata","true","Terminated by PIM API test",1,"10:05:00","Successfully Saved"
+"mandatory fields only on the joined date","Api","","Terminate Mandatory",2,"2024-06-20","TRMPAST",9,"2024-06-20","00:00","UTC","false","","","00:00:00","Successfully Saved"
+"another reason and time zone","Api","","Terminate With Cause",2,"2024-06-20","TRMPAST",4,"2025-03-31","18:30","Europe/London","true","Termination with cause by PIM API test",0,"18:30:00","Successfully Saved"
