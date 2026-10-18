@@ -1,0 +1,4 @@
+"scenario","cfs_displayName","cfs_screenActionUrl","cfs_screenIdType","cfs_duplicateScreenActionUrl","cfs_duplicateNameCase","expectedStatus","cfs_expectedTitle","cfs_knownDefect"
+"same name on the same screen","CFS-Duplicate-{run}","viewQualifications","string","viewQualifications","same",400,"Invalid data","D1"
+"same name on another screen","CFS-Duplicate-{run}","viewQualifications","string","viewEmergencyContacts","same",400,"Invalid data","D1"
+"same name in lower case","CFS-Duplicate-{run}","viewQualifications","string","viewQualifications","lower",400,"Invalid data","D1"

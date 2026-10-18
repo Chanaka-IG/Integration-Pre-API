@@ -1,0 +1,6 @@
+"scenario","sup_empNumber","expectedStatus","expectedContentType","expectedBody","expectedTitle","expectedDetails"
+"employee that does not exist","99999999",200,"application/json","{""data"":[]}","",""
+"zero","0",400,"application/json","","Invalid data","emp_number must not be empty||emp_number must be positive"
+"negative number","-1",400,"text/html","unsupported resource request","",""
+"letters","abc",400,"text/html","unsupported resource request","",""
+"decimal number","1.5",400,"text/html","unsupported resource request","",""

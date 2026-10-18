@@ -1,0 +1,4 @@
+"scenario","trm_empNumber","trm_reason","trm_date","trm_time","trm_timezone","expectedStatus","expectedBody"
+"employee number that is not a number","abc",1,"2025-01-15","10:00","Asia/Kolkata",400,"unsupported resource request"
+"employee number zero","0",1,"2025-01-15","10:00","Asia/Kolkata",403,"Unauthorized"
+"employee number that is not used","99999999",1,"2025-01-15","10:00","Asia/Kolkata",403,"Unauthorized"

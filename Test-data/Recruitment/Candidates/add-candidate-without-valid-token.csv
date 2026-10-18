@@ -1,0 +1,4 @@
+"scenario","authorizationHeader","cand_firstName","cand_lastName","expectedStatus","expectedError","expectedErrorDescription"
+"invalid bearer token","Bearer invalid-token-for-api-test","Candidate","No Access",401,"invalid_token","The access token provided is invalid"
+"bearer without a token","Bearer","Candidate","No Access",401,"invalid_request","Malformed auth header"
+"basic authentication","Basic YWRtaW46YWRtaW4=","Candidate","No Access",401,"invalid_request","Malformed auth header"

@@ -1,0 +1,4 @@
+"scenario","epd_targetEmpNumber","authorizationHeader","expectedStatus","expectedError","expectedErrorDescription","expectedBody"
+"no token","99999999","",401,"","","[]"
+"invalid bearer token","99999999","Bearer invalid-token-for-api-test",401,"invalid_token","The access token provided is invalid",""
+"basic authorization scheme","99999999","Basic YWRtaW46YWRtaW4=",401,"invalid_request","Malformed auth header",""

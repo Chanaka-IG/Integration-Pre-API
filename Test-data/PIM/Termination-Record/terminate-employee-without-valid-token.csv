@@ -1,0 +1,4 @@
+"scenario","authorizationHeader","trm_empNumber","trm_reason","trm_date","trm_time","trm_timezone","expectedStatus","expectedError","expectedErrorDescription"
+"no token","","99999999",1,"2025-01-15","10:00","Asia/Kolkata",401,"",""
+"invalid bearer token","Bearer invalid-token-for-api-test","99999999",1,"2025-01-15","10:00","Asia/Kolkata",401,"invalid_token","The access token provided is invalid"
+"basic authorization scheme","Basic YXBpOnRlc3Q=","99999999",1,"2025-01-15","10:00","Asia/Kolkata",401,"invalid_request","Malformed auth header"
