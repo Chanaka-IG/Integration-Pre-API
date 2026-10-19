@@ -1,0 +1,6 @@
+"scenario","authorizationHeader","ged_empNumber","ged_query","expectedStatus","expectedError","expectedErrorDescription"
+"no token","","","",401,"",""
+"invalid bearer token","Bearer invalid-token-for-api-test","","",401,"invalid_token","The access token provided is invalid"
+"basic authorization header","Basic YXBpLXRlc3Q6aW52YWxpZA==","","",401,"invalid_request","Malformed auth header"
+"no token for an employee number that does not exist","","99999999","",401,"",""
+"no token with an unknown query parameter","","","foo=1",401,"",""
