@@ -2181,6 +2181,1108 @@
                       "response": []
                     }
                   ]
+                },
+                {
+                  "name": "list-employees-by-job-and-other-filters",
+                  "item": [
+                    {
+                      "name": "PIM-201 add employee A (job data, supervisor) for the employee filters",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the three fixtures serve every row of the CSV: they are created in the first iteration only,",
+                              "// so a full run leaves 3 terminated employees behind, not 3 per row",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    // a run that stopped before its last iteration leaves fixtures active: terminate them, but only",
+                              "    // if the record still carries this folder's name (never touch other employees)",
+                              "    const leftover = JSON.parse(pm.environment.get(\"empfilter_fixtures\") || \"{}\");",
+                              "    [\"A\", \"B\", \"C\"].forEach(letter => {",
+                              "        const old = leftover[letter];",
+                              "        if (!old || !old.empNumber) {",
+                              "            return;",
+                              "        }",
+                              "        const auth = { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` };",
+                              "        pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/employees/${old.empNumber}`, method: \"GET\", header: auth }, (err, res) => {",
+                              "            const data = (!err && res.code === 200) ? (res.json() || {}).data || {} : {};",
+                              "            if (data.firstName === old.firstName && data.termination_id === null) {",
+                              "                pm.sendRequest({",
+                              "                    url: `${pm.environment.get(\"baseURL\")}/api/employees/${old.empNumber}/termination-record`,",
+                              "                    method: \"POST\",",
+                              "                    header: { ...auth, \"Content-Type\": \"application/json\" },",
+                              "                    body: { mode: \"raw\", raw: JSON.stringify({",
+                              "                        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "                        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "                    }) }",
+                              "                }, () => {});",
+                              "            }",
+                              "        });",
+                              "    });",
+                              "",
+                              "    // clear values left over from earlier folders or earlier runs",
+                              "    [\"empfilter_fixtures\", \"empfilter_a_emp_number\", \"empfilter_b_emp_number\", \"empfilter_c_emp_number\", \"empfilter_supervisor_linked\"].forEach(key => pm.environment.unset(key));",
+                              "",
+                              "    [\"firstName\", \"employeeIdPrefix\"].forEach(key => {",
+                              "        if (cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    // run-specific first name shared by A, B and C: every list query is scoped by it,",
+                              "    // so the results do not depend on the other employees on QA",
+                              "    const stamp = Date.now().toString().slice(-6);",
+                              "    pm.environment.set(\"empfilter_fixtures\", JSON.stringify({",
+                              "        firstName: `${cell(\"firstName\")}${stamp}`,",
+                              "        employeeIdPrefix: `${cell(\"employeeIdPrefix\")}-${stamp}`",
+                              "    }));",
+                              "    [\"aMiddleName\", \"aLastName\", \"aLocationId\", \"aJoinedDate\"].forEach(key => {",
+                              "        if (key !== \"aMiddleName\" && cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"empfilter_fixtures\"));",
+                              "    const employee = {",
+                              "        firstName: fixtures.firstName,",
+                              "        middleName: cell(\"aMiddleName\"),",
+                              "        lastName: cell(\"aLastName\"),",
+                              "        employeeId: `${fixtures.employeeIdPrefix}-A`,",
+                              "        locationId: cell(\"aLocationId\"),",
+                              "        joinedDate: cell(\"aJoinedDate\")",
+                              "    };",
+                              "    pm.variables.set(\"fixtureEmployee\", JSON.stringify(employee));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(employee));",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const sent = JSON.parse(pm.variables.get(\"fixtureEmployee\") || \"{}\");",
+                              "",
+                              "pm.test(\"Employee A for the filters is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "pm.test(\"Employee A is saved with the values sent\", function () {",
+                              "    pm.expect(norm(responseData.firstName), \"firstName\").to.eql(sent.firstName);",
+                              "    pm.expect(norm(responseData.middleName), \"middleName\").to.eql(sent.middleName);",
+                              "    pm.expect(norm(responseData.lastName), \"lastName\").to.eql(sent.lastName);",
+                              "    pm.expect(norm(responseData.employeeId), \"employeeId\").to.eql(sent.employeeId);",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-204 to PIM-211",
+                              "if (pm.response.code === 201 && responseData.empNumber) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"empfilter_fixtures\"));",
+                              "    fixtures.A = { ...sent, empNumber: norm(responseData.empNumber), terminationId: null };",
+                              "    pm.environment.set(\"empfilter_fixtures\", JSON.stringify(fixtures));",
+                              "    pm.environment.set(\"empfilter_a_emp_number\", norm(responseData.empNumber));",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-202 add employee B (job data, subordinate) for the employee filters",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the three fixtures serve every row of the CSV: they are created in the first iteration only,",
+                              "// so a full run leaves 3 terminated employees behind, not 3 per row",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"empfilter_fixtures\")) {",
+                              "        throw new Error(\"Precondition failed: empfilter_fixtures not set by PIM-201\");",
+                              "    }",
+                              "    [\"bMiddleName\", \"bLastName\", \"bLocationId\", \"bJoinedDate\"].forEach(key => {",
+                              "        if (key !== \"bMiddleName\" && cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"empfilter_fixtures\"));",
+                              "    const employee = {",
+                              "        firstName: fixtures.firstName,",
+                              "        middleName: cell(\"bMiddleName\"),",
+                              "        lastName: cell(\"bLastName\"),",
+                              "        employeeId: `${fixtures.employeeIdPrefix}-B`,",
+                              "        locationId: cell(\"bLocationId\"),",
+                              "        joinedDate: cell(\"bJoinedDate\")",
+                              "    };",
+                              "    pm.variables.set(\"fixtureEmployee\", JSON.stringify(employee));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(employee));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const sent = JSON.parse(pm.variables.get(\"fixtureEmployee\") || \"{}\");",
+                              "",
+                              "pm.test(\"Employee B for the filters is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "pm.test(\"Employee B is saved with the values sent\", function () {",
+                              "    pm.expect(norm(responseData.firstName), \"firstName\").to.eql(sent.firstName);",
+                              "    pm.expect(norm(responseData.middleName), \"middleName\").to.eql(sent.middleName);",
+                              "    pm.expect(norm(responseData.lastName), \"lastName\").to.eql(sent.lastName);",
+                              "    pm.expect(norm(responseData.employeeId), \"employeeId\").to.eql(sent.employeeId);",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-204 to PIM-211",
+                              "if (pm.response.code === 201 && responseData.empNumber) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"empfilter_fixtures\"));",
+                              "    fixtures.B = { ...sent, empNumber: norm(responseData.empNumber), terminationId: null };",
+                              "    pm.environment.set(\"empfilter_fixtures\", JSON.stringify(fixtures));",
+                              "    pm.environment.set(\"empfilter_b_emp_number\", norm(responseData.empNumber));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-203 add employee C (no job data, past employee) for the employee filters",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the three fixtures serve every row of the CSV: they are created in the first iteration only,",
+                              "// so a full run leaves 3 terminated employees behind, not 3 per row",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"empfilter_fixtures\")) {",
+                              "        throw new Error(\"Precondition failed: empfilter_fixtures not set by PIM-201\");",
+                              "    }",
+                              "    [\"cMiddleName\", \"cLastName\", \"cLocationId\", \"cJoinedDate\"].forEach(key => {",
+                              "        if (key !== \"cMiddleName\" && cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"empfilter_fixtures\"));",
+                              "    const employee = {",
+                              "        firstName: fixtures.firstName,",
+                              "        middleName: cell(\"cMiddleName\"),",
+                              "        lastName: cell(\"cLastName\"),",
+                              "        employeeId: `${fixtures.employeeIdPrefix}-C`,",
+                              "        locationId: cell(\"cLocationId\"),",
+                              "        joinedDate: cell(\"cJoinedDate\")",
+                              "    };",
+                              "    pm.variables.set(\"fixtureEmployee\", JSON.stringify(employee));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(employee));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const sent = JSON.parse(pm.variables.get(\"fixtureEmployee\") || \"{}\");",
+                              "",
+                              "pm.test(\"Employee C for the filters is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "pm.test(\"Employee C is saved with the values sent\", function () {",
+                              "    pm.expect(norm(responseData.firstName), \"firstName\").to.eql(sent.firstName);",
+                              "    pm.expect(norm(responseData.middleName), \"middleName\").to.eql(sent.middleName);",
+                              "    pm.expect(norm(responseData.lastName), \"lastName\").to.eql(sent.lastName);",
+                              "    pm.expect(norm(responseData.employeeId), \"employeeId\").to.eql(sent.employeeId);",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-204 to PIM-211",
+                              "if (pm.response.code === 201 && responseData.empNumber) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"empfilter_fixtures\"));",
+                              "    fixtures.C = { ...sent, empNumber: norm(responseData.empNumber), terminationId: null };",
+                              "    // C never gets job data, so these job record values stay empty (pim_undefined rows match C)",
+                              "    fixtures.C.job = { job_title_id: null, employment_status_id: null, job_category_id: null, subunit_id: null,",
+                              "        probation_end_date: null, date_of_permanency: null };",
+                              "    pm.environment.set(\"empfilter_fixtures\", JSON.stringify(fixtures));",
+                              "    pm.environment.set(\"empfilter_c_emp_number\", norm(responseData.empNumber));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-204 set the job details of employee A created by PIM-201",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// job data serves every row, so it is set in the first iteration only",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    const empNumber = pm.environment.get(\"empfilter_a_emp_number\");",
+                              "    if (!empNumber) {",
+                              "        throw new Error(\"Precondition failed: empfilter_a_emp_number not set by PIM-201\");",
+                              "    }",
+                              "    [\"JobTitleId\", \"EmploymentStatusId\", \"JobCategoryId\", \"SubunitId\", \"ProbationEndDate\", \"PermanencyDate\"].forEach(key => {",
+                              "        if (cell(`a${key}`).trim() === \"\") {",
+                              "            throw new Error(`Test data error: a${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    pm.variables.unset(\"currentJobRecord\");",
+                              "    // the PATCH needs the id of the employee's current job record",
+                              "    pm.sendRequest({",
+                              "        url: `${pm.environment.get(\"baseURL\")}/api/employees/${empNumber}/job`,",
+                              "        method: \"GET\",",
+                              "        header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "    }, (err, res) => {",
+                              "        const current = (!err && res.code === 200) ? (res.json() || {}).data || {} : {};",
+                              "        pm.variables.set(\"currentJobRecord\", JSON.stringify(current));",
+                              "        const job = {",
+                              "            id: norm(current.id),",
+                              "            job_title_id: cell(\"aJobTitleId\"),",
+                              "            employment_status_id: cell(\"aEmploymentStatusId\"),",
+                              "            job_category_id: cell(\"aJobCategoryId\"),",
+                              "            probation_end_date: cell(\"aProbationEndDate\"),",
+                              "            date_of_permanency: cell(\"aPermanencyDate\"),",
+                              "            subunit_id: cell(\"aSubunitId\")",
+                              "        };",
+                              "        pm.variables.set(\"fixtureJob\", JSON.stringify(job));",
+                              "        pm.variables.set(\"requestBody\", JSON.stringify(job));",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const current = JSON.parse(pm.variables.get(\"currentJobRecord\") || \"{}\");",
+                              "const sent = JSON.parse(pm.variables.get(\"fixtureJob\") || \"{}\");",
+                              "",
+                              "pm.test(\"Current job record of employee A is found\", function () {",
+                              "    pm.expect(norm(current.id), \"current job record id\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "pm.test(\"Job details of employee A are saved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "    pm.expect(norm((response.messages || {}).success), \"messages.success\").to.eql(cell(\"jobSuccessMessage\"));",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-209 (job filters and the JobRecord read-back). Work schedule, work basis",
+                              "// and location are not sent: they keep the values the employee was created with",
+                              "if (pm.response.code === 200) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"empfilter_fixtures\"));",
+                              "    const { id, ...saved } = sent;",
+                              "    [\"probation_end_date\", \"date_of_permanency\"].forEach(key => {",
+                              "        if (saved[key] === undefined) {",
+                              "            saved[key] = null;",
+                              "        }",
+                              "    });",
+                              "    fixtures.A.job = {",
+                              "        ...saved,",
+                              "        location_id: norm(current.location_id),",
+                              "        work_schedule_id: norm(current.work_schedule_id),",
+                              "        work_basis: norm(current.work_basis)",
+                              "    };",
+                              "    pm.environment.set(\"empfilter_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "PATCH",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{empfilter_a_emp_number}}/job",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{empfilter_a_emp_number}}",
+                            "job"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-205 set the job details of employee B created by PIM-202",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// job data serves every row, so it is set in the first iteration only",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    const empNumber = pm.environment.get(\"empfilter_b_emp_number\");",
+                              "    if (!empNumber) {",
+                              "        throw new Error(\"Precondition failed: empfilter_b_emp_number not set by PIM-202\");",
+                              "    }",
+                              "    [\"JobTitleId\", \"EmploymentStatusId\", \"JobCategoryId\", \"SubunitId\"].forEach(key => {",
+                              "        if (cell(`b${key}`).trim() === \"\") {",
+                              "            throw new Error(`Test data error: b${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    pm.variables.unset(\"currentJobRecord\");",
+                              "    // the PATCH needs the id of the employee's current job record",
+                              "    pm.sendRequest({",
+                              "        url: `${pm.environment.get(\"baseURL\")}/api/employees/${empNumber}/job`,",
+                              "        method: \"GET\",",
+                              "        header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "    }, (err, res) => {",
+                              "        const current = (!err && res.code === 200) ? (res.json() || {}).data || {} : {};",
+                              "        pm.variables.set(\"currentJobRecord\", JSON.stringify(current));",
+                              "        const job = {",
+                              "            id: norm(current.id),",
+                              "            job_title_id: cell(\"bJobTitleId\"),",
+                              "            employment_status_id: cell(\"bEmploymentStatusId\"),",
+                              "            job_category_id: cell(\"bJobCategoryId\"),",
+                              "            subunit_id: cell(\"bSubunitId\")",
+                              "        };",
+                              "        pm.variables.set(\"fixtureJob\", JSON.stringify(job));",
+                              "        pm.variables.set(\"requestBody\", JSON.stringify(job));",
+                              "    });",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const current = JSON.parse(pm.variables.get(\"currentJobRecord\") || \"{}\");",
+                              "const sent = JSON.parse(pm.variables.get(\"fixtureJob\") || \"{}\");",
+                              "",
+                              "pm.test(\"Current job record of employee B is found\", function () {",
+                              "    pm.expect(norm(current.id), \"current job record id\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "pm.test(\"Job details of employee B are saved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "    pm.expect(norm((response.messages || {}).success), \"messages.success\").to.eql(cell(\"jobSuccessMessage\"));",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-209 (job filters and the JobRecord read-back). Work schedule, work basis",
+                              "// and location are not sent: they keep the values the employee was created with",
+                              "if (pm.response.code === 200) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"empfilter_fixtures\"));",
+                              "    const { id, ...saved } = sent;",
+                              "    [\"probation_end_date\", \"date_of_permanency\"].forEach(key => {",
+                              "        if (saved[key] === undefined) {",
+                              "            saved[key] = null;",
+                              "        }",
+                              "    });",
+                              "    fixtures.B.job = {",
+                              "        ...saved,",
+                              "        location_id: norm(current.location_id),",
+                              "        work_schedule_id: norm(current.work_schedule_id),",
+                              "        work_basis: norm(current.work_basis)",
+                              "    };",
+                              "    pm.environment.set(\"empfilter_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "PATCH",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{empfilter_b_emp_number}}/job",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{empfilter_b_emp_number}}",
+                            "job"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-206 set the work email of employee A created by PIM-201",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the work email serves every row, so it is set in the first iteration only",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"empfilter_a_emp_number\")) {",
+                              "        throw new Error(\"Precondition failed: empfilter_a_emp_number not set by PIM-201\");",
+                              "    }",
+                              "    if (cell(\"aWorkEmailDomain\").trim() === \"\") {",
+                              "        throw new Error(\"Test data error: aWorkEmailDomain is blank in the CSV row\");",
+                              "    }",
+                              "    // unique per run: a work email can't be used by two employees",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"empfilter_fixtures\"));",
+                              "    const email = `${fixtures.firstName.toLowerCase()}.a@${cell(\"aWorkEmailDomain\")}`;",
+                              "    pm.variables.set(\"fixtureEmail\", email);",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({ emp_work_email: email }));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Work email of employee A is saved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "    pm.expect(norm(response.messages), \"messages\").to.eql(cell(\"emailSuccessMessage\"));",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-209 (has_work_email rows)",
+                              "if (pm.response.code === 200) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"empfilter_fixtures\"));",
+                              "    fixtures.A.workEmail = pm.variables.get(\"fixtureEmail\");",
+                              "    pm.environment.set(\"empfilter_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "PATCH",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{empfilter_a_emp_number}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{empfilter_a_emp_number}}"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-207 assign employee A as supervisor of employee B",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    [\"empfilter_a_emp_number\", \"empfilter_b_emp_number\"].forEach(key => {",
+                              "        if (!pm.environment.get(key)) {",
+                              "            throw new Error(`Precondition failed: ${key} not set by PIM-201/PIM-202`);",
+                              "        }",
+                              "    });",
+                              "    if (cell(\"reportingMethodId\").trim() === \"\") {",
+                              "        throw new Error(\"Test data error: reportingMethodId is blank in the CSV row\");",
+                              "    }",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        supervisorId: Number(pm.environment.get(\"empfilter_a_emp_number\")),",
+                              "        reportingMethodId: Number(cell(\"reportingMethodId\"))",
+                              "    }));",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Employee A is assigned as supervisor of employee B\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.supervisorId), \"supervisorId\").to.eql(pm.environment.get(\"empfilter_a_emp_number\"));",
+                              "    pm.expect(norm(responseData.subordinateId), \"subordinateId\").to.eql(pm.environment.get(\"empfilter_b_emp_number\"));",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-209 (supervisor filters)",
+                              "if (pm.response.code === 201) {",
+                              "    pm.environment.set(\"empfilter_supervisor_linked\", \"true\");",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{empfilter_b_emp_number}}/supervisors",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{empfilter_b_emp_number}}",
+                            "supervisors"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-208 terminate employee C with a past date",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"empfilter_c_emp_number\")) {",
+                              "        throw new Error(\"Precondition failed: empfilter_c_emp_number not set by PIM-203\");",
+                              "    }",
+                              "    // a past date: a termination dated today only takes effect once its time has passed",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        date: cell(\"cTerminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "    }));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Employee C is terminated with a past date\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(pm.environment.get(\"empfilter_c_emp_number\"));",
+                              "    pm.expect(norm(responseData.date), \"date\").to.eql(cell(\"cTerminationDate\"));",
+                              "    pm.expect(norm(responseData.id), \"termination id\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-209 (C is listed as a past employee with this termination_id)",
+                              "if (pm.response.code === 201 && responseData.id) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"empfilter_fixtures\"));",
+                              "    fixtures.C.terminationId = norm(responseData.id);",
+                              "    pm.environment.set(\"empfilter_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{empfilter_c_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{empfilter_c_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-209 list employees with the filter of the row",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst fixtures = JSON.parse(pm.environment.get(\"empfilter_fixtures\") || \"{}\");\n[\"A\", \"B\", \"C\"].forEach(letter => {\n    if (!fixtures[letter] || !fixtures[letter].empNumber) {\n        throw new Error(`Precondition failed: employee ${letter} not created by PIM-201 to PIM-203`);\n    }\n});\n[\"A\", \"B\"].forEach(letter => {\n    if (!fixtures[letter].job) {\n        throw new Error(`Precondition failed: job details of employee ${letter} not set by PIM-204/PIM-205`);\n    }\n});\nif (!fixtures.A.workEmail) {\n    throw new Error(\"Precondition failed: work email of employee A not set by PIM-206\");\n}\nif (pm.environment.get(\"empfilter_supervisor_linked\") !== \"true\") {\n    throw new Error(\"Precondition failed: supervisor link not created by PIM-207\");\n}\nif (!fixtures.C.terminationId) {\n    throw new Error(\"Precondition failed: employee C not terminated by PIM-208\");\n}\n\n// flt_query holds key=value pairs separated by \"&\". Tokens: {FIRST} = the folder's first name,\n// {A.<field>} = a value of fixture A (B, C alike): an employee field (empNumber, employeeId, locationId,\n// fullName = first middle last) or a job record field (job_title_id, subunit_id, work_schedule_id, ...)\nconst value = (letter, field) => {\n    const f = fixtures[letter];\n    if (field === \"fullName\") {\n        return [f.firstName, f.middleName, f.lastName].filter(part => part !== \"\").join(\" \");\n    }\n    if (f[field] !== undefined) {\n        return norm(f[field]);\n    }\n    if (f.job && f.job[field] !== undefined) {\n        return norm(f.job[field]);\n    }\n    throw new Error(`Test data error: fixture field ${letter}.${field} is unknown`);\n};\nconst resolve = text => text.replace(/\\{(FIRST|[ABC]\\.[A-Za-z_]+)\\}/g, (match, token) =>\n    token === \"FIRST\" ? fixtures.firstName : value(token[0], token.slice(2)));\nconst query = cell(\"flt_query\");\nif (query === \"\") {\n    throw new Error(\"Test data error: flt_query is blank in the CSV row\");\n}\nquery.split(\"&\").forEach(pair => {\n    const at = pair.indexOf(\"=\");\n    if (at < 1) {\n        throw new Error(`Test data error: \"${pair}\" in flt_query is not key=value`);\n    }\n    pm.request.url.addQueryParams([{ key: pair.slice(0, at), value: resolve(pair.slice(at + 1)) }]);\n});"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nlet response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // not JSON: the checks below report it\n}\nconst rows = Array.isArray(response.data) ? response.data : [];\nconst meta = response.meta || {};\nconst fixtures = JSON.parse(pm.environment.get(\"empfilter_fixtures\") || \"{}\");\nconst defect = cell(\"flt_knownDefect\") === \"\" ? \"\" : ` [known defect ${cell(\"flt_knownDefect\")}]`;\nconst scenario = `${cell(\"scenario\")}${defect}`;\nconst letterOf = {};\n[\"A\", \"B\", \"C\"].forEach(letter => { letterOf[norm((fixtures[letter] || {}).empNumber)] = letter; });\n\n// rows are named by fixture letter; any other employee shows up as \"other <empNumber>\"\nconst 4 = rows.map(row => letterOf[norm(row.empNumber)] || `other ${norm(row.empNumber)}`);\nconst expected = cell(\"flt_expected\") === \"\" ? [] : cell(\"flt_expected\").split(\"|\");\n\npm.test(`Employee list is returned (${scenario})`, function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(`Response matches the employee list schema (${scenario})`, function () {\n    const raw = pm.collectionVariables.get(\"employeeListSchema\");\n    pm.expect(raw, \"employeeListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(`Only the employees matching the filter are returned (${scenario})`, function () {\n    pm.expect([...actual].sort(), \"employees returned\").to.eql([...expected].sort());\n});\n\npm.test(`meta.total is the number of matching employees (${scenario})`, function () {\n    pm.expect(meta.total, \"meta.total\").to.be.a(\"string\");\n    pm.expect(meta.total, \"meta.total\").to.eql(String(expected.length));\n});\n\n// read-after-write: each listed fixture carries the values it was created with\nif (rows.length > 0) {\n    pm.test(`Listed employees match the values they were saved with (${scenario})`, function () {\n        rows.forEach(row => {\n            const letter = letterOf[norm(row.empNumber)];\n            if (!letter) {\n                return;\n            }\n            const f = fixtures[letter];\n            pm.expect(norm(row.firstName), `${letter} firstName`).to.eql(f.firstName);\n            pm.expect(norm(row.lastName), `${letter} lastName`).to.eql(f.lastName);\n            pm.expect(norm(row.employeeId), `${letter} employeeId`).to.eql(f.employeeId);\n            pm.expect(norm(row.joinedDate), `${letter} joinedDate`).to.eql(f.joinedDate);\n            pm.expect(row.termination_id, `${letter} termination_id`).to.eql(f.terminationId);\n        });\n    });\n}\n\n// flt_jobCheck: job record fields (comma list) that each listed fixture must carry as saved by PIM-204/PIM-205;\n// the query of such a row includes include=JobRecord\nconst jobFields = cell(\"flt_jobCheck\") === \"\" ? [] : cell(\"flt_jobCheck\").split(\",\");\nif (jobFields.length > 0 && rows.length > 0) {\n    pm.test(`Listed employees hold the job data the filter matched (${scenario})`, function () {\n        rows.forEach(row => {\n            const letter = letterOf[norm(row.empNumber)];\n            if (!letter) {\n                return;\n            }\n            const record = row.JobRecord;\n            pm.expect(record, `${letter} JobRecord`).to.be.an(\"object\");\n            jobFields.forEach(field => {\n                pm.expect(norm(record[field]), `${letter} JobRecord.${field}`).to.eql(norm(fixtures[letter].job[field]));\n            });\n        });\n    });\n}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-210 terminate employee A created by PIM-201",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// A and B serve every row, so they are terminated after the last iteration only",
+                              "if (pm.info.iteration < pm.info.iterationCount - 1) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"empfilter_a_emp_number\")) {",
+                              "        throw new Error(\"Precondition failed: empfilter_a_emp_number not set by PIM-201\");",
+                              "    }",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "    }));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Employee A created by PIM-201 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(pm.environment.get(\"empfilter_a_emp_number\"));",
+                              "});",
+                              "",
+                              "pm.environment.unset(\"empfilter_a_emp_number\");"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{empfilter_a_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{empfilter_a_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-211 terminate employee B created by PIM-202",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// A and B serve every row, so they are terminated after the last iteration only",
+                              "if (pm.info.iteration < pm.info.iterationCount - 1) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"empfilter_b_emp_number\")) {",
+                              "        throw new Error(\"Precondition failed: empfilter_b_emp_number not set by PIM-202\");",
+                              "    }",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "    }));",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Employee B created by PIM-202 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(pm.environment.get(\"empfilter_b_emp_number\"));",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders and runs cannot pick them up",
+                              "[\"empfilter_fixtures\", \"empfilter_a_emp_number\", \"empfilter_b_emp_number\", \"empfilter_c_emp_number\", \"empfilter_supervisor_linked\"].forEach(key => pm.environment.unset(key));"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{empfilter_b_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{empfilter_b_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
                 }
               ]
             },
@@ -4503,6 +5605,1255 @@
                             "api",
                             "employees",
                             "{{tget_d_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Get-Employee-Details",
+              "item": [
+                {
+                  "name": "get-employee-details-of-created-employees",
+                  "item": [
+                    {
+                      "name": "PIM-221 add employee A with all personal details",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the four fixtures serve every row of the CSV: they are created in the first iteration only,",
+                              "// so a full run leaves 4 terminated employees behind, not 4 per row",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    // a run that stopped before its last iteration leaves fixtures active: terminate them, but only",
+                              "    // if the record still carries this folder's name (never touch other employees)",
+                              "    const leftover = JSON.parse(pm.environment.get(\"ged_fixtures\") || \"{}\");",
+                              "    [\"A\", \"B\", \"C\", \"D\"].forEach(letter => {",
+                              "        const old = leftover[letter];",
+                              "        if (!old || !old.empNumber) {",
+                              "            return;",
+                              "        }",
+                              "        const auth = { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` };",
+                              "        pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/employees/${old.empNumber}`, method: \"GET\", header: auth }, (err, res) => {",
+                              "            const data = (!err && res.code === 200) ? (res.json() || {}).data || {} : {};",
+                              "            if (data.firstName === old.firstName && data.termination_id === null) {",
+                              "                pm.sendRequest({",
+                              "                    url: `${pm.environment.get(\"baseURL\")}/api/employees/${old.empNumber}/termination-record`,",
+                              "                    method: \"POST\",",
+                              "                    header: { ...auth, \"Content-Type\": \"application/json\" },",
+                              "                    body: { mode: \"raw\", raw: JSON.stringify({",
+                              "                        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "                        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "                    }) }",
+                              "                }, () => {});",
+                              "            }",
+                              "        });",
+                              "    });",
+                              "",
+                              "    // clear values left over from earlier folders or earlier runs",
+                              "    [\"ged_fixtures\", \"ged_a_emp_number\", \"ged_b_emp_number\", \"ged_c_emp_number\", \"ged_d_emp_number\", \"ged_supervisor_linked\"].forEach(key => pm.environment.unset(key));",
+                              "",
+                              "    [\"firstName\", \"employeeIdPrefix\"].forEach(key => {",
+                              "        if (cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    // run-specific first name and employee ID prefix shared by the fixtures",
+                              "    const stamp = Date.now().toString().slice(-6);",
+                              "    pm.environment.set(\"ged_fixtures\", JSON.stringify({",
+                              "        firstName: `${cell(\"firstName\")}${stamp}`,",
+                              "        employeeIdPrefix: `${cell(\"employeeIdPrefix\")}-${stamp}`,",
+                              "        stamp: stamp",
+                              "    }));",
+                              "    [\"aLastName\", \"aLocationId\", \"aJoinedDate\"].forEach(key => {",
+                              "        if (cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ged_fixtures\"));",
+                              "    const employee = {",
+                              "        firstName: fixtures.firstName,",
+                              "        middleName: cell(\"aMiddleName\"),",
+                              "        lastName: cell(\"aLastName\"),",
+                              "        employeeId: `${fixtures.employeeIdPrefix}-A`,",
+                              "        locationId: cell(\"aLocationId\"),",
+                              "        joinedDate: cell(\"aJoinedDate\")",
+                              "    };",
+                              "    pm.variables.set(\"fixtureEmployee\", JSON.stringify(employee));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(employee));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const sent = JSON.parse(pm.variables.get(\"fixtureEmployee\") || \"{}\");",
+                              "",
+                              "pm.test(\"Employee A with all personal details is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "pm.test(\"Employee A is saved with the values sent\", function () {",
+                              "    pm.expect(norm(responseData.firstName), \"firstName\").to.eql(sent.firstName);",
+                              "    pm.expect(norm(responseData.middleName), \"middleName\").to.eql(sent.middleName);",
+                              "    pm.expect(norm(responseData.lastName), \"lastName\").to.eql(sent.lastName);",
+                              "    pm.expect(norm(responseData.employeeId), \"employeeId\").to.eql(sent.employeeId);",
+                              "});",
+                              "",
+                              "// side effect: consumed by the later fixture requests and PIM-229",
+                              "if (pm.response.code === 201 && responseData.empNumber) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ged_fixtures\"));",
+                              "    fixtures.A = { ...sent, empNumber: norm(responseData.empNumber) };",
+                              "    pm.environment.set(\"ged_fixtures\", JSON.stringify(fixtures));",
+                              "    pm.environment.set(\"ged_a_emp_number\", norm(responseData.empNumber));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-222 update personal details of employee A created by PIM-221",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"ged_a_emp_number\")) {",
+                              "        throw new Error(\"Precondition failed: ged_a_emp_number not set by PIM-221\");",
+                              "    }",
+                              "    if (cell(\"aPersonalDetails\").trim() === \"\") {",
+                              "        throw new Error(\"Test data error: aPersonalDetails is blank in the CSV row\");",
+                              "    }",
+                              "    // {STAMP} keeps the e-mail addresses unique across runs (they must not be used by another employee)",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ged_fixtures\"));",
+                              "    let details;",
+                              "    try {",
+                              "        details = JSON.parse(cell(\"aPersonalDetails\").split(\"{STAMP}\").join(fixtures.stamp));",
+                              "    } catch (e) {",
+                              "        throw new Error(\"Test data error: aPersonalDetails is not valid JSON\");",
+                              "    }",
+                              "    pm.variables.set(\"personalDetails\", JSON.stringify(details));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(details));",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Personal details of employee A are saved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "    pm.expect(norm(response.messages), \"messages\").to.eql(cell(\"aPatchMessage\"));",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-229 (read-after-write of every personal detail)",
+                              "if (pm.response.code === 200) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ged_fixtures\"));",
+                              "    fixtures.A = { ...fixtures.A, ...JSON.parse(pm.variables.get(\"personalDetails\")) };",
+                              "    pm.environment.set(\"ged_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "PATCH",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{ged_a_emp_number}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{ged_a_emp_number}}"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-223 add employee B with mandatory fields only (supervisor)",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the four fixtures serve every row of the CSV: they are created in the first iteration only,",
+                              "// so a full run leaves 4 terminated employees behind, not 4 per row",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"ged_fixtures\")) {",
+                              "        throw new Error(\"Precondition failed: ged_fixtures not set by PIM-221\");",
+                              "    }",
+                              "    [\"bLastName\", \"bLocationId\", \"bJoinedDate\"].forEach(key => {",
+                              "        if (cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ged_fixtures\"));",
+                              "    const employee = {",
+                              "        firstName: fixtures.firstName,",
+                              "        middleName: cell(\"bMiddleName\"),",
+                              "        lastName: cell(\"bLastName\"),",
+                              "        employeeId: `${fixtures.employeeIdPrefix}-B`,",
+                              "        locationId: cell(\"bLocationId\"),",
+                              "        joinedDate: cell(\"bJoinedDate\")",
+                              "    };",
+                              "    pm.variables.set(\"fixtureEmployee\", JSON.stringify(employee));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(employee));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const sent = JSON.parse(pm.variables.get(\"fixtureEmployee\") || \"{}\");",
+                              "",
+                              "pm.test(\"Employee B with mandatory fields only (supervisor) is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "pm.test(\"Employee B is saved with the values sent\", function () {",
+                              "    pm.expect(norm(responseData.firstName), \"firstName\").to.eql(sent.firstName);",
+                              "    pm.expect(norm(responseData.middleName), \"middleName\").to.eql(sent.middleName);",
+                              "    pm.expect(norm(responseData.lastName), \"lastName\").to.eql(sent.lastName);",
+                              "    pm.expect(norm(responseData.employeeId), \"employeeId\").to.eql(sent.employeeId);",
+                              "});",
+                              "",
+                              "// side effect: consumed by the later fixture requests and PIM-229",
+                              "if (pm.response.code === 201 && responseData.empNumber) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ged_fixtures\"));",
+                              "    fixtures.B = { ...sent, empNumber: norm(responseData.empNumber) };",
+                              "    pm.environment.set(\"ged_fixtures\", JSON.stringify(fixtures));",
+                              "    pm.environment.set(\"ged_b_emp_number\", norm(responseData.empNumber));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-224 assign employee B as supervisor of employee A",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    [\"ged_a_emp_number\", \"ged_b_emp_number\"].forEach(key => {",
+                              "        if (!pm.environment.get(key)) {",
+                              "            throw new Error(`Precondition failed: ${key} not set by PIM-221/PIM-223`);",
+                              "        }",
+                              "    });",
+                              "    if (cell(\"reportingMethodId\").trim() === \"\") {",
+                              "        throw new Error(\"Test data error: reportingMethodId is blank in the CSV row\");",
+                              "    }",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        supervisorId: Number(pm.environment.get(\"ged_b_emp_number\")),",
+                              "        reportingMethodId: Number(cell(\"reportingMethodId\"))",
+                              "    }));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Employee B is assigned as supervisor of employee A\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.supervisorId), \"supervisorId\").to.eql(pm.environment.get(\"ged_b_emp_number\"));",
+                              "    pm.expect(norm(responseData.subordinateId), \"subordinateId\").to.eql(pm.environment.get(\"ged_a_emp_number\"));",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-229 (include=supervisors / subordinates)",
+                              "if (pm.response.code === 201) {",
+                              "    pm.environment.set(\"ged_supervisor_linked\", \"true\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{ged_a_emp_number}}/supervisors",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{ged_a_emp_number}}",
+                            "supervisors"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-225 add employee C for a past employee",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the four fixtures serve every row of the CSV: they are created in the first iteration only,",
+                              "// so a full run leaves 4 terminated employees behind, not 4 per row",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"ged_fixtures\")) {",
+                              "        throw new Error(\"Precondition failed: ged_fixtures not set by PIM-221\");",
+                              "    }",
+                              "    [\"cLastName\", \"cLocationId\", \"cJoinedDate\"].forEach(key => {",
+                              "        if (cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ged_fixtures\"));",
+                              "    const employee = {",
+                              "        firstName: fixtures.firstName,",
+                              "        middleName: cell(\"cMiddleName\"),",
+                              "        lastName: cell(\"cLastName\"),",
+                              "        employeeId: `${fixtures.employeeIdPrefix}-C`,",
+                              "        locationId: cell(\"cLocationId\"),",
+                              "        joinedDate: cell(\"cJoinedDate\")",
+                              "    };",
+                              "    pm.variables.set(\"fixtureEmployee\", JSON.stringify(employee));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(employee));",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const sent = JSON.parse(pm.variables.get(\"fixtureEmployee\") || \"{}\");",
+                              "",
+                              "pm.test(\"Employee C for a past employee is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "pm.test(\"Employee C is saved with the values sent\", function () {",
+                              "    pm.expect(norm(responseData.firstName), \"firstName\").to.eql(sent.firstName);",
+                              "    pm.expect(norm(responseData.middleName), \"middleName\").to.eql(sent.middleName);",
+                              "    pm.expect(norm(responseData.lastName), \"lastName\").to.eql(sent.lastName);",
+                              "    pm.expect(norm(responseData.employeeId), \"employeeId\").to.eql(sent.employeeId);",
+                              "});",
+                              "",
+                              "// side effect: consumed by the later fixture requests and PIM-229",
+                              "if (pm.response.code === 201 && responseData.empNumber) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ged_fixtures\"));",
+                              "    fixtures.C = { ...sent, empNumber: norm(responseData.empNumber) };",
+                              "    pm.environment.set(\"ged_fixtures\", JSON.stringify(fixtures));",
+                              "    pm.environment.set(\"ged_c_emp_number\", norm(responseData.empNumber));",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-226 terminate employee C with a past date",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"ged_c_emp_number\")) {",
+                              "        throw new Error(\"Precondition failed: ged_c_emp_number not set by PIM-225\");",
+                              "    }",
+                              "    // a past date: a termination dated today only takes effect once its time has passed",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        date: cell(\"cTerminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "    }));",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Employee C is terminated with a past date\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(pm.environment.get(\"ged_c_emp_number\"));",
+                              "    pm.expect(norm(responseData.date), \"date\").to.eql(cell(\"cTerminationDate\"));",
+                              "    pm.expect(norm(responseData.id), \"termination id\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-229 (termination_id and include=EmployeeTerminationRecord of C)",
+                              "if (pm.response.code === 201 && responseData.id) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ged_fixtures\"));",
+                              "    fixtures.C = { ...fixtures.C, terminationId: norm(responseData.id), terminationDate: norm(responseData.date),",
+                              "        terminationReason: norm(responseData.reasonId), terminationNote: norm(responseData.note) };",
+                              "    pm.environment.set(\"ged_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{ged_c_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{ged_c_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-227 add employee D with a future termination",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the four fixtures serve every row of the CSV: they are created in the first iteration only,",
+                              "// so a full run leaves 4 terminated employees behind, not 4 per row",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"ged_fixtures\")) {",
+                              "        throw new Error(\"Precondition failed: ged_fixtures not set by PIM-221\");",
+                              "    }",
+                              "    [\"dLastName\", \"dLocationId\", \"dJoinedDate\"].forEach(key => {",
+                              "        if (cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ged_fixtures\"));",
+                              "    const employee = {",
+                              "        firstName: fixtures.firstName,",
+                              "        middleName: cell(\"dMiddleName\"),",
+                              "        lastName: cell(\"dLastName\"),",
+                              "        employeeId: `${fixtures.employeeIdPrefix}-D`,",
+                              "        locationId: cell(\"dLocationId\"),",
+                              "        joinedDate: cell(\"dJoinedDate\")",
+                              "    };",
+                              "    pm.variables.set(\"fixtureEmployee\", JSON.stringify(employee));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(employee));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const sent = JSON.parse(pm.variables.get(\"fixtureEmployee\") || \"{}\");",
+                              "",
+                              "pm.test(\"Employee D with a future termination is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "pm.test(\"Employee D is saved with the values sent\", function () {",
+                              "    pm.expect(norm(responseData.firstName), \"firstName\").to.eql(sent.firstName);",
+                              "    pm.expect(norm(responseData.middleName), \"middleName\").to.eql(sent.middleName);",
+                              "    pm.expect(norm(responseData.lastName), \"lastName\").to.eql(sent.lastName);",
+                              "    pm.expect(norm(responseData.employeeId), \"employeeId\").to.eql(sent.employeeId);",
+                              "});",
+                              "",
+                              "// side effect: consumed by the later fixture requests and PIM-229",
+                              "if (pm.response.code === 201 && responseData.empNumber) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ged_fixtures\"));",
+                              "    fixtures.D = { ...sent, empNumber: norm(responseData.empNumber) };",
+                              "    pm.environment.set(\"ged_fixtures\", JSON.stringify(fixtures));",
+                              "    pm.environment.set(\"ged_d_emp_number\", norm(responseData.empNumber));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-228 schedule a future termination for employee D",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"ged_d_emp_number\")) {",
+                              "        throw new Error(\"Precondition failed: ged_d_emp_number not set by PIM-227\");",
+                              "    }",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        date: cell(\"dScheduledTerminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "    }));",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Termination of employee D is scheduled for a future date\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(pm.environment.get(\"ged_d_emp_number\"));",
+                              "    pm.expect(norm(responseData.date), \"date\").to.eql(cell(\"dScheduledTerminationDate\"));",
+                              "    pm.expect(responseData.terminateinfuture, \"terminateinfuture\").to.eql(true);",
+                              "});"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{ged_d_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{ged_d_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-229 get employee details with the query of the row",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "const fixtures = JSON.parse(pm.environment.get(\"ged_fixtures\") || \"{}\");",
+                              "[\"A\", \"B\", \"C\", \"D\"].forEach(letter => {",
+                              "    if (!fixtures[letter] || !fixtures[letter].empNumber) {",
+                              "        throw new Error(`Precondition failed: employee ${letter} not created by PIM-221 to PIM-227`);",
+                              "    }",
+                              "});",
+                              "if (!fixtures.C.terminationId) {",
+                              "    throw new Error(\"Precondition failed: employee C not terminated by PIM-226\");",
+                              "}",
+                              "if (pm.environment.get(\"ged_supervisor_linked\") !== \"true\") {",
+                              "    throw new Error(\"Precondition failed: supervisor link not created by PIM-224\");",
+                              "}",
+                              "",
+                              "const letter = cell(\"ged_employee\");",
+                              "if (!fixtures[letter]) {",
+                              "    throw new Error(`Test data error: ged_employee \"${letter}\" is not A, B, C or D`);",
+                              "}",
+                              "pm.variables.set(\"ged_target_emp_number\", fixtures[letter].empNumber);",
+                              "",
+                              "// ged_query holds key=value pairs separated by \"&\" (blank = no query)",
+                              "const query = cell(\"ged_query\");",
+                              "if (query !== \"\") {",
+                              "    query.split(\"&\").forEach(pair => {",
+                              "        const at = pair.indexOf(\"=\");",
+                              "        if (at < 1) {",
+                              "            throw new Error(`Test data error: \"${pair}\" in ged_query is not key=value`);",
+                              "        }",
+                              "        pm.request.url.addQueryParams([{ key: pair.slice(0, at), value: pair.slice(at + 1) }]);",
+                              "    });",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const fixtures = JSON.parse(pm.environment.get(\"ged_fixtures\") || \"{}\");",
+                              "const letter = cell(\"ged_employee\");",
+                              "const fixture = fixtures[letter] || {};",
+                              "const scenario = cell(\"scenario\");",
+                              "const defect = cell(\"ged_knownDefect\") === \"\" ? \"\" : ` [known defect ${cell(\"ged_knownDefect\")}]`;",
+                              "",
+                              "// {A.<field>} = a saved value of fixture A (B, C, D alike)",
+                              "const resolve = text => text.replace(/\\{([ABCD])\\.([A-Za-z_]+)\\}/g, (match, who, field) => {",
+                              "    const value = (fixtures[who] || {})[field];",
+                              "    if (value === undefined) {",
+                              "        throw new Error(`Test data error: fixture field ${who}.${field} is unknown`);",
+                              "    }",
+                              "    return norm(value);",
+                              "});",
+                              "// a.b = nested key; list[*].x = the x of every list item, joined with \"|\"",
+                              "const read = (data, path) => {",
+                              "    const at = path.indexOf(\"[*].\");",
+                              "    if (at >= 0) {",
+                              "        const list = read(data, path.slice(0, at));",
+                              "        return Array.isArray(list) ? list.map(item => norm(read(item, path.slice(at + 4)))).join(\"|\") : undefined;",
+                              "    }",
+                              "    return path.split(\".\").reduce((node, key) => (node === null || node === undefined) ? undefined : node[key], data);",
+                              "};",
+                              "",
+                              "pm.test(`Employee details are returned (${scenario})${defect}`, function () {",
+                              "    pm.response.to.have.status(200);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(fixture.empNumber);",
+                              "});",
+                              "",
+                              "if (cell(\"ged_checkSchema\") === \"true\") {",
+                              "    pm.test(`Response matches the employee schema (${scenario})`, function () {",
+                              "        const raw = pm.collectionVariables.get(\"getEmployeeSchema\");",
+                              "        pm.expect(raw, \"getEmployeeSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "        pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "    });",
+                              "}",
+                              "",
+                              "// read-after-write: every value the employee was created and updated with comes back unchanged",
+                              "if (cell(\"ged_checkSavedDetails\") === \"true\") {",
+                              "    pm.test(`Employee details match the values they were saved with (${scenario})`, function () {",
+                              "        const responseKey = { joinedDate: \"joined_date\" };",
+                              "        Object.keys(fixture).filter(key => ![\"empNumber\", \"terminationId\", \"terminationDate\", \"terminationReason\", \"terminationNote\"].includes(key)).forEach(key => {",
+                              "            pm.expect(norm(responseData[responseKey[key] || key]), key).to.eql(norm(fixture[key]));",
+                              "        });",
+                              "    });",
+                              "}",
+                              "",
+                              "// ged_expectedValues: path=value pairs separated by \";\" - null and [] are checked by type",
+                              "if (cell(\"ged_expectedValues\") !== \"\") {",
+                              "    pm.test(`Employee data holds the expected values (${scenario})${defect}`, function () {",
+                              "        cell(\"ged_expectedValues\").split(\";\").forEach(pair => {",
+                              "            const at = pair.indexOf(\"=\");",
+                              "            const path = pair.slice(0, at);",
+                              "            const want = resolve(pair.slice(at + 1));",
+                              "            const got = read(responseData, path);",
+                              "            if (want === \"null\") {",
+                              "                pm.expect(got, path).to.be.null;",
+                              "            } else if (want === \"[]\") {",
+                              "                pm.expect(got, path).to.be.an(\"array\").that.is.empty;",
+                              "            } else {",
+                              "                pm.expect(got, path).to.not.be.undefined;",
+                              "                pm.expect(norm(got), path).to.eql(want);",
+                              "            }",
+                              "        });",
+                              "    });",
+                              "}",
+                              "",
+                              "if (cell(\"ged_expectedKeys\") !== \"\") {",
+                              "    pm.test(`Employee data holds the included keys (${scenario})${defect}`, function () {",
+                              "        pm.expect(responseData, \"included keys\").to.include.all.keys(...cell(\"ged_expectedKeys\").split(\",\"));",
+                              "    });",
+                              "}",
+                              "",
+                              "if (cell(\"ged_exactKeys\") !== \"\") {",
+                              "    pm.test(`Employee data holds only the requested fields (${scenario})${defect}`, function () {",
+                              "        pm.expect(Object.keys(responseData).sort(), \"returned fields\").to.eql(cell(\"ged_exactKeys\").split(\",\").sort());",
+                              "    });",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{ged_target_emp_number}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{ged_target_emp_number}}"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-230 terminate employee A created by PIM-221",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the fixtures serve every row, so they are terminated after the last iteration only",
+                              "if (pm.info.iteration < pm.info.iterationCount - 1) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"ged_a_emp_number\")) {",
+                              "        throw new Error(\"Precondition failed: ged_a_emp_number not set by PIM-221\");",
+                              "    }",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "    }));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Employee A created by PIM-221 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(pm.environment.get(\"ged_a_emp_number\"));",
+                              "    pm.expect(responseData.terminateinfuture, \"terminateinfuture\").to.eql(false);",
+                              "});",
+                              "",
+                              "pm.environment.unset(\"ged_a_emp_number\");"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{ged_a_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{ged_a_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-231 terminate employee B created by PIM-223",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the fixtures serve every row, so they are terminated after the last iteration only",
+                              "if (pm.info.iteration < pm.info.iterationCount - 1) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"ged_b_emp_number\")) {",
+                              "        throw new Error(\"Precondition failed: ged_b_emp_number not set by PIM-223\");",
+                              "    }",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "    }));",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Employee B created by PIM-223 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(pm.environment.get(\"ged_b_emp_number\"));",
+                              "    pm.expect(responseData.terminateinfuture, \"terminateinfuture\").to.eql(false);",
+                              "});",
+                              "",
+                              "pm.environment.unset(\"ged_b_emp_number\");"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{ged_b_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{ged_b_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-232 terminate employee D created by PIM-227",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the fixtures serve every row, so they are terminated after the last iteration only",
+                              "if (pm.info.iteration < pm.info.iterationCount - 1) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"ged_d_emp_number\")) {",
+                              "        throw new Error(\"Precondition failed: ged_d_emp_number not set by PIM-227\");",
+                              "    }",
+                              "    // a past date: for D it replaces the scheduled termination, which then takes effect now",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "    }));",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Employee D created by PIM-227 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(pm.environment.get(\"ged_d_emp_number\"));",
+                              "    pm.expect(responseData.terminateinfuture, \"terminateinfuture\").to.eql(false);",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders and runs cannot pick them up",
+                              "[\"ged_fixtures\", \"ged_a_emp_number\", \"ged_b_emp_number\", \"ged_c_emp_number\", \"ged_d_emp_number\", \"ged_supervisor_linked\"].forEach(key => pm.environment.unset(key));"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{ged_d_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{ged_d_emp_number}}",
                             "termination-record"
                           ]
                         }
@@ -19193,7 +21544,7 @@
                       "script": {
                         "type": "text/javascript",
                         "exec": [
-                          "const hmexistingforCandidate = pm.collectionVariables.get(\"vacancy_hm_emp_number_candi\");\n\nif (pm.info.iteration > 0 && hmexistingforCandidate){\n        pm.request.method = \"GET\";\n        pm.request.body.update = \"\";\n        pm.request.headers.remove(\"Content-Type\");\n        pm.variables.set(\"employeePath\", `/${hmexistingforCandidate}`)\n}\n\nelse {\n    if (hmexistingforCandidate){\n        pm.sendRequest({\n            url : `${pm.environment.get(\"baseURL\")}/api/employees/${hmexistingforCandidate}/termination-record`,\n            method: \"POST\",\n            headers : { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },\n            body: { mode : \"raw\", raw : JSON.stringify({\n                date : pm.iterationData.get (\"terminationDate\"),\n                flaged : String(pm.iterationData.get (\"flagValue\")),\n                note : String(pm.iterationData.get (\"terminationNote\")),\n                reason : String(pm.iterationData.get (\"terminationReason\")),\n                time : pm.iterationData.get (\"time\"),\n                timezone : pm.iterationData.get (\"timezone\"),\n            })}\n        }, (err,res) => {\n\n            pm.test(\"Termination API - no request error\", function () {\n                pm.expect(err).to.equal(null);\n            });\n\n            if (err) {\n                console.error(\"Termination request error:\", err);\n                return;\n            }\n\n            pm.test (\"Validate the success response upon termination\", function () {\n                pm.expect(res.code).to.be.oneOf([200,201,204]);\n            })\n        })\n    }\n\n     [\"vacancy_hm_emp_number\", \"vacancy_id\", \"vacancy_expected\"].forEach(key => pm.collectionVariables.unset(key))\n\n    pm.variables.set(\"employeePath\", \"\");\n    pm.variables.set(\"employeeId\", `VACHM-${Date.now().toString().slice(-6)}`);\n}"
+                          "const hmexistingforCandidate = pm.environment.get(\"vacancy_hm_emp_number_candi\");\n\n// one hiring manager serves every iteration: later iterations only read it (GET)\nif (pm.info.iteration > 0 && hmexistingforCandidate){\n        pm.request.method = \"GET\";\n        pm.request.body.update(\"\");\n        pm.request.headers.remove(\"Content-Type\");\n        pm.variables.set(\"employeePath\", `/${hmexistingforCandidate}`)\n}\n\nelse {\n    // a run that stopped before its last iteration leaves its hiring manager active: terminate it first\n    if (hmexistingforCandidate){\n        pm.sendRequest({\n            url : `${pm.environment.get(\"baseURL\")}/api/employees/${hmexistingforCandidate}/termination-record`,\n            method: \"POST\",\n            header : { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },\n            body: { mode : \"raw\", raw : JSON.stringify({\n                date : pm.iterationData.get (\"terminationDate\"),\n                flaged : String(pm.iterationData.get (\"flagValue\")),\n                note : String(pm.iterationData.get (\"terminationNote\")),\n                reason : String(pm.iterationData.get (\"terminationReason\")),\n                time : pm.iterationData.get (\"time\"),\n                timezone : pm.iterationData.get (\"timezone\"),\n            })}\n        }, (err,res) => {\n\n            pm.test(\"Termination API - no request error\", function () {\n                pm.expect(err).to.equal(null);\n            });\n\n            if (err) {\n                console.error(\"Termination request error:\", err);\n                return;\n            }\n\n            pm.test (\"Validate the success response upon termination\", function () {\n                pm.expect(res.code).to.be.oneOf([200,201,204]);\n            })\n        })\n    }\n\n    // clear values left over from earlier runs of this folder\n    [\"vacancy_hm_emp_number_candi\", \"vacancy_id_For_candi\", \"vacancy_fixture_for_candi\", \"vacancy_expected\", \"candidate_ids_for_candi\"].forEach(key => pm.environment.unset(key))\n\n    pm.variables.set(\"employeePath\", \"\");\n    pm.variables.set(\"employeeId\", `VACHM-${Date.now().toString().slice(-6)}`);\n}"
                         ]
                       }
                     },
@@ -19202,7 +21553,7 @@
                       "script": {
                         "type": "text/javascript",
                         "exec": [
-                          "const responseData = (pm.response.json() || {}).data || {};\n\nif (pm.request.method == \"GET\"){\n    pm.test(\"Hisirng manager is still active\", function () {\n        pm.response.to.have.status(200);\n        pm.expect(String(responseData.empNumber), \"Employee number should be present\").to.eql(String(pm.collectionVariables.get(vacancy_hm_emp_number_candi)));\n        pm.expect(responseData.termination_id, \"termination_id\").to.be.null;\n    })\n}\n\nelse {\n    pm.test(\"Employee created successfully\", function () {\n        pm.response.to.have.status(201);\n    })\n    pm.test (\"Employee number exist\", function () {\n        pm.expect(responseData.empNumber, \"Employee number\").to.exist.and.not.to.be.empty;\n    })\n\n    if (responseData.empNumber){\n        pm.collectionVariables.set(\"vacancy_hm_emp_number_candi\", String(responseData.empNumber));\n    }\n}\n\n"
+                          "const responseData = (pm.response.json() || {}).data || {};\n\nif (pm.request.method == \"GET\"){\n    pm.test(\"Hiring manager is still active\", function () {\n        pm.response.to.have.status(200);\n        pm.expect(String(responseData.empNumber), \"Employee number should be present\").to.eql(String(pm.environment.get(\"vacancy_hm_emp_number_candi\")));\n        pm.expect(responseData.termination_id, \"termination_id\").to.be.null;\n    })\n}\n\nelse {\n    pm.test(\"Employee created successfully\", function () {\n        pm.response.to.have.status(201);\n    })\n    pm.test (\"Employee number exist\", function () {\n        pm.expect(responseData.empNumber, \"Employee number\").to.exist.and.not.to.be.empty;\n    })\n\n    // side effect: consumed by RECRUITMENT-057 and RECRUITMENT-058\n    if (responseData.empNumber){\n        pm.environment.set(\"vacancy_hm_emp_number_candi\", String(responseData.empNumber));\n    }\n}"
                         ]
                       }
                     }
@@ -19220,13 +21571,13 @@
                       }
                     },
                     "url": {
-                      "raw": "{{baseURL}}/api/employees",
+                      "raw": "{{baseURL}}/api/employees{{employeePath}}",
                       "host": [
                         "{{baseURL}}"
                       ],
                       "path": [
                         "api",
-                        "employees"
+                        "employees{{employeePath}}"
                       ]
                     }
                   },
@@ -19236,22 +21587,22 @@
                   "name": "RECRUITMENT-057 add a vacancy for candidate hire",
                   "event": [
                     {
-                      "listen": "prerequest",
                       "script": {
-                        "type": "text/javascript",
                         "exec": [
-                          "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst hiringManagerID = pm.collectionVariables.get(\"vacancy_hm_emp_number_candi\");\nconst vacancyFixtureForCandi = pm.collectionVariables.get(\"vacancy_fixture_for_candi\");\nconst vacancyIDforCandi = pm.collectionVariables.get(\"vacancy_id_For_candi\");\n\nif (vacancyIDforCandi && vacancyFixtureForCandi){\n    pm.request.method = \"GET\";\n    pm.request.body.update(\"\");\n    pm.request.headers.remove(\"Content-Type\");\n}\n\nif (!hiringManagerID) {\n    throw new Error(\"Precondition failed!!. Hiring manager ID has not been set\")\n}\n\n//validate csv file values are nor empty\n[vac_name,vac_location,vac_jobTitle].forEach(key => {\n      if (cell(key).trim() ==\"\"){\n        throw new Error(`Precondition failed!!. ${key} is empty in the CSV`)\n    }\n})\n\nconst name = `VAC-${Date.now().toString().slice(-6)} ${cell(\"vac_name\")}`;\nconst body = {\n    vacancyName: name,\n    location: Number(cell(\"vac_location\")),\n    jobTitle: Number(cell(\"vac_jobTitle\")),\n    hiringManager: Number(hiringManagerID),\n    resumeRequired: cell(\"vac_resumeRequired\"),\n    requestConsent: cell(\"vac_requestConsent\")\n};\n\n// side effect: checked by RECRUITMENT-003 to RECRUITMENT-005\npm.environment.set(\"vacancy_expected\", JSON.stringify({\n    vacancyName: name,\n    locationId: cell(\"vac_location\"),\n    jobTitleCode: cell(\"vac_jobTitle\"),\n    hiringManager: hiringManagerID,\n    isResumeRequired: cell(\"vac_resumeRequired\"),\n    requestConsent: cell(\"vac_requestConsent\"),\n    status: cell(\"vac_expectedStatus\")\n}));\npm.variables.set(\"requestBody\", JSON.stringify(body));"
-                        ]
-                      }
+                          "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst hiringManagerID = pm.environment.get(\"vacancy_hm_emp_number_candi\");\nconst vacancyFixtureForCandi = pm.environment.get(\"vacancy_fixture_for_candi\");\n\n// one vacancy serves every iteration: it is created in the first iteration only\nif (vacancyFixtureForCandi){\n    pm.execution.skipRequest();\n} else {\n    if (!hiringManagerID) {\n        throw new Error(\"Precondition failed!!. Hiring manager ID has not been set by RECRUITMENT-056\")\n    }\n\n    //validate csv file values are not empty\n    [\"vac_name\", \"vac_location\", \"vac_jobTitle\", \"vac_resumeRequired\", \"vac_requestConsent\"].forEach(key => {\n          if (cell(key).trim() ==\"\"){\n            throw new Error(`Precondition failed!!. ${key} is empty in the CSV`)\n        }\n    })\n\n    const name = `VAC-${Date.now().toString().slice(-6)} ${cell(\"vac_name\")}`;\n    const body = {\n        vacancyName: name,\n        location: Number(cell(\"vac_location\")),\n        jobTitle: Number(cell(\"vac_jobTitle\")),\n        hiringManager: [Number(hiringManagerID)],\n        resumeRequired: cell(\"vac_resumeRequired\"),\n        requestConsent: cell(\"vac_requestConsent\")\n    };\n\n    // side effect: checked by the tests of this request\n    pm.environment.set(\"vacancy_expected\", JSON.stringify({\n        vacancyName: name,\n        locationId: cell(\"vac_location\"),\n        jobTitleCode: cell(\"vac_jobTitle\"),\n        hiringManager: hiringManagerID,\n        isResumeRequired: cell(\"vac_resumeRequired\"),\n        requestConsent: cell(\"vac_requestConsent\"),\n        status: cell(\"vac_expectedStatus\")\n    }));\n    pm.variables.set(\"requestBody\", JSON.stringify(body));\n}"
+                        ],
+                        "type": "text/javascript"
+                      },
+                      "listen": "prerequest"
                     },
                     {
-                      "listen": "test",
                       "script": {
-                        "type": "text/javascript",
                         "exec": [
-                          "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nconst response = pm.response.json() || {};\nconst responseData = response.data || {};\nconst responseArray = Array.isArray(responseData) ? responseData: [responseData];\nconst expected = JSON.parse(pm.environment.get(\"vacancy_expected\") || \"{}\");\nconst expectedArray = Array.isArray(expected) ? expected: [expected];\nconst scenario = pm.iterationData.get(\"scenario\");\n\npm.test(\"Status code validation\", function () {\n    pm.response.to.have.status(201);\n})\n\npm.test(\"Vacancy created successfully with sent data\", function () {\n\n [vacancyName,location,jobTitle].forEach(key => {\n     pm.expect(responseArray[key]).to.eql(expectedArray[key]);\n })\n})\n\n// side effect: consumed by RECRUITMENT-004 to RECRUITMENT-006\nif (norm(responseData.vacancyId) !== \"\") {\n    pm.environment.set(\"vacancy_id_For_candi\", String(responseData.vacancyId));\n}"
-                        ]
-                      }
+                          "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nlet response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // not JSON: the checks below report it\n}\nconst responseData = response.data || {};\nconst expected = JSON.parse(pm.environment.get(\"vacancy_expected\") || \"{}\");\n\npm.test(\"Status code validation\", function () {\n    pm.response.to.have.status(201);\n})\n\npm.test(\"Vacancy created successfully with sent data\", function () {\n    [\"vacancyName\", \"locationId\", \"jobTitleCode\"].forEach(key => {\n        pm.expect(norm(responseData[key]), key).to.eql(norm(expected[key]));\n    })\n    const empNumbers = (responseData.hiringManager || []).map(manager => norm(manager.empNumber));\n    pm.expect(empNumbers, \"hiringManager empNumbers\").to.eql([norm(expected.hiringManager)]);\n})\n\n// side effect: consumed by RECRUITMENT-058\nif (norm(responseData.vacancyId) !== \"\") {\n    pm.environment.set(\"vacancy_id_For_candi\", String(responseData.vacancyId));\n    pm.environment.set(\"vacancy_fixture_for_candi\", JSON.stringify({\n        vacancyId: String(responseData.vacancyId),\n        vacancyName: norm(responseData.vacancyName)\n    }));\n}"
+                        ],
+                        "type": "text/javascript"
+                      },
+                      "listen": "test"
                     }
                   ],
                   "request": {
@@ -19288,7 +21639,16 @@
                       "script": {
                         "type": "text/javascript",
                         "exec": [
-                          "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nconst vacID = JSON.parse(pm.environment.get(\"vacancy_fixture_for_candi\"));\n\nif (!vacID){\n    throw new Error(\"Vacancy ID is not set in the environment variables\");\n}\n\n//Validate csv data is not empty for required fields\n[cand_firstName,cand_lastName,cand_email,cand_expectedMode,cand_expectedStage].forEach(key => {\n    if (!cell(key)) {\n        throw new Error(`Missing required field: ${key}`);\n    }\n})\n\nconst candidateData = {\n    \n}\n\n"
+                          "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst vacancyFixture = pm.environment.get(\"vacancy_fixture_for_candi\");\nif (!vacancyFixture){\n    throw new Error(\"Precondition failed: vacancy_fixture_for_candi is not set by RECRUITMENT-057\");\n}\nconst vacID = JSON.parse(vacancyFixture).vacancyId;\n\n//Validate csv data is not empty for required fields\n[\"cand_firstName\", \"cand_lastName\", \"cand_email\", \"cand_expectedMode\", \"cand_expectedStage\"].forEach(key => {\n    if (!cell(key)) {\n        throw new Error(`Missing required field: ${key}`);\n    }\n})\n\n// a candidate is linked to the folder's vacancy when cand_vacancy is filled in\npm.variables.set(\"candidateVacancyId\", cell(\"cand_vacancy\") === \"\" ? \"\" : vacID);\n\n// form fields whose CSV cell is blank are not sent (the API rejects some empty values, e.g. contactNo);\n// the file field is not sent when cand_filePath is blank\nconst blankWhen = {\n    middleName: \"cand_middleName\", contactNo: \"cand_contactNo\", keywords: \"cand_keywords\", note: \"cand_note\",\n    facebook: \"cand_facebook\", twitter: \"cand_twitter\", linkedin: \"cand_linkedin\",\n    appliedDate: \"cand_appliedDate\", vacancy: \"cand_vacancy\", file: \"cand_filePath\"\n};\nObject.keys(blankWhen).forEach(field => {\n    if (cell(blankWhen[field]).trim() === \"\") {\n        pm.request.body.formdata.remove(field);\n    }\n});"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nlet response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // not JSON: the checks below report it\n}\nconst responseData = response.data || {};\nconst scenario = cell(\"scenario\");\n\npm.test(`Candidate is added (${scenario})`, function () {\n    pm.response.to.have.status(201);\n    pm.expect(response.success, \"success\").to.eql(true);\n    pm.expect(norm((response.messages || {}).success), \"messages.success\").to.eql(cell(\"cand_successMessage\"));\n});\n\npm.test(`Candidate details match what was sent (${scenario})`, function () {\n    pm.expect(norm(responseData.firstName), \"firstName\").to.eql(cell(\"cand_firstName\").trim());\n    pm.expect(norm(responseData.lastName), \"lastName\").to.eql(cell(\"cand_lastName\").trim());\n    pm.expect(norm(responseData.email), \"email\").to.eql(cell(\"cand_email\"));\n    pm.expect(norm(responseData.modeOfApplication), \"modeOfApplication\").to.eql(cell(\"cand_expectedMode\"));\n    pm.expect(norm(responseData.candidateStage), \"candidateStage\").to.eql(cell(\"cand_expectedStage\"));\n    pm.expect(norm(responseData.vacancyId), \"vacancyId\").to.eql(norm(pm.variables.get(\"candidateVacancyId\")));\n});\n\npm.test(`Resume is attached only when a file was uploaded (${scenario})`, function () {\n    if (cell(\"cand_filePath\") === \"\") {\n        pm.expect(responseData.attachmentId, \"attachmentId\").to.be.null;\n    } else {\n        pm.expect(norm(responseData.attachmentId), \"attachmentId\").to.match(/^[0-9]+$/);\n    }\n});\n\n// side effect: candidate ids of this run, for cleanup\nif (norm(responseData.id) !== \"\") {\n    const ids = JSON.parse(pm.environment.get(\"candidate_ids\") || \"[]\");\n    ids.push(String(responseData.id));\n    pm.environment.set(\"candidate_ids\", JSON.stringify(ids));\n}"
                         ]
                       }
                     }
@@ -19298,7 +21658,73 @@
                     "header": [],
                     "body": {
                       "mode": "formdata",
-                      "formdata": []
+                      "formdata": [
+                        {
+                          "key": "firstName",
+                          "value": "{{cand_firstName}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "middleName",
+                          "value": "{{cand_middleName}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "lastName",
+                          "value": "{{cand_lastName}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "email",
+                          "value": "{{cand_email}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "contactNo",
+                          "value": "{{cand_contactNo}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "keywords",
+                          "value": "{{cand_keywords}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "note",
+                          "value": "{{cand_note}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "facebook",
+                          "value": "{{cand_facebook}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "twitter",
+                          "value": "{{cand_twitter}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "linkedin",
+                          "value": "{{cand_linkedin}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "appliedDate",
+                          "value": "{{cand_appliedDate}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "vacancy",
+                          "value": "{{candidateVacancyId}}",
+                          "type": "text"
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "src": "{{cand_filePath}}"
+                        }
+                      ]
                     },
                     "url": {
                       "raw": "{{baseURL}}/api/recruitment/candidates",
@@ -36525,6 +38951,452 @@
                             "employees",
                             "{{get_empNumber}}",
                             "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Get-Employee-Details",
+              "item": [
+                {
+                  "name": "get-employee-details-with-invalid-request",
+                  "item": [
+                    {
+                      "name": "PIM-233 add employee for the invalid get employee details requests",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the employee serves every row of the CSV: it is created in the first iteration only",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    // clear values left over from earlier folders or earlier runs",
+                              "    [\"gedinv_emp_number\"].forEach(key => pm.environment.unset(key));",
+                              "",
+                              "    [\"firstName\", \"lastName\", \"employeeIdPrefix\", \"locationId\", \"joinedDate\"].forEach(key => {",
+                              "        if (cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    const employee = {",
+                              "        firstName: cell(\"firstName\"),",
+                              "        middleName: \"\",",
+                              "        lastName: cell(\"lastName\"),",
+                              "        employeeId: `${cell(\"employeeIdPrefix\")}-${Date.now().toString().slice(-6)}`,",
+                              "        locationId: cell(\"locationId\"),",
+                              "        joinedDate: cell(\"joinedDate\")",
+                              "    };",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(employee));",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Employee for the invalid requests is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-234 and PIM-235",
+                              "if (pm.response.code === 201 && responseData.empNumber) {",
+                              "    pm.environment.set(\"gedinv_emp_number\", norm(responseData.empNumber));",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-234 get employee details with an invalid employee number or query parameter",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "if (!pm.environment.get(\"gedinv_emp_number\")) {",
+                              "    throw new Error(\"Precondition failed: gedinv_emp_number not set by PIM-233\");",
+                              "}",
+                              "// a blank ged_empNumber means the folder's own (valid) employee: only the query of the row is wrong",
+                              "pm.variables.set(\"gedinv_target_emp_number\", cell(\"ged_empNumber\") === \"\" ? pm.environment.get(\"gedinv_emp_number\") : cell(\"ged_empNumber\"));",
+                              "",
+                              "// ged_query holds key=value pairs separated by \"&\"; values are sent as written (an empty value is sent as key=)",
+                              "const query = cell(\"ged_query\");",
+                              "if (query !== \"\") {",
+                              "    query.split(\"&\").forEach(pair => {",
+                              "        const at = pair.indexOf(\"=\");",
+                              "        if (at < 1) {",
+                              "            throw new Error(`Test data error: \"${pair}\" in ged_query is not key=value`);",
+                              "        }",
+                              "        pm.request.url.addQueryParams([{ key: pair.slice(0, at), value: pair.slice(at + 1) }]);",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let errorBody = {};",
+                              "try {",
+                              "    errorBody = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the field checks below fail with the field name",
+                              "}",
+                              "const defect = cell(\"ged_knownDefect\") === \"\" ? \"\" : ` [known defect ${cell(\"ged_knownDefect\")}]`;",
+                              "const scenario = cell(\"scenario\");",
+                              "",
+                              "pm.test(`Invalid request is rejected (${scenario})${defect}`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "if (cell(\"expectedBody\") !== \"\") {",
+                              "    // these errors are plain text, not JSON",
+                              "    pm.test(`Error body explains the rejection (${scenario})${defect}`, function () {",
+                              "        pm.expect(pm.response.text().trim(), \"response body\").to.eql(cell(\"expectedBody\"));",
+                              "    });",
+                              "} else {",
+                              "    pm.test(`Error says the data is invalid (${scenario})${defect}`, function () {",
+                              "        pm.expect(norm(errorBody.title), \"title\").to.eql(cell(\"expectedTitle\"));",
+                              "    });",
+                              "    // the details echo the query, so only the expected rule line is checked",
+                              "    if (cell(\"expectedDetails\") !== \"\") {",
+                              "        pm.test(`Error explains the invalid value (${scenario})${defect}`, function () {",
+                              "            pm.expect(norm(errorBody.details), \"details\").to.include(cell(\"expectedDetails\"));",
+                              "        });",
+                              "    }",
+                              "}",
+                              "",
+                              "pm.test(`No employee data is returned (${scenario})${defect}`, function () {",
+                              "    pm.expect(errorBody.data, \"data\").to.be.undefined;",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{gedinv_target_emp_number}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{gedinv_target_emp_number}}"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-235 terminate employee created by PIM-233",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the employee serves every row, so it is terminated after the last iteration only",
+                              "if (pm.info.iteration < pm.info.iterationCount - 1) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"gedinv_emp_number\")) {",
+                              "        throw new Error(\"Precondition failed: gedinv_emp_number not set by PIM-233\");",
+                              "    }",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "    }));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let responseData = {};",
+                              "try {",
+                              "    responseData = (pm.response.json() || {}).data || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Employee created by PIM-233 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(pm.environment.get(\"gedinv_emp_number\"));",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders and runs cannot pick them up",
+                              "pm.environment.unset(\"gedinv_emp_number\");"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{gedinv_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{gedinv_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-employee-details-without-valid-token",
+                  "item": [
+                    {
+                      "name": "PIM-236 find an existing employee for the token checks",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// read-only: any employee the admin can see; nothing is created for the token checks",
+                              "pm.environment.unset(\"gedauth_emp_number\");"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let rows = [];",
+                              "try {",
+                              "    rows = (pm.response.json() || {}).data || [];",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"An existing employee is found\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "    pm.expect(rows, \"employees\").to.be.an(\"array\").with.lengthOf(1);",
+                              "    pm.expect(norm((rows[0] || {}).empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-237",
+                              "if (pm.response.code === 200 && rows.length === 1) {",
+                              "    pm.environment.set(\"gedauth_emp_number\", norm(rows[0].empNumber));",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees?page[limit]=1",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ],
+                          "query": [
+                            {
+                              "value": "1",
+                              "key": "page[limit]"
+                            }
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-237 get employee details without a valid token",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "if (!pm.environment.get(\"gedauth_emp_number\")) {",
+                              "    throw new Error(\"Precondition failed: gedauth_emp_number not set by PIM-236\");",
+                              "}",
+                              "// a blank cell means no Authorization header at all",
+                              "if (cell(\"authorizationHeader\") === \"\") {",
+                              "    pm.request.headers.remove(\"Authorization\");",
+                              "}",
+                              "// a blank ged_empNumber means the existing employee found by PIM-236",
+                              "pm.variables.set(\"gedauth_target_emp_number\", cell(\"ged_empNumber\") === \"\" ? pm.environment.get(\"gedauth_emp_number\") : cell(\"ged_empNumber\"));",
+                              "const query = cell(\"ged_query\");",
+                              "if (query !== \"\") {",
+                              "    query.split(\"&\").forEach(pair => {",
+                              "        const at = pair.indexOf(\"=\");",
+                              "        if (at < 1) {",
+                              "            throw new Error(`Test data error: \"${pair}\" in ged_query is not key=value`);",
+                              "        }",
+                              "        pm.request.url.addQueryParams([{ key: pair.slice(0, at), value: pair.slice(at + 1) }]);",
+                              "    });",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let errorBody = {};",
+                              "try {",
+                              "    errorBody = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below fail with the field name",
+                              "}",
+                              "const scenario = cell(\"scenario\");",
+                              "",
+                              "pm.test(`Request is rejected as unauthorized (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "// without a token the body is [], so those rows check the status and the absence of data only",
+                              "if (cell(\"expectedError\") !== \"\") {",
+                              "    pm.test(`Error says why the token is rejected (${scenario})`, function () {",
+                              "        pm.expect(norm(errorBody.error), \"error\").to.eql(cell(\"expectedError\"));",
+                              "        pm.expect(norm(errorBody.error_description), \"error_description\").to.eql(cell(\"expectedErrorDescription\"));",
+                              "    });",
+                              "}",
+                              "",
+                              "pm.test(`No employee data is returned (${scenario})`, function () {",
+                              "    pm.expect(errorBody.data, \"data\").to.be.undefined;",
+                              "});"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                          {
+                            "value": "{{authorizationHeader}}",
+                            "key": "Authorization"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{gedauth_target_emp_number}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{gedauth_target_emp_number}}"
                           ]
                         }
                       },
