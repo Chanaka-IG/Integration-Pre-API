@@ -1,0 +1,3 @@
+"scenario","cfscr_method","cfscr_targetActionUrl","cfscr_body","expectedStatus","cfscr_expectedMessage"
+"POST a new screen","POST","viewQualifications","{""name"":""CFSCR-POST-probe"",""screen_id"":""{screenId}""}",400,"unsupported resource request"
+"DELETE an existing screen","DELETE","viewQualifications","{""data"":[""{screenId}""]}",400,"unsupported resource request"

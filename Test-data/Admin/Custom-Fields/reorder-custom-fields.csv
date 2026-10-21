@@ -1,0 +1,2 @@
+"scenario","cfu_createBody","cfu_otherBody","cfu_expectedResult"
+"swap two custom fields","{""section"":""{section}"",""name"":""{run} First"",""type"":""0"",""global"":""1"",""mandatory"":""0""}","{""section"":""{section}"",""name"":""{run} Second"",""type"":""0"",""global"":""1"",""mandatory"":""0""}","true"

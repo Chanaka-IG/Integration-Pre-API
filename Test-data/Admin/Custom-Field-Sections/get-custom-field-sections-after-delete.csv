@@ -1,0 +1,2 @@
+"scenario","cfs_fixtureName","cfs_deletedFixtureName","cfs_screenActionUrl","cfs_expectedDisplayOrder"
+"list after one of two new sections is deleted","CFS-GET-Kept-{run}","CFS-GET-Deleted-{run}","viewQualifications","0"

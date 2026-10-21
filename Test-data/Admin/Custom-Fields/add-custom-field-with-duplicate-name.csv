@@ -1,0 +1,3 @@
+"scenario","cf_originalName","cf_originalType","cf_duplicateCase","cf_duplicateType","expectedStatus","cf_expectedDetails"
+"same name in upper case","Duplicate","0","upper","0",400,"name [Already exists]"
+"same name with another field type","Duplicate","0","same","2",400,"name [Already exists]"

@@ -1,0 +1,4 @@
+"scenario","firstName","middleName","lastName","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","terminationDate","flagValue","terminationNote","terminationReason","time","timezone","sur_allRegions","sur_regions","sur_locations"
+"one region with a location inside it and a location in another country","System","Region","User",2,"2024-06-20","false","false","2026-09-01",1,"System user regions API test teardown",1,"23:55","Asia/Kolkata","false","1","1|3"
+"all regions","System","Region","User",2,"2024-06-20","false","false","2026-09-01",1,"System user regions API test teardown",1,"23:55","Asia/Kolkata","true","",""
+"two regions without locations","System","Region","User",2,"2024-06-20","false","false","2026-09-01",1,"System user regions API test teardown",1,"23:55","Asia/Kolkata","false","6|7",""

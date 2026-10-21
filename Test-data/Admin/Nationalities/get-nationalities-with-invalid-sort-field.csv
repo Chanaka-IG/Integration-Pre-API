@@ -1,0 +1,4 @@
+"scenario","nat_query","expectedStatus","nat_knownDefect"
+"unknown column foo","sortingFeild=foo&sortingOrder=ASC","400","D1"
+"sortingFeild sent as an array","sortingFeild[]=id","400","D1"
+"query fragment in sortingFeild","sortingFeild=id DESC, name&sortingOrder=ASC","400","D2"
