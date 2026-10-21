@@ -1,0 +1,5 @@
+"scenario","nat_query"
+"unknown parameter foo","foo=bar"
+"correctly spelt sortingField is not read (D6)","sortingField=id&sortingOrder=ASC"
+"empty sortingFeild falls back to the default list","sortingFeild="
+"paging without sortingFeild is not applied","sortingOrder=ASC&limit=5&offset=10"

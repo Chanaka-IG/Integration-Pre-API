@@ -1,0 +1,6 @@
+"scenario","sub_query","expectedStatus","expectedText"
+"comma separated employee numbers in one value","filter[headOfDepartmentEmpNumbers][]=99999999,88888888",400,"unsupported resource request"
+"an invalid employee number next to a valid one","filter[headOfDepartmentEmpNumbers][]=99999999&filter[headOfDepartmentEmpNumbers][]=abc",400,"unsupported resource request"
+"filter key in the wrong case","filter[HeadOfDepartmentEmpNumbers][]=99999999",400,"unsupported resource request"
+"valid filter with an unknown filter key","filter[headOfDepartmentEmpNumbers][]=99999999&filter[foo]=1",400,"unsupported resource request"
+"nested array of employee numbers","filter[headOfDepartmentEmpNumbers][][]=99999999",400,"unsupported resource request"

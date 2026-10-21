@@ -1,0 +1,3 @@
+"scenario","authorizationHeader","expectedStatus","sur_expectedError","sur_expectedErrorDescription"
+"invalid bearer token","Bearer invalid-token-123",401,"invalid_token","The access token provided is invalid"
+"basic authorization scheme","Basic dXNlcjpwYXNz",401,"invalid_request","Malformed auth header"

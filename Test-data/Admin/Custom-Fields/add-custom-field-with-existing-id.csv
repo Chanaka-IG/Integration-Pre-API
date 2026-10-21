@@ -1,0 +1,2 @@
+"scenario","cf_originalName","cf_newName","expectedStatus","cf_knownDefect"
+"id of a field in the same section","Original","Renamed",400,"D1"

@@ -1,0 +1,6 @@
+"scenario","sur_userId","expectedStatus","sur_expectedError","sur_expectedRouteMessage"
+"user id zero","0",422,"userId [Invalid.]",""
+"user id that does not exist","99999999",403,"Operation not permitted",""
+"user id longer than a big integer","99999999999999999999",403,"Operation not permitted",""
+"user id that is not a number","abc",404,"","API Endpoint Not Found"
+"negative user id","-1",404,"","API Endpoint Not Found"
