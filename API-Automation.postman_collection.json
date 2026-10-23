@@ -23676,6 +23676,728 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Work-Schedules",
+              "item": [
+                {
+                  "name": "get-work-schedules",
+                  "item": [
+                    {
+                      "name": "ADMIN-470 add fixed work schedule fixture",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "",
+                              "// clear values left over from earlier iterations or runs",
+                              "pm.environment.unset(\"work_schedule_fixtures\");",
+                              "pm.environment.unset(\"work_schedule_base_total\");",
+                              "pm.variables.set(\"workScheduleFixtureKey\", \"FIXED\");",
+                              "",
+                              "// side effect: consumed by ADMIN-470…473 (fixture names)",
+                              "const prefix = `WSGET-${Date.now().toString().slice(-6)}`;",
+                              "pm.environment.set(\"work_schedule_run_prefix\", prefix);",
+                              "",
+                              "// baseline total (meta.total counts every schedule) + sweep of WSGET- fixtures left by an aborted run",
+                              "api(\"GET\", \"/api/pim/workSchedules?filter%5BworkScheduleName%5D=WSGET-\", undefined, (err, res) => {",
+                              "    if (err || res.code !== 200) {",
+                              "        throw new Error(`Baseline GET failed: ${err || res.code}`);",
+                              "    }",
+                              "    const body = res.json() || {};",
+                              "    const leftovers = (body.data || []).filter(s => norm(s.name).startsWith(\"WSGET-\") && s.deletable === true).map(s => norm(s.id));",
+                              "    if (leftovers.length === 0) {",
+                              "        // side effect: consumed by ADMIN-473",
+                              "        pm.environment.set(\"work_schedule_base_total\", norm((body.meta || {}).total));",
+                              "        return;",
+                              "    }",
+                              "    api(\"DELETE\", \"/api/pim/workSchedules\", { ids: leftovers }, (delErr, delRes) => {",
+                              "        if (delErr || delRes.code !== 204) {",
+                              "            throw new Error(`Cleanup of leftover fixtures ${leftovers.join(\",\")} failed: ${delErr || delRes.code}`);",
+                              "        }",
+                              "        // side effect: consumed by ADMIN-473",
+                              "        pm.environment.set(\"work_schedule_base_total\", String(Number((body.meta || {}).total) - leftovers.length));",
+                              "    });",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const sent = JSON.parse(pm.variables.replaceIn(pm.request.body.raw));",
+                              "const fixtureKey = pm.variables.get(\"workScheduleFixtureKey\");",
+                              "const saved = response.data || {};",
+                              "",
+                              "pm.test(`Work schedule fixture ${fixtureKey} is added`, function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(`Work schedule fixture ${fixtureKey} is saved with the sent name and type`, function () {",
+                              "    pm.expect(norm(saved.name), \"name\").to.eql(sent.name);",
+                              "    pm.expect(norm(saved.work_schedule_type_id), \"work_schedule_type_id\").to.eql(sent.work_schedule_type_id);",
+                              "    pm.expect(norm((saved.WorkScheduleType || {}).id), \"WorkScheduleType.id\").to.eql(sent.work_schedule_type_id);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-473 (expected values and teardown)",
+                              "if (saved.id) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"work_schedule_fixtures\") || \"[]\");",
+                              "    fixtures.push({",
+                              "        key: fixtureKey,",
+                              "        id: norm(saved.id),",
+                              "        name: norm(saved.name),",
+                              "        typeId: norm(saved.work_schedule_type_id),",
+                              "        type: saved.WorkScheduleType || {},",
+                              "        definition: norm(saved.definition)",
+                              "    });",
+                              "    pm.environment.set(\"work_schedule_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"name\": \"{{work_schedule_run_prefix}} Charlie fixed\",\n    \"work_schedule_type_id\": \"1\",\n    \"definition\": {\n        \"weeks\": [\n            {\n                \"monday\": {\n                    \"day_type\": \"working_day\",\n                    \"shifts\": [\n                        {\n                            \"start_time\": \"09:00:00\",\n                            \"end_time\": \"17:00:00\",\n                            \"breaks\": [\n                                {\n                                    \"start_time\": \"12:00:00\",\n                                    \"end_time\": \"13:00:00\",\n                                    \"duration\": \"01:00\"\n                                }\n                            ],\n                            \"duration\": \"08:00\"\n                        }\n                    ],\n                    \"duration\": \"07:00\"\n                },\n                \"tuesday\": {\n                    \"day_type\": \"working_day\",\n                    \"shifts\": [\n                        {\n                            \"start_time\": \"09:00:00\",\n                            \"end_time\": \"17:00:00\",\n                            \"breaks\": [\n                                {\n                                    \"start_time\": \"12:00:00\",\n                                    \"end_time\": \"13:00:00\",\n                                    \"duration\": \"01:00\"\n                                }\n                            ],\n                            \"duration\": \"08:00\"\n                        }\n                    ],\n                    \"duration\": \"07:00\"\n                },\n                \"wednesday\": {\n                    \"day_type\": \"working_day\",\n                    \"shifts\": [\n                        {\n                            \"start_time\": \"09:00:00\",\n                            \"end_time\": \"17:00:00\",\n                            \"breaks\": [\n                                {\n                                    \"start_time\": \"12:00:00\",\n                                    \"end_time\": \"13:00:00\",\n                                    \"duration\": \"01:00\"\n                                }\n                            ],\n                            \"duration\": \"08:00\"\n                        }\n                    ],\n                    \"duration\": \"07:00\"\n                },\n                \"thursday\": {\n                    \"day_type\": \"working_day\",\n                    \"shifts\": [\n                        {\n                            \"start_time\": \"09:00:00\",\n                            \"end_time\": \"17:00:00\",\n                            \"breaks\": [\n                                {\n                                    \"start_time\": \"12:00:00\",\n                                    \"end_time\": \"13:00:00\",\n                                    \"duration\": \"01:00\"\n                                }\n                            ],\n                            \"duration\": \"08:00\"\n                        }\n                    ],\n                    \"duration\": \"07:00\"\n                },\n                \"friday\": {\n                    \"day_type\": \"working_day\",\n                    \"shifts\": [\n                        {\n                            \"start_time\": \"09:00:00\",\n                            \"end_time\": \"17:00:00\",\n                            \"breaks\": [\n                                {\n                                    \"start_time\": \"12:00:00\",\n                                    \"end_time\": \"13:00:00\",\n                                    \"duration\": \"01:00\"\n                                }\n                            ],\n                            \"duration\": \"08:00\"\n                        }\n                    ],\n                    \"duration\": \"07:00\"\n                },\n                \"saturday\": {\n                    \"day_type\": \"non_working_day\",\n                    \"shifts\": [\n                        {\n                            \"start_time\": \"\",\n                            \"end_time\": \"\",\n                            \"breaks\": [\n                                {\n                                    \"start_time\": \"\",\n                                    \"end_time\": \"\",\n                                    \"duration\": \"\"\n                                }\n                            ],\n                            \"duration\": \"\"\n                        }\n                    ],\n                    \"duration\": \"\"\n                },\n                \"sunday\": {\n                    \"day_type\": \"non_working_day\",\n                    \"shifts\": [\n                        {\n                            \"start_time\": \"\",\n                            \"end_time\": \"\",\n                            \"breaks\": [\n                                {\n                                    \"start_time\": \"\",\n                                    \"end_time\": \"\",\n                                    \"duration\": \"\"\n                                }\n                            ],\n                            \"duration\": \"\"\n                        }\n                    ],\n                    \"duration\": \"\"\n                }\n            }\n        ],\n        \"exclude_break_from_duration\": true\n    }\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/pim/workSchedules",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "pim",
+                            "workSchedules"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-471 add flexible daily work schedule fixture",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"work_schedule_run_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: work_schedule_run_prefix not set by ADMIN-470\");",
+                              "}",
+                              "pm.variables.set(\"workScheduleFixtureKey\", \"DAILY\");"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const sent = JSON.parse(pm.variables.replaceIn(pm.request.body.raw));",
+                              "const fixtureKey = pm.variables.get(\"workScheduleFixtureKey\");",
+                              "const saved = response.data || {};",
+                              "",
+                              "pm.test(`Work schedule fixture ${fixtureKey} is added`, function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(`Work schedule fixture ${fixtureKey} is saved with the sent name and type`, function () {",
+                              "    pm.expect(norm(saved.name), \"name\").to.eql(sent.name);",
+                              "    pm.expect(norm(saved.work_schedule_type_id), \"work_schedule_type_id\").to.eql(sent.work_schedule_type_id);",
+                              "    pm.expect(norm((saved.WorkScheduleType || {}).id), \"WorkScheduleType.id\").to.eql(sent.work_schedule_type_id);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-473 (expected values and teardown)",
+                              "if (saved.id) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"work_schedule_fixtures\") || \"[]\");",
+                              "    fixtures.push({",
+                              "        key: fixtureKey,",
+                              "        id: norm(saved.id),",
+                              "        name: norm(saved.name),",
+                              "        typeId: norm(saved.work_schedule_type_id),",
+                              "        type: saved.WorkScheduleType || {},",
+                              "        definition: norm(saved.definition)",
+                              "    });",
+                              "    pm.environment.set(\"work_schedule_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"name\": \"{{work_schedule_run_prefix}} Alpha daily\",\n    \"work_schedule_type_id\": \"2\",\n    \"definition\": {\n        \"weeks\": [\n            {\n                \"monday\": {\n                    \"day_type\": \"working_day\",\n                    \"work_time_window_in\": \"07:00:00\",\n                    \"work_time_window_out\": \"19:00:00\",\n                    \"duration\": \"08:00\"\n                },\n                \"tuesday\": {\n                    \"day_type\": \"working_day\",\n                    \"work_time_window_in\": \"07:00:00\",\n                    \"work_time_window_out\": \"19:00:00\",\n                    \"duration\": \"08:00\"\n                },\n                \"wednesday\": {\n                    \"day_type\": \"working_day\",\n                    \"work_time_window_in\": \"07:00:00\",\n                    \"work_time_window_out\": \"19:00:00\",\n                    \"duration\": \"08:00\"\n                },\n                \"thursday\": {\n                    \"day_type\": \"working_day\",\n                    \"work_time_window_in\": \"07:00:00\",\n                    \"work_time_window_out\": \"19:00:00\",\n                    \"duration\": \"08:00\"\n                },\n                \"friday\": {\n                    \"day_type\": \"working_day\",\n                    \"work_time_window_in\": \"07:00:00\",\n                    \"work_time_window_out\": \"19:00:00\",\n                    \"duration\": \"08:00\"\n                },\n                \"saturday\": {\n                    \"day_type\": \"non_working_day\",\n                    \"work_time_window_in\": null,\n                    \"work_time_window_out\": null,\n                    \"duration\": null\n                },\n                \"sunday\": {\n                    \"day_type\": \"non_working_day\",\n                    \"work_time_window_in\": null,\n                    \"work_time_window_out\": null,\n                    \"duration\": null\n                }\n            }\n        ]\n    }\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/pim/workSchedules",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "pim",
+                            "workSchedules"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-472 add flexible weekly work schedule fixture",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"work_schedule_run_prefix\")) {",
+                              "    throw new Error(\"Precondition failed: work_schedule_run_prefix not set by ADMIN-470\");",
+                              "}",
+                              "pm.variables.set(\"workScheduleFixtureKey\", \"WEEKLY\");"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const sent = JSON.parse(pm.variables.replaceIn(pm.request.body.raw));",
+                              "const fixtureKey = pm.variables.get(\"workScheduleFixtureKey\");",
+                              "const saved = response.data || {};",
+                              "",
+                              "pm.test(`Work schedule fixture ${fixtureKey} is added`, function () {",
+                              "    pm.response.to.have.status(201);",
+                              "});",
+                              "",
+                              "pm.test(`Work schedule fixture ${fixtureKey} is saved with the sent name and type`, function () {",
+                              "    pm.expect(norm(saved.name), \"name\").to.eql(sent.name);",
+                              "    pm.expect(norm(saved.work_schedule_type_id), \"work_schedule_type_id\").to.eql(sent.work_schedule_type_id);",
+                              "    pm.expect(norm((saved.WorkScheduleType || {}).id), \"WorkScheduleType.id\").to.eql(sent.work_schedule_type_id);",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-473 (expected values and teardown)",
+                              "if (saved.id) {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"work_schedule_fixtures\") || \"[]\");",
+                              "    fixtures.push({",
+                              "        key: fixtureKey,",
+                              "        id: norm(saved.id),",
+                              "        name: norm(saved.name),",
+                              "        typeId: norm(saved.work_schedule_type_id),",
+                              "        type: saved.WorkScheduleType || {},",
+                              "        definition: norm(saved.definition)",
+                              "    });",
+                              "    pm.environment.set(\"work_schedule_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"name\": \"{{work_schedule_run_prefix}} Bravo weekly\",\n    \"work_schedule_type_id\": \"3\",\n    \"definition\": {\n        \"weeks\": [\n            {\n                \"monday\": {\n                    \"day_type\": \"working_day\"\n                },\n                \"tuesday\": {\n                    \"day_type\": \"working_day\"\n                },\n                \"wednesday\": {\n                    \"day_type\": \"working_day\"\n                },\n                \"thursday\": {\n                    \"day_type\": \"working_day\"\n                },\n                \"friday\": {\n                    \"day_type\": \"working_day\"\n                },\n                \"saturday\": {\n                    \"day_type\": \"non_working_day\"\n                },\n                \"sunday\": {\n                    \"day_type\": \"non_working_day\"\n                }\n            }\n        ],\n        \"required_weekly_hours\": \"40:00\"\n    }\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/pim/workSchedules",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "pim",
+                            "workSchedules"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-473 get work schedules with the query from the test data",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "",
+                              "const buildQuery = (template, replace) => template.split(\"&\").filter(pair => pair).map(pair => {",
+                              "    const at = pair.indexOf(\"=\");",
+                              "    const key = at === -1 ? pair : pair.slice(0, at);",
+                              "    const value = at === -1 ? \"\" : pair.slice(at + 1);",
+                              "    return { key: key, value: value === \"__EMPTY__\" ? \"\" : replace(value) };",
+                              "});",
+                              "",
+                              "const fixtures = JSON.parse(pm.environment.get(\"work_schedule_fixtures\") || \"[]\");",
+                              "if (fixtures.length !== 3 || !pm.environment.get(\"work_schedule_base_total\")) {",
+                              "    throw new Error(\"Precondition failed: 3 work schedule fixtures and the baseline total must be set by ADMIN-470…472\");",
+                              "}",
+                              "const prefix = pm.environment.get(\"work_schedule_run_prefix\");",
+                              "const byKey = Object.fromEntries(fixtures.map(f => [f.key, f]));",
+                              "const replace = value => value",
+                              "    .replace(/\\{PREFIX\\}/g, prefix)",
+                              "    .replace(/\\{prefix\\}/g, prefix.toLowerCase())",
+                              "    .replace(/\\{NONE\\}/g, `${prefix}-none`)",
+                              "    .replace(/\\{(FIXED|DAILY|WEEKLY)\\.name\\}/g, (m, key) => byKey[key].name)",
+                              "    .replace(/\\{(FIXED|DAILY|WEEKLY)\\}/g, (m, key) => byKey[key].id);",
+                              "pm.request.url.addQueryParams(buildQuery(cell(\"ws_query\"), replace));"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "const fixtures = JSON.parse(pm.environment.get(\"work_schedule_fixtures\") || \"[]\");",
+                              "const fixtureIds = fixtures.map(f => f.id);",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const returnedIds = records.map(s => norm(s.id));",
+                              "const meta = response.meta || {};",
+                              "const expectedKeys = cell(\"ws_expectedFixtures\") === \"NONE\" ? [] : cell(\"ws_expectedFixtures\").split(\"|\");",
+                              "const expectedIds = expectedKeys.map(key => (fixtures.find(f => f.key === key) || {}).id);",
+                              "",
+                              "pm.test(`Work schedules are retrieved (${scenario})`, function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(`Response matches the work schedule list schema (${scenario})`, function () {",
+                              "    const raw = pm.collectionVariables.get(\"workScheduleListSchema\");",
+                              "    pm.expect(raw, \"workScheduleListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "if (cell(\"ws_onlyFixtures\") === \"yes\") {",
+                              "    pm.test(`Exactly the expected fixtures are returned in the expected order (${scenario})`, function () {",
+                              "        pm.expect(returnedIds, \"returned ids\").to.eql(expectedIds);",
+                              "    });",
+                              "} else {",
+                              "    pm.test(`The expected fixtures are listed in the expected order among the other schedules (${scenario})`, function () {",
+                              "        pm.expect(returnedIds.filter(id => fixtureIds.includes(id)), \"fixture ids in response order\").to.eql(expectedIds);",
+                              "    });",
+                              "}",
+                              "",
+                              "pm.test(`meta.total counts every work schedule (${scenario})`, function () {",
+                              "    pm.expect(meta.total, \"meta.total\").to.eql(Number(pm.environment.get(\"work_schedule_base_total\")) + fixtures.length);",
+                              "    if (cell(\"ws_totalEqualsRows\") === \"yes\") {",
+                              "        pm.expect(meta.total, \"meta.total vs unpaged rows\").to.eql(records.length);",
+                              "    }",
+                              "});",
+                              "",
+                              "pm.test(`meta.idsInUse refers only to returned schedules (${scenario})`, function () {",
+                              "    const inUse = (meta.idsInUse || []).map(norm);",
+                              "    pm.expect(returnedIds, \"returned ids\").to.include.members(inUse);",
+                              "    pm.expect(inUse.filter(id => fixtureIds.includes(id)), \"fixture ids in meta.idsInUse\").to.eql([]);",
+                              "});",
+                              "",
+                              "if (cell(\"ws_firstIsDefault\") === \"yes\") {",
+                              "    pm.test(`The default work schedule is listed first (${scenario})`, function () {",
+                              "        pm.expect((records[0] || {}).is_default, \"first row is_default\").to.eql(true);",
+                              "        pm.expect(records.filter(s => s.is_default === true).length, \"number of default schedules\").to.eql(1);",
+                              "    });",
+                              "} else if (cell(\"ws_firstIsDefault\") === \"no\") {",
+                              "    pm.test(`The default work schedule is not listed (${scenario})`, function () {",
+                              "        pm.expect(records.filter(s => s.is_default === true).map(s => norm(s.id)), \"default schedule ids\").to.eql([]);",
+                              "    });",
+                              "}",
+                              "",
+                              "const flag = cell(\"ws_rowsFlag\");",
+                              "if (flag) {",
+                              "    pm.test(`Every returned schedule is ${flag} (${scenario})`, function () {",
+                              "        pm.expect(records.filter(s => s[flag] !== true).map(s => norm(s.id)), `ids with ${flag} not true`).to.eql([]);",
+                              "    });",
+                              "}",
+                              "",
+                              "fixtures.filter(f => returnedIds.includes(f.id)).forEach(f => {",
+                              "    const listed = records.find(s => norm(s.id) === f.id);",
+                              "    pm.test(`Fixture ${f.key} is listed with the saved values (${scenario})`, function () {",
+                              "        pm.expect(norm(listed.name), \"name\").to.eql(f.name);",
+                              "        pm.expect(norm(listed.work_schedule_type_id), \"work_schedule_type_id\").to.eql(f.typeId);",
+                              "        pm.expect(listed.WorkScheduleType, \"WorkScheduleType\").to.eql(f.type);",
+                              "        pm.expect(listed.is_default, \"is_default\").to.eql(false);",
+                              "        pm.expect(listed.created_through, \"created_through\").to.eql(false);",
+                              "        pm.expect(listed.deletable, \"deletable\").to.eql(true);",
+                              "        pm.expect(listed.editable, \"editable\").to.eql(true);",
+                              "        pm.expect(JSON.parse(listed.definition), \"definition\").to.eql(JSON.parse(f.definition));",
+                              "    });",
+                              "});",
+                              "",
+                              "// teardown: a DELETE request would fail the collection content-type test (204 without Content-Type)",
+                              "if (fixtureIds.length) {",
+                              "    api(\"DELETE\", \"/api/pim/workSchedules\", { ids: fixtureIds }, (err, res) => {",
+                              "        pm.test(`Work schedule fixtures are deleted (${scenario})`, function () {",
+                              "            pm.expect(err, \"delete error\").to.be.null;",
+                              "            pm.expect(res.code, \"delete status\").to.eql(204);",
+                              "        });",
+                              "    });",
+                              "}",
+                              "pm.environment.unset(\"work_schedule_fixtures\");"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/pim/workSchedules",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "pim",
+                            "workSchedules"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-work-schedules-after-delete",
+                  "item": [
+                    {
+                      "name": "ADMIN-474 add and delete a work schedule",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "// clear values left over from earlier runs",
+                              "pm.environment.unset(\"work_schedule_deleted_id\");",
+                              "// side effect: consumed by ADMIN-474…476",
+                              "pm.environment.set(\"work_schedule_deleted_name\", `WSGET-${Date.now().toString().slice(-6)} Delta deleted`);"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "",
+                              "const saved = response.data || {};",
+                              "",
+                              "pm.test(\"Work schedule to be deleted is added\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(saved.name), \"name\").to.eql(pm.environment.get(\"work_schedule_deleted_name\"));",
+                              "});",
+                              "",
+                              "if (saved.id) {",
+                              "    // side effect: consumed by ADMIN-475",
+                              "    pm.environment.set(\"work_schedule_deleted_id\", norm(saved.id));",
+                              "    api(\"DELETE\", \"/api/pim/workSchedules\", { ids: [norm(saved.id)] }, (err, res) => {",
+                              "        pm.test(\"Work schedule is deleted\", function () {",
+                              "            pm.expect(err, \"delete error\").to.be.null;",
+                              "            pm.expect(res.code, \"delete status\").to.eql(204);",
+                              "        });",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"name\": \"{{work_schedule_deleted_name}}\",\n    \"work_schedule_type_id\": \"3\",\n    \"definition\": {\n        \"weeks\": [\n            {\n                \"monday\": {\n                    \"day_type\": \"working_day\"\n                },\n                \"tuesday\": {\n                    \"day_type\": \"working_day\"\n                },\n                \"wednesday\": {\n                    \"day_type\": \"working_day\"\n                },\n                \"thursday\": {\n                    \"day_type\": \"working_day\"\n                },\n                \"friday\": {\n                    \"day_type\": \"working_day\"\n                },\n                \"saturday\": {\n                    \"day_type\": \"non_working_day\"\n                },\n                \"sunday\": {\n                    \"day_type\": \"non_working_day\"\n                }\n            }\n        ],\n        \"required_weekly_hours\": \"40:00\"\n    }\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/pim/workSchedules",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "pim",
+                            "workSchedules"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-475 get work schedules filtered by the id of the deleted schedule",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const deletedId = pm.environment.get(\"work_schedule_deleted_id\");",
+                              "if (!deletedId) {",
+                              "    throw new Error(\"Precondition failed: work_schedule_deleted_id not set by ADMIN-474\");",
+                              "}",
+                              "pm.request.url.addQueryParams([{ key: \"filter[ids][]\", value: deletedId }]);"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const expectedDetails = cell(\"ws_expectedDetails\").replace(/\\{ID\\}/g, pm.environment.get(\"work_schedule_deleted_id\"));",
+                              "",
+                              "pm.test(\"Filtering by the id of a deleted work schedule is rejected\", function () {",
+                              "    pm.response.to.have.status(400);",
+                              "});",
+                              "",
+                              "pm.test(\"Error says the id is not an existing work schedule\", function () {",
+                              "    pm.expect(norm(response.title), \"title\").to.eql(cell(\"ws_expectedTitle\"));",
+                              "    pm.expect(norm(response.details), \"details\").to.include(expectedDetails);",
+                              "    pm.expect(response.data, \"data\").to.be.undefined;",
+                              "});"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/pim/workSchedules",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "pim",
+                            "workSchedules"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-476 get work schedules filtered by the name of the deleted schedule",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const deletedName = pm.environment.get(\"work_schedule_deleted_name\");",
+                              "if (!deletedName) {",
+                              "    throw new Error(\"Precondition failed: work_schedule_deleted_name not set by ADMIN-474\");",
+                              "}",
+                              "pm.request.url.addQueryParams([{ key: \"filter[workScheduleName]\", value: deletedName }]);"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "",
+                              "const records = Array.isArray(response.data) ? response.data : [];",
+                              "const deletedName = pm.environment.get(\"work_schedule_deleted_name\");",
+                              "",
+                              "pm.test(\"Work schedules are retrieved by the name of the deleted schedule\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the work schedule list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"workScheduleListSchema\");",
+                              "    pm.expect(raw, \"workScheduleListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"The deleted work schedule is no longer listed\", function () {",
+                              "    pm.expect(records.map(s => norm(s.name)), \"returned names\").to.eql([]);",
+                              "});",
+                              "",
+                              "// teardown: only if the delete in ADMIN-474 did not work",
+                              "const strays = records.filter(s => norm(s.name) === deletedName).map(s => norm(s.id));",
+                              "if (strays.length) {",
+                              "    api(\"DELETE\", \"/api/pim/workSchedules\", { ids: strays }, () => {});",
+                              "}",
+                              "pm.environment.unset(\"work_schedule_deleted_id\");",
+                              "pm.environment.unset(\"work_schedule_deleted_name\");"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/pim/workSchedules",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "pim",
+                            "workSchedules"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -25445,6 +26167,36 @@
                       "name": "RECRUITMENT-051 add hiring manager employee for the vacancy name list",
                       "event": [
                         {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "if (pm.request.method === \"GET\") {",
+                              "    pm.test(\"Hiring manager from the first iteration is still an active employee\", function () {",
+                              "        pm.response.to.have.status(200);",
+                              "        pm.expect(String(responseData.empNumber), \"empNumber\").to.eql(String(pm.environment.get(\"vacnames_hm_emp_number\")));",
+                              "        pm.expect(responseData.termination_id, \"termination_id\").to.be.null;",
+                              "    });",
+                              "} else {",
+                              "    pm.test(\"Employee is created\", function () {",
+                              "        pm.response.to.have.status(201);",
+                              "    });",
+                              "",
+                              "    pm.test(\"Response contains empNumber\", function () {",
+                              "        pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;",
+                              "    });",
+                              "",
+                              "    // side effect: consumed by RECRUITMENT-052, RECRUITMENT-053, RECRUITMENT-054 and RECRUITMENT-062",
+                              "    if (responseData.empNumber) {",
+                              "        pm.environment.set(\"vacnames_hm_emp_number\", String(responseData.empNumber));",
+                              "    }",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
                           "script": {
                             "exec": [
                               "const existing = pm.environment.get(\"vacnames_hm_emp_number\");",
@@ -25488,36 +26240,6 @@
                             "type": "text/javascript"
                           },
                           "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "exec": [
-                              "const responseData = (pm.response.json() || {}).data || {};",
-                              "",
-                              "if (pm.request.method === \"GET\") {",
-                              "    pm.test(\"Hiring manager from the first iteration is still an active employee\", function () {",
-                              "        pm.response.to.have.status(200);",
-                              "        pm.expect(String(responseData.empNumber), \"empNumber\").to.eql(String(pm.environment.get(\"vacnames_hm_emp_number\")));",
-                              "        pm.expect(responseData.termination_id, \"termination_id\").to.be.null;",
-                              "    });",
-                              "} else {",
-                              "    pm.test(\"Employee is created\", function () {",
-                              "        pm.response.to.have.status(201);",
-                              "    });",
-                              "",
-                              "    pm.test(\"Response contains empNumber\", function () {",
-                              "        pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;",
-                              "    });",
-                              "",
-                              "    // side effect: consumed by RECRUITMENT-052, RECRUITMENT-053, RECRUITMENT-054 and RECRUITMENT-059",
-                              "    if (responseData.empNumber) {",
-                              "        pm.environment.set(\"vacnames_hm_emp_number\", String(responseData.empNumber));",
-                              "    }",
-                              "}"
-                            ],
-                            "type": "text/javascript"
-                          },
-                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -25555,6 +26277,34 @@
                       "event": [
                         {
                           "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Vacancy A is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(responseData.vacancyId, \"vacancyId\").to.match(/^[0-9]+$/);",
+                              "    pm.expect(responseData.vacancyName, \"vacancyName\").to.eql(pm.variables.get(\"vacancyName\"));",
+                              "});",
+                              "",
+                              "// side effect: consumed by RECRUITMENT-055, RECRUITMENT-060 and RECRUITMENT-061",
+                              "if (pm.response.code === 201 && responseData.vacancyId) {",
+                              "    pm.environment.set(\"vacnames_a_id\", String(responseData.vacancyId));",
+                              "    pm.environment.set(\"vacnames_a_name\", String(responseData.vacancyName));",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        },
+                        {
+                          "listen": "prerequest",
+                          "script": {
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "const cell = key => norm(pm.iterationData.get(key));",
@@ -25586,35 +26336,7 @@
                               "}));"
                             ],
                             "type": "text/javascript"
-                          },
-                          "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "exec": [
-                              "let response = {};",
-                              "try {",
-                              "    response = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below report it",
-                              "}",
-                              "const responseData = response.data || {};",
-                              "",
-                              "pm.test(\"Vacancy A is created\", function () {",
-                              "    pm.response.to.have.status(201);",
-                              "    pm.expect(responseData.vacancyId, \"vacancyId\").to.match(/^[0-9]+$/);",
-                              "    pm.expect(responseData.vacancyName, \"vacancyName\").to.eql(pm.variables.get(\"vacancyName\"));",
-                              "});",
-                              "",
-                              "// side effect: consumed by RECRUITMENT-055, RECRUITMENT-057 and RECRUITMENT-058",
-                              "if (pm.response.code === 201 && responseData.vacancyId) {",
-                              "    pm.environment.set(\"vacnames_a_id\", String(responseData.vacancyId));",
-                              "    pm.environment.set(\"vacnames_a_name\", String(responseData.vacancyName));",
-                              "}"
-                            ],
-                            "type": "text/javascript"
-                          },
-                          "listen": "test"
+                          }
                         }
                       ],
                       "request": {
@@ -25652,6 +26374,34 @@
                       "name": "RECRUITMENT-053 add vacancy B with special characters in its name",
                       "event": [
                         {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Vacancy B is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(responseData.vacancyId, \"vacancyId\").to.match(/^[0-9]+$/);",
+                              "    pm.expect(responseData.vacancyName, \"vacancyName\").to.eql(pm.variables.get(\"vacancyName\"));",
+                              "});",
+                              "",
+                              "// side effect: consumed by RECRUITMENT-060 and RECRUITMENT-061",
+                              "if (pm.response.code === 201 && responseData.vacancyId) {",
+                              "    pm.environment.set(\"vacnames_b_id\", String(responseData.vacancyId));",
+                              "    pm.environment.set(\"vacnames_b_name\", String(responseData.vacancyName));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "prerequest",
                           "script": {
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
@@ -25685,35 +26435,7 @@
                               "}));"
                             ],
                             "type": "text/javascript"
-                          },
-                          "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "exec": [
-                              "let response = {};",
-                              "try {",
-                              "    response = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below report it",
-                              "}",
-                              "const responseData = response.data || {};",
-                              "",
-                              "pm.test(\"Vacancy B is created\", function () {",
-                              "    pm.response.to.have.status(201);",
-                              "    pm.expect(responseData.vacancyId, \"vacancyId\").to.match(/^[0-9]+$/);",
-                              "    pm.expect(responseData.vacancyName, \"vacancyName\").to.eql(pm.variables.get(\"vacancyName\"));",
-                              "});",
-                              "",
-                              "// side effect: consumed by RECRUITMENT-057 and RECRUITMENT-058",
-                              "if (pm.response.code === 201 && responseData.vacancyId) {",
-                              "    pm.environment.set(\"vacnames_b_id\", String(responseData.vacancyId));",
-                              "    pm.environment.set(\"vacnames_b_name\", String(responseData.vacancyName));",
-                              "}"
-                            ],
-                            "type": "text/javascript"
-                          },
-                          "listen": "test"
+                          }
                         }
                       ],
                       "request": {
@@ -25751,7 +26473,33 @@
                       "name": "RECRUITMENT-054 add vacancy C that is deleted before the list is read",
                       "event": [
                         {
-                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Vacancy C is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(responseData.vacancyId, \"vacancyId\").to.match(/^[0-9]+$/);",
+                              "    pm.expect(responseData.vacancyName, \"vacancyName\").to.eql(pm.variables.get(\"vacancyName\"));",
+                              "});",
+                              "",
+                              "// side effect: consumed by RECRUITMENT-059 and RECRUITMENT-060",
+                              "if (pm.response.code === 201 && responseData.vacancyId) {",
+                              "    pm.environment.set(\"vacnames_c_id\", String(responseData.vacancyId));",
+                              "    pm.environment.set(\"vacnames_c_name\", String(responseData.vacancyName));",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        },
+                        {
                           "script": {
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
@@ -25785,34 +26533,8 @@
                               "}));"
                             ],
                             "type": "text/javascript"
-                          }
-                        },
-                        {
-                          "listen": "test",
-                          "script": {
-                            "exec": [
-                              "let response = {};",
-                              "try {",
-                              "    response = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below report it",
-                              "}",
-                              "const responseData = response.data || {};",
-                              "",
-                              "pm.test(\"Vacancy C is created\", function () {",
-                              "    pm.response.to.have.status(201);",
-                              "    pm.expect(responseData.vacancyId, \"vacancyId\").to.match(/^[0-9]+$/);",
-                              "    pm.expect(responseData.vacancyName, \"vacancyName\").to.eql(pm.variables.get(\"vacancyName\"));",
-                              "});",
-                              "",
-                              "// side effect: consumed by RECRUITMENT-056 and RECRUITMENT-057",
-                              "if (pm.response.code === 201 && responseData.vacancyId) {",
-                              "    pm.environment.set(\"vacnames_c_id\", String(responseData.vacancyId));",
-                              "    pm.environment.set(\"vacnames_c_name\", String(responseData.vacancyName));",
-                              "}"
-                            ],
-                            "type": "text/javascript"
-                          }
+                          },
+                          "listen": "prerequest"
                         }
                       ],
                       "request": {
@@ -25851,7 +26573,30 @@
                       "event": [
                         {
                           "script": {
-                            "type": "text/javascript",
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Vacancy A is renamed\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "    pm.expect((response.data || {}).vacancyName, \"vacancyName\").to.eql(pm.variables.get(\"newName\"));",
+                              "});",
+                              "",
+                              "// side effect: consumed by RECRUITMENT-060",
+                              "if (pm.response.code === 200) {",
+                              "    pm.environment.set(\"vacnames_a_name\", pm.variables.get(\"newName\"));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        },
+                        {
+                          "script": {
                             "exec": [
                               "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
                               "const cell = key => norm(pm.iterationData.get(key));",
@@ -25866,33 +26611,10 @@
                               "const newName = `${pm.environment.get(\"vacnames_unique\")} ${cell(\"vn_renamedSuffix\")}`;",
                               "pm.variables.set(\"newName\", newName);",
                               "pm.variables.set(\"requestBody\", JSON.stringify({ name: newName }));"
-                            ]
+                            ],
+                            "type": "text/javascript"
                           },
                           "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "let response = {};",
-                              "try {",
-                              "    response = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below report it",
-                              "}",
-                              "",
-                              "pm.test(\"Vacancy A is renamed\", function () {",
-                              "    pm.response.to.have.status(200);",
-                              "    pm.expect((response.data || {}).vacancyName, \"vacancyName\").to.eql(pm.variables.get(\"newName\"));",
-                              "});",
-                              "",
-                              "// side effect: consumed by RECRUITMENT-057",
-                              "if (pm.response.code === 200) {",
-                              "    pm.environment.set(\"vacnames_a_name\", pm.variables.get(\"newName\"));",
-                              "}"
-                            ]
-                          },
-                          "listen": "test"
                         }
                       ],
                       "request": {
@@ -25926,6 +26648,317 @@
                         }
                       },
                       "response": []
+                    },
+                    {
+                      "name": "RECRUITMENT-059 delete vacancy C created by RECRUITMENT-054",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const id = pm.environment.get(\"vacnames_c_id\");",
+                              "if (!id) {",
+                              "    throw new Error(\"Precondition failed: vacnames_c_id not set by RECRUITMENT-054\");",
+                              "}",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ ids: [id] }));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "pm.test(\"Vacancy C created by RECRUITMENT-054 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "// vacnames_c_id is kept: RECRUITMENT-060 checks that the deleted id is no longer listed"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/vacancies",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "vacancies"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "RECRUITMENT-060 get vacancy names",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "[\"vacnames_a_id\", \"vacnames_a_name\", \"vacnames_b_id\", \"vacnames_b_name\", \"vacnames_c_id\"].forEach(key => {",
+                              "    if (!pm.environment.get(key)) {",
+                              "        throw new Error(`Precondition failed: ${key} not set by RECRUITMENT-052...RECRUITMENT-055`);",
+                              "    }",
+                              "});",
+                              "",
+                              "// a blank cell means the request is sent without the query parameter (default behaviour)",
+                              "const includeTemplates = norm(pm.iterationData.get(\"vn_includeTemplates\"));",
+                              "if (includeTemplates !== \"\") {",
+                              "    pm.request.url.addQueryParams([{ key: \"includeTemplates\", value: includeTemplates }]);",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const rows = Array.isArray(response.data) ? response.data : [];",
+                              "const rowsWithId = id => rows.filter(r => norm(r.id) === norm(id));",
+                              "",
+                              "pm.test(`Vacancy names are retrieved (${scenario})`, function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(\"Response matches the vacancy name list schema\", function () {",
+                              "    const raw = pm.collectionVariables.get(\"vacancyNameListSchema\");",
+                              "    pm.expect(raw, \"vacancyNameListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "});",
+                              "",
+                              "pm.test(\"meta.count matches the number of rows returned\", function () {",
+                              "    pm.expect((response.meta || {}).count, \"meta.count\").to.eql(rows.length);",
+                              "});",
+                              "",
+                              "// only the folder's own vacancies are checked: other users can add vacancies to QA at any time",
+                              "[[\"A (renamed by RECRUITMENT-055)\", \"vacnames_a_id\", \"vacnames_a_name\"],",
+                              " [\"B (special characters)\", \"vacnames_b_id\", \"vacnames_b_name\"]].forEach(([label, idKey, nameKey]) => {",
+                              "    pm.test(`Vacancy ${label} is listed once with its exact name`, function () {",
+                              "        const found = rowsWithId(pm.environment.get(idKey));",
+                              "        pm.expect(found.length, `rows with id ${pm.environment.get(idKey)}`).to.eql(1);",
+                              "        pm.expect(norm(found[0].name), \"name\").to.eql(pm.environment.get(nameKey));",
+                              "        pm.expect(found[0].isTemplate, \"isTemplate\").to.be.null;",
+                              "    });",
+                              "});",
+                              "",
+                              "pm.test(\"Vacancy C deleted by RECRUITMENT-059 is not listed\", function () {",
+                              "    pm.expect(rowsWithId(pm.environment.get(\"vacnames_c_id\")).length, `rows with id ${pm.environment.get(\"vacnames_c_id\")}`).to.eql(0);",
+                              "});",
+                              "",
+                              "// templates are only returned with includeTemplates=true",
+                              "if (norm(pm.iterationData.get(\"vn_includeTemplates\")) !== \"true\") {",
+                              "    pm.test(\"No vacancy template is listed\", function () {",
+                              "        pm.expect(rows.filter(r => r.isTemplate === true).map(r => r.id), \"ids of template rows\").to.eql([]);",
+                              "    });",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/allVacancyNames",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "allVacancyNames"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "RECRUITMENT-061 delete vacancies created by RECRUITMENT-052 and RECRUITMENT-053",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const ids = [pm.environment.get(\"vacnames_a_id\"), pm.environment.get(\"vacnames_b_id\")].map(norm).filter(id => id !== \"\");",
+                              "if (ids.length === 0) {",
+                              "    throw new Error(\"Precondition failed: no vacancy id set by RECRUITMENT-052 or RECRUITMENT-053\");",
+                              "}",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ ids }));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// a failed precondition leaves no body, so the list is empty and the status check fails clearly",
+                              "const ids = JSON.parse(pm.variables.get(\"requestBody\") || '{\"ids\":[]}').ids;",
+                              "",
+                              "pm.test(\"Vacancies created by RECRUITMENT-052 and RECRUITMENT-053 are deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// delete is a hard delete, so the ids must be gone from the vacancy name list",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/recruitment/allVacancyNames`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    pm.test(\"Vacancies created by RECRUITMENT-052 and RECRUITMENT-053 are no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        const left = (((res.json() || {}).data) || []).map(r => String(r.id)).filter(id => ids.includes(id));",
+                              "        pm.expect(left, \"vacancy ids still listed\").to.eql([]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later iterations and folders cannot pick them up",
+                              "[\"vacnames_unique\", \"vacnames_a_id\", \"vacnames_a_name\", \"vacnames_b_id\", \"vacnames_b_name\", \"vacnames_c_id\", \"vacnames_c_name\"].forEach(key => pm.environment.unset(key));"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/vacancies",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "vacancies"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "RECRUITMENT-062 terminate employee created by RECRUITMENT-051",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"vacnames_hm_emp_number\")) {",
+                              "    throw new Error(\"Precondition failed: vacnames_hm_emp_number not set by RECRUITMENT-051\");",
+                              "}",
+                              "",
+                              "// the hiring manager is shared by every iteration, so it is terminated after the last iteration only;",
+                              "// earlier iterations just read it (GET) to confirm it is still there",
+                              "if (pm.info.iteration < pm.info.iterationCount - 1) {",
+                              "    pm.request.method = \"GET\";",
+                              "    pm.request.body.update(\"\");",
+                              "    pm.request.headers.remove(\"Content-Type\");",
+                              "    pm.variables.set(\"terminationPath\", \"\");",
+                              "} else {",
+                              "    pm.variables.set(\"terminationPath\", \"/termination-record\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "if (pm.request.method === \"GET\") {",
+                              "    pm.test(\"Hiring manager is kept for the next iteration\", function () {",
+                              "        pm.response.to.have.status(200);",
+                              "        pm.expect(String(responseData.empNumber), \"empNumber\").to.eql(String(pm.environment.get(\"vacnames_hm_emp_number\")));",
+                              "        pm.expect(responseData.termination_id, \"termination_id\").to.be.null;",
+                              "    });",
+                              "} else {",
+                              "    pm.test(\"Employee created by RECRUITMENT-051 is terminated\", function () {",
+                              "        pm.response.to.have.status(201);",
+                              "        pm.expect(String(responseData.empNumber), \"empNumber\").to.eql(String(pm.environment.get(\"vacnames_hm_emp_number\")));",
+                              "    });",
+                              "",
+                              "    pm.environment.unset(\"vacnames_hm_emp_number\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"date\" : \"{{terminationDate}}\",\n    \"flaged\" : \"{{flagValue}}\",\n    \"note\" : \"{{terminationNote}}\",\n    \"reason\" : \"{{terminationReason}}\",\n    \"time\" : \"{{time}}\",\n    \"timezone\" : \"{{timezone}}\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{vacnames_hm_emp_number}}{{terminationPath}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{vacnames_hm_emp_number}}{{terminationPath}}"
+                          ]
+                        }
+                      },
+                      "response": []
                     }
                   ]
                 }
@@ -25942,7 +26975,7 @@
                       "script": {
                         "type": "text/javascript",
                         "exec": [
-                          "const hmexistingforCandidate = pm.environment.get(\"vacancy_hm_emp_number_candi\");\n\n// one hiring manager serves every iteration: later iterations only read it (GET)\nif (pm.info.iteration > 0 && hmexistingforCandidate){\n        pm.request.method = \"GET\";\n        pm.request.body.update(\"\");\n        pm.request.headers.remove(\"Content-Type\");\n        pm.variables.set(\"employeePath\", `/${hmexistingforCandidate}`)\n}\n\nelse {\n    // a run that stopped before its last iteration leaves its hiring manager active: terminate it first\n    if (hmexistingforCandidate){\n        pm.sendRequest({\n            url : `${pm.environment.get(\"baseURL\")}/api/employees/${hmexistingforCandidate}/termination-record`,\n            method: \"POST\",\n            header : { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },\n            body: { mode : \"raw\", raw : JSON.stringify({\n                date : pm.iterationData.get (\"terminationDate\"),\n                flaged : String(pm.iterationData.get (\"flagValue\")),\n                note : String(pm.iterationData.get (\"terminationNote\")),\n                reason : String(pm.iterationData.get (\"terminationReason\")),\n                time : pm.iterationData.get (\"time\"),\n                timezone : pm.iterationData.get (\"timezone\"),\n            })}\n        }, (err,res) => {\n\n            pm.test(\"Termination API - no request error\", function () {\n                pm.expect(err).to.equal(null);\n            });\n\n            if (err) {\n                console.error(\"Termination request error:\", err);\n                return;\n            }\n\n            pm.test (\"Validate the success response upon termination\", function () {\n                pm.expect(res.code).to.be.oneOf([200,201,204]);\n            })\n        })\n    }\n\n    // clear values left over from earlier runs of this folder\n    [\"vacancy_hm_emp_number_candi\", \"vacancy_id_For_candi\", \"vacancy_fixture_for_candi\", \"vacancy_expected\", \"candidate_ids_for_candi\"].forEach(key => pm.environment.unset(key))\n\n    pm.variables.set(\"employeePath\", \"\");\n    pm.variables.set(\"employeeId\", `VACHM-${Date.now().toString().slice(-6)}`);\n}"
+                          "const hmexistingforCandidate = pm.collectionVariables.get(\"vacancy_hm_emp_number_candi\");\n\nif (pm.info.iteration > 0 && hmexistingforCandidate){\n        pm.request.method = \"GET\";\n        pm.request.body.update = \"\";\n        pm.request.headers.remove(\"Content-Type\");\n        pm.variables.set(\"employeePath\", `/${hmexistingforCandidate}`)\n}\n\nelse {\n    if (hmexistingforCandidate){\n        pm.sendRequest({\n            url : `${pm.environment.get(\"baseURL\")}/api/employees/${hmexistingforCandidate}/termination-record`,\n            method: \"POST\",\n            headers : { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },\n            body: { mode : \"raw\", raw : JSON.stringify({\n                date : pm.iterationData.get (\"terminationDate\"),\n                flaged : String(pm.iterationData.get (\"flagValue\")),\n                note : String(pm.iterationData.get (\"terminationNote\")),\n                reason : String(pm.iterationData.get (\"terminationReason\")),\n                time : pm.iterationData.get (\"time\"),\n                timezone : pm.iterationData.get (\"timezone\"),\n            })}\n        }, (err,res) => {\n\n            pm.test(\"Termination API - no request error\", function () {\n                pm.expect(err).to.equal(null);\n            });\n\n            if (err) {\n                console.error(\"Termination request error:\", err);\n                return;\n            }\n\n            pm.test (\"Validate the success response upon termination\", function () {\n                pm.expect(res.code).to.be.oneOf([200,201,204]);\n            })\n        })\n    }\n\n     [\"vacancy_hm_emp_number\", \"vacancy_id\", \"vacancy_expected\"].forEach(key => pm.collectionVariables.unset(key))\n\n    pm.variables.set(\"employeePath\", \"\");\n    pm.variables.set(\"employeeId\", `VACHM-${Date.now().toString().slice(-6)}`);\n}"
                         ]
                       }
                     },
@@ -25951,7 +26984,7 @@
                       "script": {
                         "type": "text/javascript",
                         "exec": [
-                          "const responseData = (pm.response.json() || {}).data || {};\n\nif (pm.request.method == \"GET\"){\n    pm.test(\"Hiring manager is still active\", function () {\n        pm.response.to.have.status(200);\n        pm.expect(String(responseData.empNumber), \"Employee number should be present\").to.eql(String(pm.environment.get(\"vacancy_hm_emp_number_candi\")));\n        pm.expect(responseData.termination_id, \"termination_id\").to.be.null;\n    })\n}\n\nelse {\n    pm.test(\"Employee created successfully\", function () {\n        pm.response.to.have.status(201);\n    })\n    pm.test (\"Employee number exist\", function () {\n        pm.expect(responseData.empNumber, \"Employee number\").to.exist.and.not.to.be.empty;\n    })\n\n    // side effect: consumed by RECRUITMENT-057 and RECRUITMENT-058\n    if (responseData.empNumber){\n        pm.environment.set(\"vacancy_hm_emp_number_candi\", String(responseData.empNumber));\n    }\n}"
+                          "const responseData = (pm.response.json() || {}).data || {};\n\nif (pm.request.method == \"GET\"){\n    pm.test(\"Hisirng manager is still active\", function () {\n        pm.response.to.have.status(200);\n        pm.expect(String(responseData.empNumber), \"Employee number should be present\").to.eql(String(pm.collectionVariables.get(vacancy_hm_emp_number_candi)));\n        pm.expect(responseData.termination_id, \"termination_id\").to.be.null;\n    })\n}\nelse {\n    pm.test(\"Employee created successfully\", function () {\n        pm.response.to.have.status(201);\n    })\n    pm.test (\"Employee number exist\", function () {\n        pm.expect(responseData.empNumber, \"Employee number\").to.exist.and.not.to.be.empty;\n    })\n\n    if (responseData.empNumber){\n        pm.collectionVariables.set(\"vacancy_hm_emp_number_candi\", String(responseData.empNumber));\n    }\n}\n\n"
                         ]
                       }
                     }
@@ -25969,13 +27002,13 @@
                       }
                     },
                     "url": {
-                      "raw": "{{baseURL}}/api/employees{{employeePath}}",
+                      "raw": "{{baseURL}}/api/employees",
                       "host": [
                         "{{baseURL}}"
                       ],
                       "path": [
                         "api",
-                        "employees{{employeePath}}"
+                        "employees"
                       ]
                     }
                   },
@@ -43830,6 +44863,219 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Work-Schedules",
+              "item": [
+                {
+                  "name": "get-work-schedules-with-invalid-query-parameters",
+                  "item": [
+                    {
+                      "name": "ADMIN-477 get work schedules with an invalid query parameter",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "",
+                              "const buildQuery = (template, replace) => template.split(\"&\").filter(pair => pair).map(pair => {",
+                              "    const at = pair.indexOf(\"=\");",
+                              "    const key = at === -1 ? pair : pair.slice(0, at);",
+                              "    const value = at === -1 ? \"\" : pair.slice(at + 1);",
+                              "    return { key: key, value: value === \"__EMPTY__\" ? \"\" : replace(value) };",
+                              "});",
+                              "",
+                              "const template = norm(pm.iterationData.get(\"ws_query\"));",
+                              "if (!template) {",
+                              "    throw new Error(\"Test data error: ws_query is blank in the CSV row\");",
+                              "}",
+                              "pm.request.url.addQueryParams(buildQuery(template, value => value));"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(`Invalid query parameter is rejected (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error names the invalid parameter (${scenario})`, function () {",
+                              "    pm.expect(norm(response.title), \"title\").to.eql(cell(\"ws_expectedTitle\"));",
+                              "    pm.expect(norm(response.details), \"details\").to.include(cell(\"ws_expectedDetails\"));",
+                              "});",
+                              "",
+                              "pm.test(`No work schedule data is returned (${scenario})`, function () {",
+                              "    pm.expect(response.data, \"data\").to.be.undefined;",
+                              "});"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/pim/workSchedules",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "pim",
+                            "workSchedules"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-work-schedules-without-valid-token",
+                  "item": [
+                    {
+                      "name": "ADMIN-478 get work schedules without token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// no token on purpose: request auth is No Auth"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "",
+                              "pm.test(\"Request without a token is rejected\", function () {",
+                              "    pm.response.to.have.status(401);",
+                              "});",
+                              "",
+                              "// the API returns [] here; assert only that no work schedule data comes back",
+                              "pm.test(\"No work schedule data is returned without a token\", function () {",
+                              "    pm.expect(response.data, \"data\").to.be.undefined;",
+                              "});"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/pim/workSchedules",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "pim",
+                            "workSchedules"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-479 get work schedules with invalid authorization header",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (String(pm.iterationData.get(\"authorizationHeader\") ?? \"\").trim() === \"\") {",
+                              "    throw new Error(\"Test data error: authorizationHeader is blank in the CSV row\");",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "",
+                              "pm.test(`Request with an invalid authorization header is rejected (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error explains the authorization problem (${scenario})`, function () {",
+                              "    pm.expect(norm(response.error), \"error\").to.eql(cell(\"ws_expectedError\"));",
+                              "    pm.expect(norm(response.error_description), \"error_description\").to.eql(cell(\"ws_expectedErrorDescription\"));",
+                              "    pm.expect(response.data, \"data\").to.be.undefined;",
+                              "});"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                          {
+                            "value": "{{authorizationHeader}}",
+                            "key": "Authorization"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseURL}}/api/pim/workSchedules",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "pim",
+                            "workSchedules"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -46981,15 +48227,680 @@
                 },
                 {
                   "name": "get-vacancy-names-with-invalid-query-parameters",
-                  "item": []
+                  "item": [
+                    {
+                      "name": "RECRUITMENT-063 get vacancy names with invalid query parameters",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const query = norm(pm.iterationData.get(\"vn_query\"));",
+                              "if (query.trim() === \"\") {",
+                              "    throw new Error(\"Test data error: vn_query is blank in the CSV row\");",
+                              "}",
+                              "",
+                              "// the CSV holds the raw query string; each key=value pair is added as it is (an empty value stays \"key=\")",
+                              "pm.request.url.addQueryParams(query.split(\"&\").map(pair => {",
+                              "    const at = pair.indexOf(\"=\");",
+                              "    return at < 0 ? { key: pair, value: null } : { key: pair.slice(0, at), value: pair.slice(at + 1) };",
+                              "}));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "let errorBody = {};",
+                              "try {",
+                              "    errorBody = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below fail with the field name",
+                              "}",
+                              "",
+                              "pm.test(`Query is rejected (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error says which query parameter is wrong (${scenario})`, function () {",
+                              "    pm.expect(norm(errorBody.title), \"title\").to.eql(cell(\"expectedTitle\"));",
+                              "    pm.expect(norm(errorBody.details), \"details\").to.include(cell(\"expectedDetails\"));",
+                              "});",
+                              "",
+                              "pm.test(`No vacancy names are returned (${scenario})`, function () {",
+                              "    pm.expect(errorBody, \"response body\").to.not.have.property(\"data\");",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/allVacancyNames",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "allVacancyNames"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
                 },
                 {
                   "name": "get-vacancy-names-without-valid-token",
-                  "item": []
+                  "item": [
+                    {
+                      "name": "RECRUITMENT-064 get vacancy names without a valid token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "// a blank cell means no Authorization header at all",
+                              "if (norm(pm.iterationData.get(\"authorizationHeader\")) === \"\") {",
+                              "    pm.request.headers.remove(\"Authorization\");",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "let errorBody = {};",
+                              "try {",
+                              "    errorBody = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below fail with the field name",
+                              "}",
+                              "",
+                              "pm.test(`Request is rejected as unauthorized (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`No vacancy names are returned (${scenario})`, function () {",
+                              "    pm.expect(errorBody, \"response body\").to.not.have.property(\"data\");",
+                              "});",
+                              "",
+                              "if (cell(\"expectedError\") !== \"\") {",
+                              "    pm.test(`Error says why the token is rejected (${scenario})`, function () {",
+                              "        pm.expect(norm(errorBody.error), \"error\").to.eql(cell(\"expectedError\"));",
+                              "        pm.expect(norm(errorBody.error_description), \"error_description\").to.eql(cell(\"expectedErrorDescription\"));",
+                              "    });",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "{{authorizationHeader}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/allVacancyNames",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "allVacancyNames"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
                 },
                 {
                   "name": "vacancy-names-with-unsupported-methods",
-                  "item": []
+                  "item": [
+                    {
+                      "name": "RECRUITMENT-065 add hiring manager employee for the unsupported method check",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const existing = pm.environment.get(\"vnmethods_hm_emp_number\");",
+                              "",
+                              "// one hiring manager serves every iteration of this folder: it is created in the first iteration and",
+                              "// reused afterwards (this request then reads it with a GET), so a long CSV leaves one employee behind, not one per row",
+                              "if (pm.info.iteration > 0 && existing) {",
+                              "    pm.request.method = \"GET\";",
+                              "    pm.request.body.update(\"\");",
+                              "    pm.request.headers.remove(\"Content-Type\");",
+                              "    pm.variables.set(\"employeePath\", `/${existing}`);",
+                              "} else {",
+                              "    // a run that stopped before its last iteration leaves its hiring manager active: terminate it first",
+                              "    if (existing) {",
+                              "        pm.sendRequest({",
+                              "            url: `${pm.environment.get(\"baseURL\")}/api/employees/${existing}/termination-record`,",
+                              "            method: \"POST\",",
+                              "            header: { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },",
+                              "            body: { mode: \"raw\", raw: JSON.stringify({",
+                              "                date: pm.iterationData.get(\"terminationDate\"), flaged: String(pm.iterationData.get(\"flagValue\")),",
+                              "                note: pm.iterationData.get(\"terminationNote\"), reason: String(pm.iterationData.get(\"terminationReason\")),",
+                              "                time: pm.iterationData.get(\"time\"), timezone: pm.iterationData.get(\"timezone\")",
+                              "            }) }",
+                              "        }, () => {});",
+                              "    }",
+                              "",
+                              "    // clear values left over from earlier folders or earlier runs",
+                              "    [\"vnmethods_hm_emp_number\", \"vnmethods_a_id\", \"vnmethods_a_name\"].forEach(key => pm.environment.unset(key));",
+                              "",
+                              "    // unquoted body values must not be blank, or the body is not valid JSON",
+                              "    [\"chkLogin\", \"autoGenerateEmployeeId\"].forEach(key => {",
+                              "        if (String(pm.iterationData.get(key) ?? \"\").trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "",
+                              "    pm.variables.set(\"employeePath\", \"\");",
+                              "    pm.variables.set(\"employeeId\", `VNMETHOD-${Date.now().toString().slice(-6)}`);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "if (pm.request.method === \"GET\") {",
+                              "    pm.test(\"Hiring manager from the first iteration is still an active employee\", function () {",
+                              "        pm.response.to.have.status(200);",
+                              "        pm.expect(String(responseData.empNumber), \"empNumber\").to.eql(String(pm.environment.get(\"vnmethods_hm_emp_number\")));",
+                              "        pm.expect(responseData.termination_id, \"termination_id\").to.be.null;",
+                              "    });",
+                              "} else {",
+                              "    pm.test(\"Employee is created\", function () {",
+                              "        pm.response.to.have.status(201);",
+                              "    });",
+                              "",
+                              "    pm.test(\"Response contains empNumber\", function () {",
+                              "        pm.expect(responseData.empNumber, \"empNumber\").to.exist.and.not.be.empty;",
+                              "    });",
+                              "",
+                              "    // side effect: consumed by RECRUITMENT-066 and RECRUITMENT-070",
+                              "    if (responseData.empNumber) {",
+                              "        pm.environment.set(\"vnmethods_hm_emp_number\", String(responseData.empNumber));",
+                              "    }",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees{{employeePath}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees{{employeePath}}"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "RECRUITMENT-066 add vacancy for the unsupported method check",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// clear values left over from the previous iteration",
+                              "[\"vnmethods_a_id\", \"vnmethods_a_name\"].forEach(key => pm.environment.unset(key));",
+                              "const hiringManager = pm.environment.get(\"vnmethods_hm_emp_number\");",
+                              "if (!hiringManager) {",
+                              "    throw new Error(\"Precondition failed: vnmethods_hm_emp_number not set by RECRUITMENT-065\");",
+                              "}",
+                              "[\"vn_nameA\", \"vn_location\", \"vn_jobTitle\"].forEach(key => {",
+                              "    if (cell(key).trim() === \"\") {",
+                              "        throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "    }",
+                              "});",
+                              "",
+                              "// names are unique across QA",
+                              "const vacancyName = `VNMETHOD-${Date.now().toString().slice(-6)} ${cell(\"vn_nameA\")}`;",
+                              "pm.variables.set(\"vacancyName\", vacancyName);",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "    vacancyName,",
+                              "    location: Number(cell(\"vn_location\")),",
+                              "    jobTitle: Number(cell(\"vn_jobTitle\")),",
+                              "    hiringManager: [Number(hiringManager)],",
+                              "    resumeRequired: \"false\",",
+                              "    requestConsent: \"false\"",
+                              "}));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Vacancy is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(responseData.vacancyId, \"vacancyId\").to.match(/^[0-9]+$/);",
+                              "    pm.expect(responseData.vacancyName, \"vacancyName\").to.eql(pm.variables.get(\"vacancyName\"));",
+                              "});",
+                              "",
+                              "// side effect: consumed by RECRUITMENT-067, RECRUITMENT-068 and RECRUITMENT-069",
+                              "if (pm.response.code === 201 && responseData.vacancyId) {",
+                              "    pm.environment.set(\"vnmethods_a_id\", String(responseData.vacancyId));",
+                              "    pm.environment.set(\"vnmethods_a_name\", String(responseData.vacancyName));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/vacancies",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "vacancies"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "RECRUITMENT-067 send an unsupported method to the vacancy name list",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const id = pm.environment.get(\"vnmethods_a_id\");",
+                              "if (!id) {",
+                              "    throw new Error(\"Precondition failed: vnmethods_a_id not set by RECRUITMENT-066\");",
+                              "}",
+                              "[\"vn_method\", \"vn_body\"].forEach(key => {",
+                              "    if (cell(key).trim() === \"\") {",
+                              "        throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "    }",
+                              "});",
+                              "",
+                              "// the method and body come from the CSV; {A} in the body is the folder's own vacancy id,",
+                              "// so a DELETE or PATCH that wrongly worked would hit only this folder's vacancy",
+                              "pm.request.method = cell(\"vn_method\");",
+                              "pm.variables.set(\"requestBody\", cell(\"vn_body\").split(\"{A}\").join(id));"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "let errorBody = {};",
+                              "try {",
+                              "    errorBody = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below fail with the field name",
+                              "}",
+                              "",
+                              "pm.test(`${cell(\"vn_method\")} is not supported (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error says the endpoint is not found (${scenario})`, function () {",
+                              "    pm.expect(errorBody.status, \"status\").to.eql(false);",
+                              "    pm.expect(norm(errorBody.message), \"message\").to.eql(cell(\"expectedMessage\"));",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/allVacancyNames",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "allVacancyNames"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "RECRUITMENT-068 get vacancy names after RECRUITMENT-067",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "if (!pm.environment.get(\"vnmethods_a_id\")) {",
+                              "    throw new Error(\"Precondition failed: vnmethods_a_id not set by RECRUITMENT-066\");",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const scenario = pm.iterationData.get(\"scenario\");",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const rows = Array.isArray(response.data) ? response.data : [];",
+                              "const sent = (() => {",
+                              "    try {",
+                              "        return JSON.parse(pm.variables.get(\"requestBody\") || \"{}\");",
+                              "    } catch (e) {",
+                              "        return {};",
+                              "    }",
+                              "})();",
+                              "const sentName = norm(sent.name || ((sent.data || [])[0] || {}).name);",
+                              "",
+                              "pm.test(\"Vacancy names are retrieved\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "pm.test(`Vacancy created by RECRUITMENT-066 is still listed once with its name unchanged (${scenario})`, function () {",
+                              "    const found = rows.filter(r => norm(r.id) === pm.environment.get(\"vnmethods_a_id\"));",
+                              "    pm.expect(found.length, `rows with id ${pm.environment.get(\"vnmethods_a_id\")}`).to.eql(1);",
+                              "    pm.expect(norm(found[0].name), \"name\").to.eql(pm.environment.get(\"vnmethods_a_name\"));",
+                              "});",
+                              "",
+                              "if (sentName !== \"\") {",
+                              "    pm.test(`No vacancy carries the name sent by RECRUITMENT-067 (${scenario})`, function () {",
+                              "        pm.expect(rows.filter(r => norm(r.name) === sentName).map(r => r.id), `ids of rows named ${sentName}`).to.eql([]);",
+                              "    });",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/allVacancyNames",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "allVacancyNames"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "RECRUITMENT-069 delete vacancy created by RECRUITMENT-066",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const id = pm.environment.get(\"vnmethods_a_id\");",
+                              "if (!id) {",
+                              "    throw new Error(\"Precondition failed: vnmethods_a_id not set by RECRUITMENT-066\");",
+                              "}",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ ids: [id] }));"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "// a failed precondition leaves no body, so the list is empty and the status check fails clearly",
+                              "const ids = JSON.parse(pm.variables.get(\"requestBody\") || '{\"ids\":[]}').ids;",
+                              "",
+                              "pm.test(\"Vacancy created by RECRUITMENT-066 is deleted\", function () {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// delete is a hard delete, so the ids must be gone from the vacancy name list",
+                              "pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/recruitment/allVacancyNames`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {",
+                              "    pm.test(\"Vacancy created by RECRUITMENT-066 is no longer listed\", function () {",
+                              "        pm.expect(err, \"list request error\").to.be.null;",
+                              "        const left = (((res.json() || {}).data) || []).map(r => String(r.id)).filter(id => ids.includes(id));",
+                              "        pm.expect(left, \"vacancy ids still listed\").to.eql([]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// clear hand-off values so later iterations and folders cannot pick them up",
+                              "[\"vnmethods_a_id\", \"vnmethods_a_name\"].forEach(key => pm.environment.unset(key));"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/vacancies",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "vacancies"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "RECRUITMENT-070 terminate employee created by RECRUITMENT-065",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "if (!pm.environment.get(\"vnmethods_hm_emp_number\")) {",
+                              "    throw new Error(\"Precondition failed: vnmethods_hm_emp_number not set by RECRUITMENT-065\");",
+                              "}",
+                              "",
+                              "// the hiring manager is shared by every iteration, so it is terminated after the last iteration only;",
+                              "// earlier iterations just read it (GET) to confirm it is still there",
+                              "if (pm.info.iteration < pm.info.iterationCount - 1) {",
+                              "    pm.request.method = \"GET\";",
+                              "    pm.request.body.update(\"\");",
+                              "    pm.request.headers.remove(\"Content-Type\");",
+                              "    pm.variables.set(\"terminationPath\", \"\");",
+                              "} else {",
+                              "    pm.variables.set(\"terminationPath\", \"/termination-record\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const responseData = (pm.response.json() || {}).data || {};",
+                              "",
+                              "if (pm.request.method === \"GET\") {",
+                              "    pm.test(\"Hiring manager is kept for the next iteration\", function () {",
+                              "        pm.response.to.have.status(200);",
+                              "        pm.expect(String(responseData.empNumber), \"empNumber\").to.eql(String(pm.environment.get(\"vnmethods_hm_emp_number\")));",
+                              "        pm.expect(responseData.termination_id, \"termination_id\").to.be.null;",
+                              "    });",
+                              "} else {",
+                              "    pm.test(\"Employee created by RECRUITMENT-065 is terminated\", function () {",
+                              "        pm.response.to.have.status(201);",
+                              "        pm.expect(String(responseData.empNumber), \"empNumber\").to.eql(String(pm.environment.get(\"vnmethods_hm_emp_number\")));",
+                              "    });",
+                              "",
+                              "    pm.environment.unset(\"vnmethods_hm_emp_number\");",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"date\" : \"{{terminationDate}}\",\n    \"flaged\" : \"{{flagValue}}\",\n    \"note\" : \"{{terminationNote}}\",\n    \"reason\" : \"{{terminationReason}}\",\n    \"time\" : \"{{time}}\",\n    \"timezone\" : \"{{timezone}}\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{vnmethods_hm_emp_number}}{{terminationPath}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{vnmethods_hm_emp_number}}{{terminationPath}}"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
                 }
               ]
             },
@@ -49083,6 +50994,10 @@
       "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Vacancy\",\n  \"type\": \"object\",\n  \"required\": [\n    \"data\",\n    \"meta\"\n  ],\n  \"properties\": {\n    \"data\": {\n      \"type\": \"object\",\n      \"required\": [\n        \"id\",\n        \"name\",\n        \"description\",\n        \"postingName\",\n        \"numOfPositions\",\n        \"locationId\",\n        \"jobTitleId\",\n        \"subUnitId\",\n        \"statusCode\",\n        \"definedTime\",\n        \"updatedTime\",\n        \"workflowId\",\n        \"guidelineId\",\n        \"isTemplate\",\n        \"publishedTime\",\n        \"requestConsent\",\n        \"isResumeRequired\",\n        \"includeArchivedCandidateOnDynamicRuleFilter\"\n      ],\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[0-9]+$\"\n        },\n        \"name\": {\n          \"type\": \"string\"\n        },\n        \"description\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        },\n        \"postingName\": {\n          \"type\": \"string\"\n        },\n        \"numOfPositions\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        },\n        \"locationId\": {\n          \"type\": \"string\"\n        },\n        \"jobTitleId\": {\n          \"type\": \"string\"\n        },\n        \"subUnitId\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        },\n        \"statusCode\": {\n          \"type\": \"string\"\n        },\n        \"definedTime\": {\n          \"type\": \"string\"\n        },\n        \"updatedTime\": {\n          \"type\": \"string\"\n        },\n        \"workflowId\": {\n          \"type\": \"string\"\n        },\n        \"guidelineId\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        },\n        \"isTemplate\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        },\n        \"publishedTime\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        },\n        \"requestConsent\": {\n          \"enum\": [\n            \"0\",\n            \"1\"\n          ]\n        },\n        \"isResumeRequired\": {\n          \"enum\": [\n            \"0\",\n            \"1\"\n          ]\n        },\n        \"includeArchivedCandidateOnDynamicRuleFilter\": {\n          \"type\": \"boolean\"\n        }\n      }\n    },\n    \"meta\": {\n      \"type\": \"object\",\n      \"required\": [\n        \"permissions\"\n      ]\n    }\n  }\n}"
     },
     {
+      "key": "vacancyNameListSchema",
+      "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"required\": [\n    \"data\",\n    \"meta\"\n  ],\n  \"properties\": {\n    \"data\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"id\",\n          \"name\",\n          \"isTemplate\"\n        ],\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"id\": {\n            \"type\": \"string\",\n            \"pattern\": \"^[0-9]+$\"\n          },\n          \"name\": {\n            \"type\": \"string\"\n          },\n          \"isTemplate\": {\n            \"type\": [\n              \"boolean\",\n              \"null\"\n            ]\n          }\n        }\n      }\n    },\n    \"meta\": {\n      \"type\": \"object\",\n      \"required\": [\n        \"count\"\n      ],\n      \"properties\": {\n        \"count\": {\n          \"type\": \"integer\",\n          \"minimum\": 0\n        }\n      }\n    }\n  }\n}"
+    },
+    {
       "key": "genderListSchema",
       "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Gender list\",\n  \"type\": \"object\",\n  \"required\": [\n    \"data\"\n  ],\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"data\": {\n      \"type\": \"array\",\n      \"minItems\": 1,\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"id\",\n          \"name\"\n        ],\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"id\": {\n            \"type\": \"string\",\n            \"pattern\": \"^[1-9][0-9]*$\"\n          },\n          \"name\": {\n            \"type\": \"string\",\n            \"minLength\": 1,\n            \"maxLength\": 100\n          }\n        }\n      }\n    }\n  }\n}",
       "disabled": true
@@ -49123,6 +51038,10 @@
     {
       "key": "customFieldPatchSchema",
       "value": "{\n  \"type\": \"object\",\n  \"required\": [\n    \"messages\",\n    \"data\"\n  ],\n  \"properties\": {\n    \"messages\": {\n      \"type\": \"object\",\n      \"required\": [\n        \"success\"\n      ],\n      \"properties\": {\n        \"success\": {\n          \"type\": \"string\"\n        }\n      }\n    },\n    \"data\": {\n      \"type\": \"object\",\n      \"required\": [\n        \"id\",\n        \"custom_field_section_id\",\n        \"name\",\n        \"unique_name\",\n        \"type\",\n        \"extra_data\",\n        \"display_order\",\n        \"mandatory\",\n        \"global\",\n        \"deletable\",\n        \"deleted\",\n        \"extra_data_sorting_method\",\n        \"advance_type_map\",\n        \"locations\",\n        \"CustomFieldSection\",\n        \"CustomFieldDisplayCondition\"\n      ],\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[0-9]+$\"\n        },\n        \"custom_field_section_id\": {\n          \"type\": [\n            \"string\",\n            \"integer\"\n          ]\n        },\n        \"name\": {\n          \"type\": \"string\",\n          \"maxLength\": 250\n        },\n        \"unique_name\": {\n          \"type\": \"string\"\n        },\n        \"type\": {\n          \"type\": \"string\",\n          \"pattern\": \"^[0-9]+$\"\n        },\n        \"extra_data\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        },\n        \"display_order\": {\n          \"type\": [\n            \"string\",\n            \"integer\"\n          ]\n        },\n        \"mandatory\": {\n          \"type\": [\n            \"boolean\",\n            \"string\"\n          ]\n        },\n        \"global\": {\n          \"type\": \"boolean\"\n        },\n        \"deletable\": {\n          \"type\": \"boolean\"\n        },\n        \"deleted\": {\n          \"type\": \"boolean\"\n        },\n        \"extra_data_sorting_method\": {\n          \"type\": \"boolean\"\n        },\n        \"advance_type_map\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ]\n        },\n        \"locations\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"required\": [\n              \"id\",\n              \"name\"\n            ]\n          }\n        },\n        \"CustomFieldSection\": {\n          \"type\": \"object\",\n          \"required\": [\n            \"id\",\n            \"custom_field_screen_id\",\n            \"display_name\",\n            \"CustomFieldScreen\"\n          ]\n        },\n        \"CustomFieldDisplayCondition\": {\n          \"type\": \"object\",\n          \"required\": [\n            \"id\",\n            \"customFieldId\",\n            \"parentCustomFieldId\",\n            \"parentCustomFieldValue\"\n          ]\n        }\n      }\n    }\n  }\n}"
+    },
+    {
+      "key": "workScheduleListSchema",
+      "value": "{\"type\": \"object\", \"required\": [\"data\", \"meta\"], \"properties\": {\"data\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"name\", \"work_schedule_type_id\", \"is_default\", \"definition\", \"created_through\", \"deletable\", \"editable\", \"WorkScheduleType\", \"created_at\", \"updated_at\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"name\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 255}, \"work_schedule_type_id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"is_default\": {\"type\": \"boolean\"}, \"definition\": {\"type\": \"string\", \"minLength\": 1}, \"created_through\": {\"type\": \"boolean\"}, \"deletable\": {\"type\": \"boolean\"}, \"editable\": {\"type\": \"boolean\"}, \"WorkScheduleType\": {\"type\": \"object\", \"required\": [\"id\", \"name\", \"description\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"name\": {\"type\": \"string\", \"enum\": [\"fixed\", \"flexible_daily_hours\", \"flexible_weekly_hours\"]}, \"description\": {\"type\": \"string\", \"minLength\": 1}}}, \"created_at\": {\"type\": [\"string\", \"null\"], \"pattern\": \"^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$\"}, \"updated_at\": {\"type\": [\"string\", \"null\"], \"pattern\": \"^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$\"}}}}, \"meta\": {\"type\": \"object\", \"required\": [\"total\", \"permittedIds\", \"permittedToSetCountryDefaultWhenAdding\", \"idsInUse\"], \"properties\": {\"total\": {\"type\": \"integer\", \"minimum\": 0}, \"permittedIds\": {\"type\": \"object\", \"required\": [\"update\", \"delete\", \"setCountryDefault\", \"viewCountryDefault\"], \"properties\": {\"update\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}, \"delete\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}, \"setCountryDefault\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}, \"viewCountryDefault\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}}}, \"permittedToSetCountryDefaultWhenAdding\": {\"type\": \"boolean\"}, \"idsInUse\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}}}}}"
     }
   ]
 }
