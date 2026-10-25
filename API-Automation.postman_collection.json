@@ -24622,135 +24622,22 @@
                       "name": "RECRUITMENT-003 add vacancy",
                       "event": [
                         {
+                          "listen": "prerequest",
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// clear values left over from the previous iteration",
-                              "[\"vacancy_id\", \"vacancy_expected\"].forEach(key => pm.environment.unset(key));",
-                              "",
-                              "const hiringManagers = {",
-                              "    first: pm.environment.get(\"vacancy_hm_emp_number\"),",
-                              "    second: pm.environment.get(\"vacancy_second_hm_emp_number\")",
-                              "};",
-                              "if (!hiringManagers.first) {",
-                              "    throw new Error(\"Precondition failed: vacancy_hm_emp_number not set by RECRUITMENT-001\");",
-                              "}",
-                              "if (!hiringManagers.second) {",
-                              "    throw new Error(\"Precondition failed: vacancy_second_hm_emp_number not set by RECRUITMENT-002\");",
-                              "}",
-                              "[\"vac_name\", \"vac_location\", \"vac_jobTitle\", \"vac_hiringManagers\", \"vac_resumeRequired\", \"vac_requestConsent\"].forEach(key => {",
-                              "    if (cell(key).trim() === \"\") {",
-                              "        throw new Error(`Test data error: ${key} is blank in the CSV row`);",
-                              "    }",
-                              "});",
-                              "",
-                              "// vac_hiringManagers lists the hiring manager roles in order, e.g. \"first|second\"",
-                              "const hiringManagerIds = cell(\"vac_hiringManagers\").split(\"|\").map(role => {",
-                              "    if (!hiringManagers[role]) {",
-                              "        throw new Error(`Test data error: unknown hiring manager role ${role}`);",
-                              "    }",
-                              "    return String(hiringManagers[role]);",
-                              "});",
-                              "",
-                              "// run-specific prefix keeps names unique across runs (vacancy names are unique across all vacancies)",
-                              "const name = `VAC-${Date.now().toString().slice(-6)} ${cell(\"vac_name\")}`;",
-                              "const body = {",
-                              "    vacancyName: name,",
-                              "    location: Number(cell(\"vac_location\")),",
-                              "    jobTitle: Number(cell(\"vac_jobTitle\")),",
-                              "    hiringManager: hiringManagerIds.map(Number),",
-                              "    resumeRequired: cell(\"vac_resumeRequired\"),",
-                              "    requestConsent: cell(\"vac_requestConsent\")",
-                              "};",
-                              "// optional fields: a blank cell means the field is not sent",
-                              "if (cell(\"vac_copyFromTemplate\") !== \"\") {",
-                              "    body.copyFromTemplate = cell(\"vac_copyFromTemplate\");",
-                              "}",
-                              "if (cell(\"vac_subUnit\") !== \"\") {",
-                              "    body.subUnit = Number(cell(\"vac_subUnit\"));",
-                              "}",
-                              "if (cell(\"vac_noOfPositions\") !== \"\") {",
-                              "    body.noOfPositions = Number(cell(\"vac_noOfPositions\"));",
-                              "}",
-                              "",
-                              "// side effect: checked by RECRUITMENT-003 to RECRUITMENT-005",
-                              "pm.environment.set(\"vacancy_expected\", JSON.stringify({",
-                              "    vacancyName: name,",
-                              "    locationId: cell(\"vac_location\"),",
-                              "    jobTitleCode: cell(\"vac_jobTitle\"),",
-                              "    subunitId: cell(\"vac_subUnit\"),",
-                              "    noOfPositions: cell(\"vac_noOfPositions\"),",
-                              "    hiringManager: hiringManagerIds,",
-                              "    isResumeRequired: cell(\"vac_expectedResumeRequired\"),",
-                              "    requestConsent: cell(\"vac_expectedRequestConsent\"),",
-                              "    status: cell(\"vac_expectedStatus\")",
-                              "}));",
-                              "pm.variables.set(\"requestBody\", JSON.stringify(body));"
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\n// clear values left over from the previous iteration\n[\"vacancy_id\", \"vacancy_expected\"].forEach(key => pm.environment.unset(key));\n\nconst hiringManagers = {\n    first: pm.environment.get(\"vacancy_hm_emp_number\"),\n    second: pm.environment.get(\"vacancy_second_hm_emp_number\")\n};\nif (!hiringManagers.first) {\n    throw new Error(\"Precondition failed: vacancy_hm_emp_number not set by RECRUITMENT-001\");\n}\nif (!hiringManagers.second) {\n    throw new Error(\"Precondition failed: vacancy_second_hm_emp_number not set by RECRUITMENT-002\");\n}\n[\"vac_name\", \"vac_location\", \"vac_jobTitle\", \"vac_hiringManagers\", \"vac_resumeRequired\", \"vac_requestConsent\"].forEach(key => {\n    if (cell(key).trim() === \"\") {\n        throw new Error(`Test data error: ${key} is blank in the CSV row`);\n    }\n});\n\n// vac_hiringManagers lists the hiring manager roles in order, e.g. \"first|second\"\nconst hiringManagerIds = cell(\"vac_hiringManagers\").split(\"|\").map(role => {\n    if (!hiringManagers[role]) {\n        throw new Error(`Test data error: unknown hiring manager role ${role}`);\n    }\n    return String(hiringManagers[role]);\n});\n\n// run-specific prefix keeps names unique across runs (vacancy names are unique across all vacancies)\nconst name = `VAC-${Date.now().toString().slice(-6)} ${cell(\"vac_name\")}`;\nconst body = {\n    vacancyName: name,\n    location: Number(cell(\"vac_location\")),\n    jobTitle: Number(cell(\"vac_jobTitle\")),\n    hiringManager: hiringManagerIds.map(Number),\n    resumeRequired: cell(\"vac_resumeRequired\"),\n    requestConsent: cell(\"vac_requestConsent\")\n};\n// optional fields: a blank cell means the field is not sent\nif (cell(\"vac_copyFromTemplate\") !== \"\") {\n    body.copyFromTemplate = cell(\"vac_copyFromTemplate\");\n}\nif (cell(\"vac_subUnit\") !== \"\") {\n    body.subUnit = Number(cell(\"vac_subUnit\"));\n}\nif (cell(\"vac_noOfPositions\") !== \"\") {\n    body.noOfPositions = Number(cell(\"vac_noOfPositions\"));\n}\n\n// side effect: checked by RECRUITMENT-003 to RECRUITMENT-005\npm.environment.set(\"vacancy_expected\", JSON.stringify({\n    vacancyName: name,\n    locationId: cell(\"vac_location\"),\n    jobTitleCode: cell(\"vac_jobTitle\"),\n    subunitId: cell(\"vac_subUnit\"),\n    noOfPositions: cell(\"vac_noOfPositions\"),\n    hiringManager: hiringManagerIds,\n    isResumeRequired: cell(\"vac_expectedResumeRequired\"),\n    requestConsent: cell(\"vac_expectedRequestConsent\"),\n    status: cell(\"vac_expectedStatus\")\n}));\npm.variables.set(\"requestBody\", JSON.stringify(body));"
                             ]
-                          },
-                          "listen": "prerequest"
+                          }
                         },
                         {
+                          "listen": "test",
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "const response = pm.response.json() || {};",
-                              "const responseData = response.data || {};",
-                              "const expected = JSON.parse(pm.environment.get(\"vacancy_expected\") || \"{}\");",
-                              "const scenario = pm.iterationData.get(\"scenario\");",
-                              "",
-                              "pm.test(`Vacancy is added (${scenario})`, function () {",
-                              "    pm.response.to.have.status(201);",
-                              "});",
-                              "",
-                              "pm.test(\"Response matches the vacancy schema\", function () {",
-                              "    const raw = pm.collectionVariables.get(\"vacancyPostSchema\");",
-                              "    pm.expect(raw, \"vacancyPostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
-                              "    pm.response.to.have.jsonSchema(JSON.parse(raw));",
-                              "});",
-                              "",
-                              "pm.test(\"Response confirms the vacancy is saved\", function () {",
-                              "    pm.expect(response.success, \"success\").to.eql(true);",
-                              "    pm.expect(norm((response.messages || {}).success), \"messages.success\").to.eql(cell(\"vac_successMessage\"));",
-                              "});",
-                              "",
-                              "pm.test(`Vacancy details match what was sent (${scenario})`, function () {",
-                              "    [\"vacancyName\", \"locationId\", \"jobTitleCode\", \"subunitId\", \"noOfPositions\", \"isResumeRequired\", \"requestConsent\"].forEach(field => {",
-                              "        pm.expect(norm(responseData[field]), field).to.eql(expected[field]);",
-                              "    });",
-                              "    pm.expect(norm(responseData.postingName), \"postingName\").to.eql(expected.vacancyName);",
-                              "});",
-                              "",
-                              "pm.test(`Vacancy is linked to the hiring managers that were sent (${scenario})`, function () {",
-                              "    // the API does not keep the order the hiring managers were sent in, so they are compared as a set",
-                              "    const empNumbers = (responseData.hiringManager || []).map(manager => norm(manager.empNumber));",
-                              "    pm.expect(empNumbers.slice().sort(), \"hiringManager empNumbers\").to.eql(expected.hiringManager.slice().sort());",
-                              "});",
-                              "",
-                              "pm.test(\"Vacancy is linked to the location, job title and subunit that were sent\", function () {",
-                              "    pm.expect(norm((responseData.location || {}).id), \"location.id\").to.eql(expected.locationId);",
-                              "    pm.expect(norm((responseData.jobTitle || {}).code), \"jobTitle.code\").to.eql(expected.jobTitleCode);",
-                              "    pm.expect(norm((responseData.subunit || {}).id), \"subunit.id\").to.eql(expected.subunitId);",
-                              "});",
-                              "",
-                              "pm.test(\"New vacancy is a regular vacancy in the initial status without candidates\", function () {",
-                              "    pm.expect(norm((responseData.status || {}).status), \"status.status\").to.eql(expected.status);",
-                              "    pm.expect(responseData.isTemplate, \"isTemplate\").to.be.null;",
-                              "    pm.expect(responseData.candidateCount, \"candidateCount\").to.eql(0);",
-                              "});",
-                              "",
-                              "// side effect: consumed by RECRUITMENT-004 to RECRUITMENT-006",
-                              "if (norm(responseData.vacancyId) !== \"\") {",
-                              "    pm.environment.set(\"vacancy_id\", String(responseData.vacancyId));",
-                              "}"
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nconst response = pm.response.json() || {};\nconst responseData = response.data || {};\nconst expected = JSON.parse(pm.environment.get(\"vacancy_expected\") || \"{}\");\nconst scenario = pm.iterationData.get(\"scenario\");\n\npm.test(`Vacancy is added (${scenario})`, function () {\n    pm.response.to.have.status(201);\n});\n\npm.test(\"Response matches the vacancy schema\", function () {\n    const raw = pm.collectionVariables.get(\"vacancyPostSchema\");\n    pm.expect(raw, \"vacancyPostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"Response confirms the vacancy is saved\", function () {\n    pm.expect(response.success, \"success\").to.eql(true);\n    pm.expect(norm((response.messages || {}).success), \"messages.success\").to.eql(cell(\"vac_successMessage\"));\n});\n\npm.test(`Vacancy details match what was sent (${scenario})`, function () {\n    [\"vacancyName\", \"locationId\", \"jobTitleCode\", \"subunitId\", \"noOfPositions\", \"isResumeRequired\", \"requestConsent\"].forEach(field => {\n        pm.expect(norm(responseData[field]), field).to.eql(expected[field]);\n    });\n    pm.expect(norm(responseData.postingName), \"postingName\").to.eql(expected.vacancyName);\n});\n\npm.test(`Vacancy is linked to the hiring managers that were sent (${scenario})`, function () {\n    // the API does not keep the order the hiring managers were sent in, so they are compared as a set\n    const empNumbers = (responseData.hiringManager || []).map(manager => norm(manager.empNumber));\n    pm.expect(empNumbers.slice().sort(), \"hiringManager empNumbers\").to.eql(expected.hiringManager.slice().sort());\n});\n\npm.test(\"Vacancy is linked to the location, job title and subunit that were sent\", function () {\n    pm.expect(norm((responseData.location || {}).id), \"location.id\").to.eql(expected.locationId);\n    pm.expect(norm((responseData.jobTitle || {}).code), \"jobTitle.code\").to.eql(expected.jobTitleCode);\n    pm.expect(norm((responseData.subunit || {}).id), \"subunit.id\").to.eql(expected.subunitId);\n});\n\npm.test(\"New vacancy is a regular vacancy in the initial status without candidates\", function () {\n    pm.expect(norm((responseData.status || {}).status), \"status.status\").to.eql(expected.status);\n    pm.expect(responseData.isTemplate, \"isTemplate\").to.be.null;\n    pm.expect(responseData.candidateCount, \"candidateCount\").to.eql(0);\n});\n\n// side effect: consumed by RECRUITMENT-004 to RECRUITMENT-006\nif (norm(responseData.vacancyId) !== \"\") {\n    pm.environment.set(\"vacancy_id\", String(responseData.vacancyId));\n}"
                             ]
-                          },
-                          "listen": "test"
+                          }
                         }
                       ],
                       "request": {
@@ -26968,208 +26855,252 @@
               "name": "Candidates",
               "item": [
                 {
-                  "name": "RECRUITMENT-056 add hiring manager employee for the vacancy name list",
-                  "event": [
+                  "name": "add-candidate",
+                  "item": [
                     {
-                      "listen": "prerequest",
-                      "script": {
-                        "type": "text/javascript",
-                        "exec": [
-                          "const hmexistingforCandidate = pm.collectionVariables.get(\"vacancy_hm_emp_number_candi\");\n\nif (pm.info.iteration > 0 && hmexistingforCandidate){\n        pm.request.method = \"GET\";\n        pm.request.body.update = \"\";\n        pm.request.headers.remove(\"Content-Type\");\n        pm.variables.set(\"employeePath\", `/${hmexistingforCandidate}`)\n}\n\nelse {\n    if (hmexistingforCandidate){\n        pm.sendRequest({\n            url : `${pm.environment.get(\"baseURL\")}/api/employees/${hmexistingforCandidate}/termination-record`,\n            method: \"POST\",\n            headers : { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },\n            body: { mode : \"raw\", raw : JSON.stringify({\n                date : pm.iterationData.get (\"terminationDate\"),\n                flaged : String(pm.iterationData.get (\"flagValue\")),\n                note : String(pm.iterationData.get (\"terminationNote\")),\n                reason : String(pm.iterationData.get (\"terminationReason\")),\n                time : pm.iterationData.get (\"time\"),\n                timezone : pm.iterationData.get (\"timezone\"),\n            })}\n        }, (err,res) => {\n\n            pm.test(\"Termination API - no request error\", function () {\n                pm.expect(err).to.equal(null);\n            });\n\n            if (err) {\n                console.error(\"Termination request error:\", err);\n                return;\n            }\n\n            pm.test (\"Validate the success response upon termination\", function () {\n                pm.expect(res.code).to.be.oneOf([200,201,204]);\n            })\n        })\n    }\n\n     [\"vacancy_hm_emp_number\", \"vacancy_id\", \"vacancy_expected\"].forEach(key => pm.collectionVariables.unset(key))\n\n    pm.variables.set(\"employeePath\", \"\");\n    pm.variables.set(\"employeeId\", `VACHM-${Date.now().toString().slice(-6)}`);\n}"
-                        ]
-                      }
-                    },
-                    {
-                      "listen": "test",
-                      "script": {
-                        "type": "text/javascript",
-                        "exec": [
-                          "const responseData = (pm.response.json() || {}).data || {};\n\nif (pm.request.method == \"GET\"){\n    pm.test(\"Hisirng manager is still active\", function () {\n        pm.response.to.have.status(200);\n        pm.expect(String(responseData.empNumber), \"Employee number should be present\").to.eql(String(pm.collectionVariables.get(vacancy_hm_emp_number_candi)));\n        pm.expect(responseData.termination_id, \"termination_id\").to.be.null;\n    })\n}\nelse {\n    pm.test(\"Employee created successfully\", function () {\n        pm.response.to.have.status(201);\n    })\n    pm.test (\"Employee number exist\", function () {\n        pm.expect(responseData.empNumber, \"Employee number\").to.exist.and.not.to.be.empty;\n    })\n\n    if (responseData.empNumber){\n        pm.collectionVariables.set(\"vacancy_hm_emp_number_candi\", String(responseData.empNumber));\n    }\n}\n\n"
-                        ]
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
+                      "name": "RECRUITMENT-056 add hiring manager employee for the vacancy name list",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const hmexistingforCandidate = pm.environment.get(\"vacancy_hm_emp_number_candi\");\n\nif (pm.info.iteration > 0 ){\n        pm.execution.skipRequest();\n}\n\nelse {\n    if (hmexistingforCandidate){\n        pm.sendRequest({\n            url : `${pm.environment.get(\"baseURL\")}/api/employees/${hmexistingforCandidate}/termination-record`,\n            method: \"POST\",\n            header : { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },\n            body: { mode : \"raw\", raw : JSON.stringify({\n                date : pm.iterationData.get (\"terminationDate\"),\n                flaged : String(pm.iterationData.get (\"flagValue\")),\n                note : String(pm.iterationData.get (\"terminationNote\")),\n                reason : String(pm.iterationData.get (\"terminationReason\")),\n                time : pm.iterationData.get (\"time\"),\n                timezone : pm.iterationData.get (\"timezone\"),\n            })}\n        }, (err,res) => {\n\n            pm.test(\"Termination API - no request error\", function () {\n                pm.expect(err).to.equal(null);\n            });\n\n            if (err) {\n                console.error(\"Termination request error:\", err);\n                return;\n            }\n\n            pm.test (\"Validate the success response upon termination\", function () {\n                pm.expect(res.code).to.be.oneOf([200,201,204]);\n            })\n        })\n    }\n\n    // clear the hand-offs of an earlier run, so RECRUITMENT-057 creates a new vacancy for the new hiring manager\n    [\"vacancy_hm_emp_number_candi\", \"vacancy_id_For_candi\", \"vacancy_expected\", \"vacancy_fixture_for_candi\", \"candidate_ids\"].forEach(key => pm.environment.unset(key))\n\n    pm.variables.set(\"employeePath\", \"\");\n    pm.variables.set(\"employeeId\", `VACHM-${Date.now().toString().slice(-6)}`);\n}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const responseData = (pm.response.json() || {}).data || {};\n\nif (pm.request.method == \"GET\"){\n    pm.test(\"Hisirng manager is still active\", function () {\n        pm.response.to.have.status(200);\n        pm.expect(String(responseData.empNumber), \"Employee number should be present\").to.eql(String(pm.environment.get(\"vacancy_hm_emp_number_candi\")));\n        pm.expect(responseData.termination_id, \"termination_id\").to.be.null;\n    })\n}\nelse {\n    pm.test(\"Employee created successfully\", function () {\n        pm.response.to.have.status(201);\n    })\n    pm.test (\"Employee number exist\", function () {\n        pm.expect(String(responseData.empNumber || \"\"), \"Employee number\").to.match(/^[0-9]+$/);\n    })\n\n    if (responseData.empNumber){\n        pm.environment.set(\"vacancy_hm_emp_number_candi\", String(responseData.empNumber));\n    }\n}\n\n"
+                            ]
+                          }
                         }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{baseURL}}/api/employees",
-                      "host": [
-                        "{{baseURL}}"
                       ],
-                      "path": [
-                        "api",
-                        "employees"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "RECRUITMENT-057 add a vacancy for candidate hire",
-                  "event": [
-                    {
-                      "script": {
-                        "exec": [
-                          "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst hiringManagerID = pm.environment.get(\"vacancy_hm_emp_number_candi\");\nconst vacancyFixtureForCandi = pm.environment.get(\"vacancy_fixture_for_candi\");\n\n// one vacancy serves every iteration: it is created in the first iteration only\nif (vacancyFixtureForCandi){\n    pm.execution.skipRequest();\n} else {\n    if (!hiringManagerID) {\n        throw new Error(\"Precondition failed!!. Hiring manager ID has not been set by RECRUITMENT-056\")\n    }\n\n    //validate csv file values are not empty\n    [\"vac_name\", \"vac_location\", \"vac_jobTitle\", \"vac_resumeRequired\", \"vac_requestConsent\"].forEach(key => {\n          if (cell(key).trim() ==\"\"){\n            throw new Error(`Precondition failed!!. ${key} is empty in the CSV`)\n        }\n    })\n\n    const name = `VAC-${Date.now().toString().slice(-6)} ${cell(\"vac_name\")}`;\n    const body = {\n        vacancyName: name,\n        location: Number(cell(\"vac_location\")),\n        jobTitle: Number(cell(\"vac_jobTitle\")),\n        hiringManager: [Number(hiringManagerID)],\n        resumeRequired: cell(\"vac_resumeRequired\"),\n        requestConsent: cell(\"vac_requestConsent\")\n    };\n\n    // side effect: checked by the tests of this request\n    pm.environment.set(\"vacancy_expected\", JSON.stringify({\n        vacancyName: name,\n        locationId: cell(\"vac_location\"),\n        jobTitleCode: cell(\"vac_jobTitle\"),\n        hiringManager: hiringManagerID,\n        isResumeRequired: cell(\"vac_resumeRequired\"),\n        requestConsent: cell(\"vac_requestConsent\"),\n        status: cell(\"vac_expectedStatus\")\n    }));\n    pm.variables.set(\"requestBody\", JSON.stringify(body));\n}"
-                        ],
-                        "type": "text/javascript"
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
                       },
-                      "listen": "prerequest"
+                      "response": []
                     },
                     {
-                      "script": {
-                        "exec": [
-                          "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nlet response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // not JSON: the checks below report it\n}\nconst responseData = response.data || {};\nconst expected = JSON.parse(pm.environment.get(\"vacancy_expected\") || \"{}\");\n\npm.test(\"Status code validation\", function () {\n    pm.response.to.have.status(201);\n})\n\npm.test(\"Vacancy created successfully with sent data\", function () {\n    [\"vacancyName\", \"locationId\", \"jobTitleCode\"].forEach(key => {\n        pm.expect(norm(responseData[key]), key).to.eql(norm(expected[key]));\n    })\n    const empNumbers = (responseData.hiringManager || []).map(manager => norm(manager.empNumber));\n    pm.expect(empNumbers, \"hiringManager empNumbers\").to.eql([norm(expected.hiringManager)]);\n})\n\n// side effect: consumed by RECRUITMENT-058\nif (norm(responseData.vacancyId) !== \"\") {\n    pm.environment.set(\"vacancy_id_For_candi\", String(responseData.vacancyId));\n    pm.environment.set(\"vacancy_fixture_for_candi\", JSON.stringify({\n        vacancyId: String(responseData.vacancyId),\n        vacancyName: norm(responseData.vacancyName)\n    }));\n}"
-                        ],
-                        "type": "text/javascript"
+                      "name": "RECRUITMENT-057 add a vacancy for candidate hire",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst hiringManagerID = pm.environment.get(\"vacancy_hm_emp_number_candi\");\nconst vacancyFixtureForCandi = pm.environment.get(\"vacancy_fixture_for_candi\");\n\n// one vacancy serves every iteration: it is created in the first iteration only\nif (vacancyFixtureForCandi){\n    pm.execution.skipRequest();\n} else {\n    if (!hiringManagerID) {\n        throw new Error(\"Precondition failed!!. Hiring manager ID has not been set by RECRUITMENT-056\")\n    }\n\n    //validate csv file values are not empty\n    [\"vac_name\", \"vac_location\", \"vac_jobTitle\", \"vac_resumeRequired\", \"vac_requestConsent\"].forEach(key => {\n          if (cell(key).trim() ==\"\"){\n            throw new Error(`Precondition failed!!. ${key} is empty in the CSV`)\n        }\n    })\n\n    const name = `VAC-${Date.now().toString().slice(-6)} ${cell(\"vac_name\")}`;\n    const body = {\n        vacancyName: name,\n        location: Number(cell(\"vac_location\")),\n        jobTitle: Number(cell(\"vac_jobTitle\")),\n        hiringManager: [Number(hiringManagerID)],\n        resumeRequired: cell(\"vac_resumeRequired\"),\n        requestConsent: cell(\"vac_requestConsent\")\n    };\n\n    // side effect: checked by the tests of this request\n    pm.environment.set(\"vacancy_expected\", JSON.stringify({\n        vacancyName: name,\n        locationId: cell(\"vac_location\"),\n        jobTitleCode: cell(\"vac_jobTitle\"),\n        hiringManager: hiringManagerID,\n        isResumeRequired: cell(\"vac_resumeRequired\"),\n        requestConsent: cell(\"vac_requestConsent\"),\n        status: cell(\"vac_expectedStatus\")\n    }));\n    pm.variables.set(\"requestBody\", JSON.stringify(body));\n}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nlet response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // not JSON: the checks below report it\n}\nconst responseData = response.data || {};\nconst expected = JSON.parse(pm.environment.get(\"vacancy_expected\") || \"{}\");\n\npm.test(\"Status code validation\", function () {\n    pm.response.to.have.status(201);\n})\n\npm.test(\"Vacancy created successfully with sent data\", function () {\n    [\"vacancyName\", \"locationId\", \"jobTitleCode\"].forEach(key => {\n        pm.expect(norm(responseData[key]), key).to.eql(norm(expected[key]));\n    })\n    const empNumbers = (responseData.hiringManager || []).map(manager => norm(manager.empNumber));\n    pm.expect(empNumbers, \"hiringManager empNumbers\").to.eql([norm(expected.hiringManager)]);\n})\n\n// side effect: consumed by RECRUITMENT-058\nif (norm(responseData.vacancyId) !== \"\") {\n    pm.environment.set(\"vacancy_id_For_candi\", String(responseData.vacancyId));\n    pm.environment.set(\"vacancy_fixture_for_candi\", JSON.stringify({\n        vacancyId: String(responseData.vacancyId),\n        vacancyName: norm(responseData.vacancyName)\n    }));\n}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/vacancies",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "vacancies"
+                          ]
+                        }
                       },
-                      "listen": "test"
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{{requestBody}}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{baseURL}}/api/recruitment/vacancies",
-                      "host": [
-                        "{{baseURL}}"
-                      ],
-                      "path": [
-                        "api",
-                        "recruitment",
-                        "vacancies"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "RECRUITMENT-058 add candidate",
-                  "event": [
-                    {
-                      "listen": "prerequest",
-                      "script": {
-                        "type": "text/javascript",
-                        "exec": [
-                          "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst vacancyFixture = pm.environment.get(\"vacancy_fixture_for_candi\");\nif (!vacancyFixture){\n    throw new Error(\"Precondition failed: vacancy_fixture_for_candi is not set by RECRUITMENT-057\");\n}\nconst vacID = JSON.parse(vacancyFixture).vacancyId;\n\n//Validate csv data is not empty for required fields\n[\"cand_firstName\", \"cand_lastName\", \"cand_email\", \"cand_expectedMode\", \"cand_expectedStage\"].forEach(key => {\n    if (!cell(key)) {\n        throw new Error(`Missing required field: ${key}`);\n    }\n})\n\n// a candidate is linked to the folder's vacancy when cand_vacancy is filled in\npm.variables.set(\"candidateVacancyId\", cell(\"cand_vacancy\") === \"\" ? \"\" : vacID);\n\n// form fields whose CSV cell is blank are not sent (the API rejects some empty values, e.g. contactNo);\n// the file field is not sent when cand_filePath is blank\nconst blankWhen = {\n    middleName: \"cand_middleName\", contactNo: \"cand_contactNo\", keywords: \"cand_keywords\", note: \"cand_note\",\n    facebook: \"cand_facebook\", twitter: \"cand_twitter\", linkedin: \"cand_linkedin\",\n    appliedDate: \"cand_appliedDate\", vacancy: \"cand_vacancy\", file: \"cand_filePath\"\n};\nObject.keys(blankWhen).forEach(field => {\n    if (cell(blankWhen[field]).trim() === \"\") {\n        pm.request.body.formdata.remove(field);\n    }\n});"
-                        ]
-                      }
+                      "response": []
                     },
                     {
-                      "listen": "test",
-                      "script": {
-                        "type": "text/javascript",
-                        "exec": [
-                          "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nlet response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // not JSON: the checks below report it\n}\nconst responseData = response.data || {};\nconst scenario = cell(\"scenario\");\n\npm.test(`Candidate is added (${scenario})`, function () {\n    pm.response.to.have.status(201);\n    pm.expect(response.success, \"success\").to.eql(true);\n    pm.expect(norm((response.messages || {}).success), \"messages.success\").to.eql(cell(\"cand_successMessage\"));\n});\n\npm.test(`Candidate schema validation (${scenario})`, function () {\n    const candidateSchema = pm.collectionVariables.get(\"candidateSchema\");\n    pm.expect(candidateSchema,\"Schema validation\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(candidateSchema));\n});\n\n\npm.test(`Candidate details match what was sent (${scenario})`, function () {\n    pm.expect(norm(responseData.firstName), \"firstName\").to.eql(cell(\"cand_firstName\").trim());\n    pm.expect(norm(responseData.lastName), \"lastName\").to.eql(cell(\"cand_lastName\").trim());\n    pm.expect(norm(responseData.email), \"email\").to.eql(cell(\"cand_email\"));\n    pm.expect(norm(responseData.modeOfApplication), \"modeOfApplication\").to.eql(cell(\"cand_expectedMode\"));\n    pm.expect(norm(responseData.candidateStage), \"candidateStage\").to.eql(cell(\"cand_expectedStage\"));\n    pm.expect(norm(responseData.vacancyId), \"vacancyId\").to.eql(norm(pm.variables.get(\"candidateVacancyId\")));\n});\n\npm.test(`Resume is attached only when a file was uploaded (${scenario})`, function () {\n    if (cell(\"cand_filePath\") === \"\") {\n        pm.expect(responseData.attachmentId, \"attachmentId\").to.be.null;\n    } else {\n        pm.expect(norm(responseData.attachmentId), \"attachmentId\").to.match(/^[0-9]+$/);\n    }\n});\n\n// side effect: candidate ids of this run, for cleanup\nif (norm(responseData.id) !== \"\") {\n    const ids = JSON.parse(pm.environment.get(\"candidate_ids\") || \"[]\");\n    ids.push(String(responseData.id));\n    pm.environment.set(\"candidate_ids\", JSON.stringify(ids));\n}"
-                        ]
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "formdata",
-                      "formdata": [
+                      "name": "RECRUITMENT-058 add candidate",
+                      "event": [
                         {
-                          "key": "firstName",
-                          "value": "{{cand_firstName}}",
-                          "type": "text"
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst vacancyFixture = pm.environment.get(\"vacancy_fixture_for_candi\");\nif (!vacancyFixture){\n    throw new Error(\"Precondition failed: vacancy_fixture_for_candi is not set by RECRUITMENT-057\");\n}\nconst vacID = JSON.parse(vacancyFixture).vacancyId;\n\n//Validate csv data is not empty for required fields\n[\"cand_firstName\", \"cand_lastName\", \"cand_email\", \"cand_expectedMode\", \"cand_expectedStage\"].forEach(key => {\n    if (!cell(key)) {\n        throw new Error(`Missing required field: ${key}`);\n    }\n})\n\n// a candidate is linked to the folder's vacancy when cand_vacancy is filled in\npm.variables.set(\"candidateVacancyId\", cell(\"cand_vacancy\") === \"\" ? \"\" : vacID);\n\n// form fields whose CSV cell is blank are not sent (the API rejects some empty values, e.g. contactNo);\n// the file field is not sent when cand_filePath is blank\nconst blankWhen = {\n    middleName: \"cand_middleName\", contactNo: \"cand_contactNo\", keywords: \"cand_keywords\", note: \"cand_note\",\n    facebook: \"cand_facebook\", twitter: \"cand_twitter\", linkedin: \"cand_linkedin\",\n    appliedDate: \"cand_appliedDate\", vacancy: \"cand_vacancy\", file: \"cand_filePath\"\n};\nObject.keys(blankWhen).forEach(field => {\n    if (cell(blankWhen[field]).trim() === \"\") {\n        pm.request.body.formdata.remove(field);\n    }\n});\n\n"
+                            ]
+                          }
                         },
                         {
-                          "key": "middleName",
-                          "value": "{{cand_middleName}}",
-                          "type": "text"
-                        },
-                        {
-                          "key": "lastName",
-                          "value": "{{cand_lastName}}",
-                          "type": "text"
-                        },
-                        {
-                          "key": "email",
-                          "value": "{{cand_email}}",
-                          "type": "text"
-                        },
-                        {
-                          "key": "contactNo",
-                          "value": "{{cand_contactNo}}",
-                          "type": "text"
-                        },
-                        {
-                          "key": "keywords",
-                          "value": "{{cand_keywords}}",
-                          "type": "text"
-                        },
-                        {
-                          "key": "note",
-                          "value": "{{cand_note}}",
-                          "type": "text"
-                        },
-                        {
-                          "key": "facebook",
-                          "value": "{{cand_facebook}}",
-                          "type": "text"
-                        },
-                        {
-                          "key": "twitter",
-                          "value": "{{cand_twitter}}",
-                          "type": "text"
-                        },
-                        {
-                          "key": "linkedin",
-                          "value": "{{cand_linkedin}}",
-                          "type": "text"
-                        },
-                        {
-                          "key": "appliedDate",
-                          "value": "{{cand_appliedDate}}",
-                          "type": "text"
-                        },
-                        {
-                          "key": "vacancy",
-                          "value": "{{candidateVacancyId}}",
-                          "type": "text"
-                        },
-                        {
-                          "key": "file",
-                          "type": "file",
-                          "src": "{{cand_filePath}}"
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nlet response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // not JSON: the checks below report it\n}\nconst responseData = response.data || {};\nconst scenario = cell(\"scenario\");\n\npm.test(`Candidate is added (${scenario})`, function () {\n    pm.response.to.have.status(201);\n    pm.expect(response.success, \"success\").to.eql(true);\n    pm.expect(norm((response.messages || {}).success), \"messages.success\").to.eql(cell(\"cand_successMessage\"));\n});\n\npm.test(`Candidate schema validation (${scenario})`, function () {\n    const candidateSchema = pm.collectionVariables.get(\"candidateAddSchema\");\n    pm.expect(candidateSchema,\"Schema validation\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(candidateSchema));\n});\n\n\npm.test(`Candidate details match what was sent (${scenario})`, function () {\n    pm.expect(norm(responseData.firstName), \"firstName\").to.eql(cell(\"cand_firstName\").trim());\n    pm.expect(norm(responseData.lastName), \"lastName\").to.eql(cell(\"cand_lastName\").trim());\n    pm.expect(norm(responseData.email), \"email\").to.eql(cell(\"cand_email\"));\n    pm.expect(norm(responseData.modeOfApplication), \"modeOfApplication\").to.eql(cell(\"cand_expectedMode\"));\n    pm.expect(norm(responseData.candidateStage), \"candidateStage\").to.eql(cell(\"cand_expectedStage\"));\n    pm.expect(norm(responseData.vacancyId), \"vacancyId\").to.eql(norm(pm.variables.get(\"candidateVacancyId\")));\n});\n\npm.test(`Resume is attached only when a file was uploaded (${scenario})`, function () {\n    if (cell(\"cand_filePath\") === \"\") {\n        pm.expect(responseData.attachmentId, \"attachmentId\").to.be.null;\n    } else {\n        pm.expect(norm(responseData.attachmentId), \"attachmentId\").to.match(/^[0-9]+$/);\n    }\n});\n\n//use for validate in 058\nif (norm(responseData.id) !== \"\") {\n    pm.environment.set(\"candidate_ID\",responseData.id);\n}\n\n\n// side effect: candidate ids of this run, for cleanup\nif (norm(responseData.id) !== \"\") {\n    const ids = JSON.parse(pm.environment.get(\"candidate_ids\") || \"[]\");\n    ids.push(String(responseData.id));\n    pm.environment.set(\"candidate_ids\", JSON.stringify(ids));\n}"
+                            ]
+                          }
                         }
-                      ]
-                    },
-                    "url": {
-                      "raw": "{{baseURL}}/api/recruitment/candidates",
-                      "host": [
-                        "{{baseURL}}"
                       ],
-                      "path": [
-                        "api",
-                        "recruitment",
-                        "candidates"
-                      ]
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "formdata",
+                          "formdata": [
+                            {
+                              "key": "firstName",
+                              "value": "{{cand_firstName}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "middleName",
+                              "value": "{{cand_middleName}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "lastName",
+                              "value": "{{cand_lastName}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "email",
+                              "value": "{{cand_email}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "contactNo",
+                              "value": "{{cand_contactNo}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "keywords",
+                              "value": "{{cand_keywords}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "note",
+                              "value": "{{cand_note}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "facebook",
+                              "value": "{{cand_facebook}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "twitter",
+                              "value": "{{cand_twitter}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "linkedin",
+                              "value": "{{cand_linkedin}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "appliedDate",
+                              "value": "{{cand_appliedDate}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "vacancy",
+                              "value": "{{candidateVacancyId}}",
+                              "type": "text"
+                            },
+                            {
+                              "key": "file",
+                              "type": "file",
+                              "src": "{{cand_filePath}}"
+                            }
+                          ]
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/candidates",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "candidates"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "RECRUITMENT-058 Get candidate list after add",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nconst candidateID = pm.environment.get(\"candidate_ids\");\n\nif (!candidateID){\n    throw new Error(\"Vacancy ID has not been set from the previous request. Please run the previous request first.\")\n}\n\n// side effect: checked by RECRUITMENT-003 to RECRUITMENT-005\npm.environment.set(\"candidate_expected\", JSON.stringify({\n    candidateFirstName: cell(\"cand_firstName\"),\n    candidateMiddleName: cell(\"cand_middleName\"),\n    candidateLastName: cell(\"cand_lastName\"),\n    email: cell(\"cand_email\"),\n    contactNo: cell(\"cand_contactNo\"),\n    appliedDate: cell(\"cand_appliedDate\"),\n    candidateStage: cell(\"cand_expectedStage\")\n}));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nconst candidateID = JSON.parse(pm.environment.get(\"candidate_ID\"));\nconst expected = JSON.parse(pm.environment.get(\"candidate_expected\"));\nconsole.log(\"Expected data:\", expected)\nlet response = {};\n\nif (!candidateID){\n    throw new Error(\"Candidate ID has not been set from the previous test\");\n}\n\ntry {\n    response = pm.response.json().data || {};\n}\ncatch {\n     // not JSON: the checks below report it\n}\n\nconst filteredCandidate = response.find(candidate => norm(candidate.id) === norm(candidateID));\n\nif (response !== {}) {\n\n    pm.test (\"Validate the response code\", function () {\n        pm.expect(pm.response.code).to.eql(200);\n    })\n\n    pm.test (\"Validate the response data against sent data\", function () {\n        pm.expect(norm(filteredCandidate.firstName),\"Candidate first name\").to.eql(expected.candidateFirstName);\n        pm.expect(norm(filteredCandidate.middleName),\"Candidate middle name\").to.eql(expected.candidateMiddleName);\n        pm.expect(norm(filteredCandidate.lastName),\"Candidate last name\").to.eql(expected.candidateLastName);\n        pm.expect(norm(filteredCandidate.email),\"Candidate email\").to.eql(expected.email);\n        pm.expect(norm(filteredCandidate.contactNo),\"Candidate contact number\").to.eql(expected.contactNo);\n        pm.expect(norm(filteredCandidate.dateOfApplication),\"Candidate contact number\").to.eql(expected.appliedDate);\n    })\n\n    pm.test(\"Validate the candidate stage for the newly added one\", function () {\n        pm.expect(norm(filteredCandidate.candidateStage), \"Candidate stage\").to.equal(expected.candidateStage);\n    })\n}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/candidates",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "candidates"
+                          ]
+                        }
+                      },
+                      "response": []
                     }
-                  },
-                  "response": []
+                  ]
                 }
               ]
             }
@@ -48911,1757 +48842,15 @@
           ]
         },
         {
-          "name": "PIM",
-          "item": [
-            {
-              "name": "Add-Employee",
-              "item": [
-                {
-                  "name": "add-employee-with-invalid-data",
-                  "item": [
-                    {
-                      "name": "PIM-007 add employee with invalid data",
-                      "event": [
-                        {
-                          "listen": "prerequest",
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst template = cell(\"emp_body\");\nif (template === \"\") {\n    throw new Error(\"Test data error: emp_body is blank in the CSV row\");\n}\n\n// body cell: request body sent as text; {UNIQUE_ID} = run-specific employee ID, {UNIQUE_USER} = run-specific user name\nconst unique = Date.now().toString().slice(-6);\nconst raw = template.split(\"{UNIQUE_ID}\").join(`EMPNEG-${unique}`).split(\"{UNIQUE_USER}\").join(`api.neg.${unique}`);\n\n// side effect: checked by the tests of this request (names a created employee must have, if any)\npm.variables.set(\"employee_sent_body\", raw);\npm.variables.set(\"requestBody\", raw);"
-                            ]
-                          }
-                        },
-                        {
-                          "listen": "test",
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\n// teardown: an employee created by mistake is terminated (employees cannot be deleted)\nconst terminateCreated = empNumber => {\n    pm.sendRequest({\n        url: `${pm.environment.get(\"baseURL\")}/api/employees/${empNumber}/termination-record`,\n        method: \"POST\",\n        header: { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },\n        body: { mode: \"raw\", raw: JSON.stringify({\n            date: new Date().toISOString().split(\"T\")[0], flaged: 1, note: \"PIM API negative test teardown\", reason: 1, time: \"23:55\", timezone: \"Asia/Kolkata\"\n        }) }\n    }, (err, res) => {\n        pm.test(`Employee ${empNumber} created by the rejected request is terminated`, function () {\n            pm.expect(err, \"termination request error\").to.be.null;\n            pm.expect(res && res.code, \"termination status\").to.eql(201);\n        });\n    });\n};\n\nlet response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // not JSON: the checks below report it\n}\nconst scenario = pm.iterationData.get(\"scenario\");\nconst knownDefect = cell(\"emp_knownDefect\");\nconst suffix = knownDefect === \"\" ? \"\" : ` [known defect ${knownDefect}]`;\nconst expectedStatus = Number(cell(\"expectedStatus\"));\nconst created = norm((response.data || {}).empNumber);\n\npm.test(`Response status is ${expectedStatus} (${scenario})${suffix}`, function () {\n    pm.response.to.have.status(expectedStatus);\n});\n\nif (expectedStatus === 201) {\n    // documented behaviour: leading and trailing spaces are trimmed before the names are saved\n    let sent = {};\n    try {\n        sent = JSON.parse(pm.variables.get(\"employee_sent_body\"));\n    } catch (e) {\n        // not JSON: nothing to compare\n    }\n    pm.test(`Employee names are saved without surrounding spaces (${scenario})${suffix}`, function () {\n        [\"firstName\", \"middleName\", \"lastName\"].filter(f => typeof sent[f] === \"string\").forEach(field => {\n            pm.expect(norm((response.data || {})[field]), field).to.eql(sent[field].trim());\n        });\n    });\n} else {\n    pm.test(`Error says the data is invalid (${scenario})${suffix}`, function () {\n        pm.expect(norm(response.title), \"title\").to.eql(cell(\"expectedTitle\"));\n        // details echo the request before the rule lines, so each expected line is checked with include\n        cell(\"expectedDetails\").split(\"||\").map(l => l.trim()).filter(l => l !== \"\").forEach(line => {\n            pm.expect(norm(response.details), \"details\").to.include(line);\n        });\n    });\n\n    pm.test(`No employee is created (${scenario})${suffix}`, function () {\n        pm.expect(created, \"empNumber of a created employee\").to.eql(\"\");\n    });\n}\n\nif (/^[0-9]+$/.test(created)) {\n    terminateCreated(created);\n}"
-                            ]
-                          }
-                        }
-                      ],
-                      "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees"
-                          ]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                },
-                {
-                  "name": "add-employee-with-duplicate-employee-id",
-                  "item": [
-                    {
-                      "name": "PIM-008 add employee for the duplicate employee ID check",
-                      "event": [
-                        {
-                          "listen": "prerequest",
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "// clear values left over from earlier folders or earlier runs\n[\"employee_duplicate_emp_number\", \"employee_duplicate_employee_id\"].forEach(key => pm.environment.unset(key));\n\nconst norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\n// run-specific employee ID keeps the ID unique across runs\nconst employeeId = `EMPDUP-${Date.now().toString().slice(-6)}`;\n// side effect: consumed by PIM-053\npm.environment.set(\"employee_duplicate_employee_id\", employeeId);\npm.variables.set(\"requestBody\", JSON.stringify({\n    firstName: cell(\"emp_firstName\"), lastName: cell(\"emp_lastName\"), employeeId,\n    locationId: cell(\"emp_locationId\"), joinedDate: cell(\"emp_joinedDate\")\n}));"
-                            ]
-                          }
-                        },
-                        {
-                          "listen": "test",
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nlet responseData = {};\ntry {\n    responseData = (pm.response.json() || {}).data || {};\n} catch (e) {\n    // not JSON: the checks below report it\n}\n\npm.test(\"Employee for the duplicate check is added\", function () {\n    pm.response.to.have.status(201);\n    pm.expect(norm(responseData.employeeId), \"employeeId\").to.eql(norm(pm.environment.get(\"employee_duplicate_employee_id\")));\n});\n\n// side effect: consumed by PIM-053 and PIM-054\nif (/^[0-9]+$/.test(norm(responseData.empNumber))) {\n    pm.environment.set(\"employee_duplicate_emp_number\", String(responseData.empNumber));\n}"
-                            ]
-                          }
-                        }
-                      ],
-                      "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees"
-                          ]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "PIM-009 add employee with the employee ID of the employee from PIM-052",
-                      "event": [
-                        {
-                          "listen": "prerequest",
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const employeeId = pm.environment.get(\"employee_duplicate_employee_id\");\nif (!pm.environment.get(\"employee_duplicate_emp_number\") || !employeeId) {\n    throw new Error(\"Precondition failed: employee_duplicate_emp_number not set by PIM-052\");\n}\n\nconst norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\n// case cell: same = the existing ID as it is, lower = the existing ID in lower case\nconst duplicateId = cell(\"emp_duplicateCase\") === \"lower\" ? employeeId.toLowerCase() : employeeId;\npm.variables.set(\"requestBody\", JSON.stringify({\n    firstName: cell(\"emp_firstName\"), lastName: cell(\"emp_lastName\"), employeeId: duplicateId,\n    locationId: cell(\"emp_locationId\"), joinedDate: cell(\"emp_joinedDate\")\n}));"
-                            ]
-                          }
-                        },
-                        {
-                          "listen": "test",
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\n// teardown: an employee created by mistake is terminated (employees cannot be deleted)\nconst terminateCreated = empNumber => {\n    pm.sendRequest({\n        url: `${pm.environment.get(\"baseURL\")}/api/employees/${empNumber}/termination-record`,\n        method: \"POST\",\n        header: { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },\n        body: { mode: \"raw\", raw: JSON.stringify({\n            date: new Date().toISOString().split(\"T\")[0], flaged: 1, note: \"PIM API negative test teardown\", reason: 1, time: \"23:55\", timezone: \"Asia/Kolkata\"\n        }) }\n    }, (err, res) => {\n        pm.test(`Employee ${empNumber} created by the rejected request is terminated`, function () {\n            pm.expect(err, \"termination request error\").to.be.null;\n            pm.expect(res && res.code, \"termination status\").to.eql(201);\n        });\n    });\n};\n\nlet response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // not JSON: the checks below report it\n}\nconst scenario = pm.iterationData.get(\"scenario\");\nconst created = norm((response.data || {}).empNumber);\n\npm.test(`Employee with a duplicate employee ID is rejected (${scenario})`, function () {\n    pm.response.to.have.status(Number(cell(\"expectedStatus\")));\n});\n\npm.test(`Error says the employee ID is invalid (${scenario})`, function () {\n    pm.expect(norm(response.title), \"title\").to.eql(cell(\"expectedTitle\"));\n    pm.expect(norm(response.details), \"details\").to.include(cell(\"expectedDetails\"));\n});\n\npm.test(`No employee is created (${scenario})`, function () {\n    pm.expect(created, \"empNumber of a created employee\").to.eql(\"\");\n});\n\nif (/^[0-9]+$/.test(created)) {\n    terminateCreated(created);\n}"
-                            ]
-                          }
-                        }
-                      ],
-                      "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees"
-                          ]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "PIM-010 terminate employee created by PIM-052",
-                      "event": [
-                        {
-                          "listen": "prerequest",
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const empNumber = pm.environment.get(\"employee_duplicate_emp_number\");\nif (!empNumber) {\n    throw new Error(\"Precondition failed: employee_duplicate_emp_number not set by PIM-052\");\n}\nconst norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\n// termination date: {TODAY} = today; it must not be before the joined date\nconst date = cell(\"terminationDate\") === \"{TODAY}\" ? new Date().toISOString().split(\"T\")[0] : cell(\"terminationDate\");\npm.variables.set(\"requestBody\", JSON.stringify({\n    date,\n    flaged: Number(cell(\"flagValue\")),\n    note: cell(\"terminationNote\"),\n    reason: Number(cell(\"terminationReason\")),\n    time: cell(\"time\"),\n    timezone: cell(\"timezone\")\n}));"
-                            ]
-                          }
-                        },
-                        {
-                          "listen": "test",
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "let responseData = {};\ntry {\n    responseData = (pm.response.json() || {}).data || {};\n} catch (e) {\n    // not JSON: the checks below report it\n}\n\npm.test(\"Employee created by PIM-052 is terminated\", function () {\n    pm.response.to.have.status(201);\n    pm.expect(String(responseData.empNumber), \"empNumber\").to.eql(String(pm.environment.get(\"employee_duplicate_emp_number\")));\n});\n\n// clear hand-off values so later folders and iterations cannot pick them up\n[\"employee_duplicate_emp_number\", \"employee_duplicate_employee_id\"].forEach(key => pm.environment.unset(key));"
-                            ]
-                          }
-                        }
-                      ],
-                      "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees/{{employee_duplicate_emp_number}}/termination-record",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees",
-                            "{{employee_duplicate_emp_number}}",
-                            "termination-record"
-                          ]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                },
-                {
-                  "name": "add-employee-without-valid-token",
-                  "item": [
-                    {
-                      "name": "PIM-055 add employee without token",
-                      "event": [
-                        {
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// run-specific employee ID: lets a wrongly created employee be recognised",
-                              "pm.variables.set(\"requestBody\", JSON.stringify({",
-                              "    firstName: \"Api\", lastName: \"Auth Check\", employeeId: `EMPAUTH-${Date.now().toString().slice(-6)}`,",
-                              "    locationId: cell(\"emp_locationId\"), joinedDate: cell(\"emp_joinedDate\")",
-                              "}));"
-                            ],
-                            "type": "text/javascript"
-                          },
-                          "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// teardown: an employee created by mistake is terminated (employees cannot be deleted)",
-                              "const terminateCreated = empNumber => {",
-                              "    pm.sendRequest({",
-                              "        url: `${pm.environment.get(\"baseURL\")}/api/employees/${empNumber}/termination-record`,",
-                              "        method: \"POST\",",
-                              "        header: { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },",
-                              "        body: { mode: \"raw\", raw: JSON.stringify({",
-                              "            date: new Date().toISOString().split(\"T\")[0], flaged: 1, note: \"PIM API negative test teardown\", reason: 1, time: \"23:55\", timezone: \"Asia/Kolkata\"",
-                              "        }) }",
-                              "    }, (err, res) => {",
-                              "        pm.test(`Employee ${empNumber} created by the rejected request is terminated`, function () {",
-                              "            pm.expect(err, \"termination request error\").to.be.null;",
-                              "            pm.expect(res && res.code, \"termination status\").to.eql(201);",
-                              "        });",
-                              "    });",
-                              "};",
-                              "",
-                              "let body = null;",
-                              "try {",
-                              "    body = pm.response.json();",
-                              "} catch (e) {",
-                              "    // not JSON: the body check below reports it",
-                              "}",
-                              "",
-                              "pm.test(\"Request without a token is rejected as unauthorized\", function () {",
-                              "    pm.response.to.have.status(401);",
-                              "});",
-                              "",
-                              "pm.test(\"No employee data is returned without a token\", function () {",
-                              "    pm.expect(body, \"response body\").to.eql([]);",
-                              "});",
-                              "",
-                              "const created = norm(((body || {}).data || {}).empNumber);",
-                              "if (/^[0-9]+$/.test(created)) {",
-                              "    terminateCreated(created);",
-                              "}"
-                            ],
-                            "type": "text/javascript"
-                          },
-                          "listen": "test"
-                        }
-                      ],
-                      "request": {
-                        "auth": {
-                          "type": "noauth"
-                        },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees"
-                          ]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "PIM-056 add employee with invalid authorization header",
-                      "event": [
-                        {
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "if (!pm.iterationData.get(\"authorizationHeader\")) {",
-                              "    throw new Error(\"Test data error: authorizationHeader is blank in the CSV row\");",
-                              "}",
-                              "",
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// run-specific employee ID: lets a wrongly created employee be recognised",
-                              "pm.variables.set(\"requestBody\", JSON.stringify({",
-                              "    firstName: \"Api\", lastName: \"Auth Check\", employeeId: `EMPAUTH-${Date.now().toString().slice(-6)}`,",
-                              "    locationId: cell(\"emp_locationId\"), joinedDate: cell(\"emp_joinedDate\")",
-                              "}));"
-                            ]
-                          },
-                          "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// teardown: an employee created by mistake is terminated (employees cannot be deleted)",
-                              "const terminateCreated = empNumber => {",
-                              "    pm.sendRequest({",
-                              "        url: `${pm.environment.get(\"baseURL\")}/api/employees/${empNumber}/termination-record`,",
-                              "        method: \"POST\",",
-                              "        header: { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },",
-                              "        body: { mode: \"raw\", raw: JSON.stringify({",
-                              "            date: new Date().toISOString().split(\"T\")[0], flaged: 1, note: \"PIM API negative test teardown\", reason: 1, time: \"23:55\", timezone: \"Asia/Kolkata\"",
-                              "        }) }",
-                              "    }, (err, res) => {",
-                              "        pm.test(`Employee ${empNumber} created by the rejected request is terminated`, function () {",
-                              "            pm.expect(err, \"termination request error\").to.be.null;",
-                              "            pm.expect(res && res.code, \"termination status\").to.eql(201);",
-                              "        });",
-                              "    });",
-                              "};",
-                              "",
-                              "let body = {};",
-                              "try {",
-                              "    body = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the field checks below fail with the field name",
-                              "}",
-                              "const scenario = pm.iterationData.get(\"scenario\");",
-                              "",
-                              "pm.test(`Request is rejected as unauthorized (${scenario})`, function () {",
-                              "    pm.response.to.have.status(Number(cell(\"expectedStatus\")));",
-                              "});",
-                              "",
-                              "pm.test(`Error says why the authorization header is rejected (${scenario})`, function () {",
-                              "    pm.expect(norm(body.error), \"error\").to.eql(cell(\"expectedError\"));",
-                              "    pm.expect(norm(body.error_description), \"error_description\").to.eql(cell(\"expectedErrorDescription\"));",
-                              "});",
-                              "",
-                              "const created = norm((body.data || {}).empNumber);",
-                              "pm.test(`No employee is created (${scenario})`, function () {",
-                              "    pm.expect(created, \"empNumber of a created employee\").to.eql(\"\");",
-                              "});",
-                              "if (/^[0-9]+$/.test(created)) {",
-                              "    terminateCreated(created);",
-                              "}"
-                            ]
-                          },
-                          "listen": "test"
-                        }
-                      ],
-                      "request": {
-                        "auth": {
-                          "type": "noauth"
-                        },
-                        "method": "POST",
-                        "header": [
-                          {
-                            "value": "{{authorizationHeader}}",
-                            "key": "Authorization"
-                          }
-                        ],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees"
-                          ]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "name": "List-Employees",
-              "item": [
-                {
-                  "name": "list-employees-with-invalid-query-parameters",
-                  "item": [
-                    {
-                      "name": "PIM-168 list employees with an invalid query parameter",
-                      "event": [
-                        {
-                          "listen": "test",
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "let errorBody = {};",
-                              "try {",
-                              "    errorBody = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the field checks below fail with the field name",
-                              "}",
-                              "const defect = cell(\"lst_knownDefect\") === \"\" ? \"\" : ` [known defect ${cell(\"lst_knownDefect\")}]`;",
-                              "const scenario = cell(\"scenario\");",
-                              "",
-                              "pm.test(`Invalid query parameter is rejected (${scenario})${defect}`, function () {",
-                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
-                              "});",
-                              "",
-                              "pm.test(`Error says the data is invalid (${scenario})${defect}`, function () {",
-                              "    pm.expect(norm(errorBody.title), \"title\").to.eql(cell(\"expectedTitle\"));",
-                              "});",
-                              "",
-                              "// the details echo the query, so only the expected rule line is checked",
-                              "if (cell(\"expectedDetails\") !== \"\") {",
-                              "    pm.test(`Error explains the invalid query parameter (${scenario})${defect}`, function () {",
-                              "        pm.expect(norm(errorBody.details), \"details\").to.include(cell(\"expectedDetails\"));",
-                              "    });",
-                              "}",
-                              "",
-                              "pm.test(`No employees are returned (${scenario})${defect}`, function () {",
-                              "    pm.expect(errorBody.data, \"data\").to.be.undefined;",
-                              "});"
-                            ]
-                          }
-                        },
-                        {
-                          "listen": "prerequest",
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// lst_query holds key=value pairs separated by \"&\"; values are sent as written (an empty value is sent as key=)",
-                              "const query = cell(\"lst_query\");",
-                              "if (query === \"\") {",
-                              "    throw new Error(\"Test data error: lst_query is blank in the CSV row\");",
-                              "}",
-                              "query.split(\"&\").forEach(pair => {",
-                              "    const at = pair.indexOf(\"=\");",
-                              "    if (at < 1) {",
-                              "        throw new Error(`Test data error: \"${pair}\" in lst_query is not key=value`);",
-                              "    }",
-                              "    pm.request.url.addQueryParams([{ key: pair.slice(0, at), value: pair.slice(at + 1) }]);",
-                              "});"
-                            ]
-                          }
-                        }
-                      ],
-                      "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees"
-                          ]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                },
-                {
-                  "name": "list-employees-without-valid-token",
-                  "item": [
-                    {
-                      "name": "PIM-169 list employees without a valid token",
-                      "event": [
-                        {
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// a blank cell means no Authorization header at all",
-                              "if (cell(\"authorizationHeader\") === \"\") {",
-                              "    pm.request.headers.remove(\"Authorization\");",
-                              "}",
-                              "// one row at most, in case the request is wrongly accepted",
-                              "const query = cell(\"lst_query\");",
-                              "if (query === \"\") {",
-                              "    throw new Error(\"Test data error: lst_query is blank in the CSV row\");",
-                              "}",
-                              "query.split(\"&\").forEach(pair => {",
-                              "    const at = pair.indexOf(\"=\");",
-                              "    if (at < 1) {",
-                              "        throw new Error(`Test data error: \"${pair}\" in lst_query is not key=value`);",
-                              "    }",
-                              "    pm.request.url.addQueryParams([{ key: pair.slice(0, at), value: pair.slice(at + 1) }]);",
-                              "});"
-                            ],
-                            "type": "text/javascript"
-                          },
-                          "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "let errorBody = {};",
-                              "try {",
-                              "    errorBody = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below fail with the field name",
-                              "}",
-                              "const scenario = cell(\"scenario\");",
-                              "",
-                              "pm.test(`Request is rejected as unauthorized (${scenario})`, function () {",
-                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
-                              "});",
-                              "",
-                              "// without a token the body is [], so that row checks the status and the absence of data only",
-                              "if (cell(\"expectedError\") !== \"\") {",
-                              "    pm.test(`Error says why the token is rejected (${scenario})`, function () {",
-                              "        pm.expect(norm(errorBody.error), \"error\").to.eql(cell(\"expectedError\"));",
-                              "        pm.expect(norm(errorBody.error_description), \"error_description\").to.eql(cell(\"expectedErrorDescription\"));",
-                              "    });",
-                              "}",
-                              "",
-                              "pm.test(`No employees are returned (${scenario})`, function () {",
-                              "    pm.expect(errorBody.data, \"data\").to.be.undefined;",
-                              "});"
-                            ],
-                            "type": "text/javascript"
-                          },
-                          "listen": "test"
-                        }
-                      ],
-                      "request": {
-                        "auth": {
-                          "type": "noauth"
-                        },
-                        "method": "GET",
-                        "header": [
-                          {
-                            "key": "Authorization",
-                            "value": "{{authorizationHeader}}"
-                          }
-                        ],
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees"
-                          ]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "name": "Termination-Record",
-              "item": [
-                {
-                  "name": "terminate-employee-with-invalid-data",
-                  "item": [
-                    {
-                      "name": "PIM-181 add employee for the invalid terminations",
-                      "event": [
-                        {
-                          "listen": "prerequest",
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// one employee serves every invalid row (a rejected termination leaves it active): it is created in",
-                              "// the first iteration only and terminated after the last one, so a long CSV leaves one employee behind",
-                              "if (pm.info.iteration > 0) {",
-                              "    pm.execution.skipRequest();",
-                              "} else {",
-                              "    // a run that stopped before its last iteration leaves its employee active: terminate it, but only",
-                              "    // if the record still carries this folder's name (never touch other employees)",
-                              "    const old = pm.environment.get(\"trminv_emp_number\");",
-                              "    const oldName = pm.environment.get(\"trminv_last_name\");",
-                              "    if (old && oldName) {",
-                              "        const auth = { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` };",
-                              "        pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/employees/${old}`, method: \"GET\", header: auth }, (err, res) => {",
-                              "            const data = (!err && res.code === 200) ? (res.json() || {}).data || {} : {};",
-                              "            if (data.lastName === oldName && data.termination_id === null) {",
-                              "                pm.sendRequest({",
-                              "                    url: `${pm.environment.get(\"baseURL\")}/api/employees/${old}/termination-record`,",
-                              "                    method: \"POST\",",
-                              "                    header: { ...auth, \"Content-Type\": \"application/json\" },",
-                              "                    body: { mode: \"raw\", raw: JSON.stringify({",
-                              "                        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
-                              "                        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
-                              "                    }) }",
-                              "                }, () => {});",
-                              "            }",
-                              "        });",
-                              "    }",
-                              "",
-                              "    // clear values left over from earlier folders or earlier runs",
-                              "    [\"trminv_emp_number\", \"trminv_last_name\"].forEach(key => pm.environment.unset(key));",
-                              "",
-                              "    [\"firstName\", \"lastName\", \"locationId\", \"joinedDate\", \"employeeIdPrefix\"].forEach(key => {",
-                              "        if (cell(key).trim() === \"\") {",
-                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
-                              "        }",
-                              "    });",
-                              "    const stamp = Date.now().toString().slice(-6);",
-                              "    pm.variables.set(\"lastName\", `${cell(\"lastName\")} ${stamp}`);",
-                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
-                              "        firstName: cell(\"firstName\"),",
-                              "        middleName: cell(\"middleName\"),",
-                              "        lastName: `${cell(\"lastName\")} ${stamp}`,",
-                              "        employeeId: `${cell(\"employeeIdPrefix\")}-${stamp}`,",
-                              "        locationId: cell(\"locationId\"),",
-                              "        joinedDate: cell(\"joinedDate\")",
-                              "    }));",
-                              "}"
-                            ],
-                            "type": "text/javascript"
-                          }
-                        },
-                        {
-                          "listen": "test",
-                          "script": {
-                            "exec": [
-                              "let responseData = {};",
-                              "try {",
-                              "    responseData = (pm.response.json() || {}).data || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below report it",
-                              "}",
-                              "",
-                              "pm.test(\"Employee for the invalid terminations is created\", function () {",
-                              "    pm.response.to.have.status(201);",
-                              "    pm.expect(String(responseData.empNumber || \"\"), \"empNumber\").to.match(/^[0-9]+$/);",
-                              "});",
-                              "",
-                              "// side effect: consumed by PIM-182 to PIM-184",
-                              "if (pm.response.code === 201 && responseData.empNumber) {",
-                              "    pm.environment.set(\"trminv_emp_number\", String(responseData.empNumber));",
-                              "    pm.environment.set(\"trminv_last_name\", pm.variables.get(\"lastName\"));",
-                              "}"
-                            ],
-                            "type": "text/javascript"
-                          }
-                        }
-                      ],
-                      "request": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "value": "application/json",
-                            "key": "Content-Type"
-                          }
-                        ],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees"
-                          ]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "PIM-182 terminate employee with invalid data",
-                      "event": [
-                        {
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "if (!pm.environment.get(\"trminv_emp_number\")) {",
-                              "    throw new Error(\"Precondition failed: trminv_emp_number not set by PIM-181\");",
-                              "}",
-                              "// trm_body holds the whole JSON body of the row, sent as written",
-                              "const body = cell(\"trm_body\");",
-                              "try {",
-                              "    JSON.parse(body);",
-                              "} catch (e) {",
-                              "    throw new Error(`Test data error: trm_body is not valid JSON (${e.message})`);",
-                              "}",
-                              "pm.variables.set(\"requestBody\", body);"
-                            ]
-                          },
-                          "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "let errorBody = {};",
-                              "try {",
-                              "    errorBody = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the field checks below fail with the field name",
-                              "}",
-                              "const scenario = cell(\"scenario\");",
-                              "",
-                              "pm.test(`Invalid termination is rejected (${scenario})`, function () {",
-                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
-                              "});",
-                              "",
-                              "pm.test(`Error says the data is invalid (${scenario})`, function () {",
-                              "    pm.expect(norm(errorBody.title), \"title\").to.eql(cell(\"expectedTitle\"));",
-                              "});",
-                              "",
-                              "// the details echo the body, so only the expected rule line is checked",
-                              "pm.test(`Error explains the invalid field (${scenario})`, function () {",
-                              "    pm.expect(norm(errorBody.details), \"details\").to.include(cell(\"expectedDetails\"));",
-                              "});",
-                              "",
-                              "pm.test(`No termination record is returned (${scenario})`, function () {",
-                              "    pm.expect(errorBody.data, \"data\").to.be.undefined;",
-                              "});"
-                            ]
-                          },
-                          "listen": "test"
-                        }
-                      ],
-                      "request": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "value": "application/json",
-                            "key": "Content-Type"
-                          }
-                        ],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees/{{trminv_emp_number}}/termination-record",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees",
-                            "{{trminv_emp_number}}",
-                            "termination-record"
-                          ]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "PIM-183 get employee after the rejected termination",
-                      "event": [
-                        {
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "if (!pm.environment.get(\"trminv_emp_number\")) {",
-                              "    throw new Error(\"Precondition failed: trminv_emp_number not set by PIM-181\");",
-                              "}"
-                            ],
-                            "type": "text/javascript"
-                          },
-                          "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "let employee = {};",
-                              "try {",
-                              "    employee = (pm.response.json() || {}).data || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below report it",
-                              "}",
-                              "const scenario = cell(\"scenario\");",
-                              "",
-                              "pm.test(`Employee is still active after the rejected termination (${scenario})`, function () {",
-                              "    pm.response.to.have.status(200);",
-                              "    pm.expect(norm(employee.empNumber), \"empNumber\").to.eql(pm.environment.get(\"trminv_emp_number\"));",
-                              "    pm.expect(employee.termination_id, \"termination_id\").to.be.null;",
-                              "});"
-                            ],
-                            "type": "text/javascript"
-                          },
-                          "listen": "test"
-                        }
-                      ],
-                      "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees/{{trminv_emp_number}}",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees",
-                            "{{trminv_emp_number}}"
-                          ]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "PIM-184 terminate employee created by PIM-181",
-                      "event": [
-                        {
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// the employee serves every row, so it is terminated after the last iteration only",
-                              "if (pm.info.iteration < pm.info.iterationCount - 1) {",
-                              "    pm.execution.skipRequest();",
-                              "} else {",
-                              "    if (!pm.environment.get(\"trminv_emp_number\")) {",
-                              "        throw new Error(\"Precondition failed: trminv_emp_number not set by PIM-181\");",
-                              "    }",
-                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
-                              "        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
-                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
-                              "    }));",
-                              "}"
-                            ]
-                          },
-                          "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "let responseData = {};",
-                              "try {",
-                              "    responseData = (pm.response.json() || {}).data || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below report it",
-                              "}",
-                              "",
-                              "pm.test(\"Employee created by PIM-181 is terminated\", function () {",
-                              "    pm.response.to.have.status(201);",
-                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(pm.environment.get(\"trminv_emp_number\"));",
-                              "});",
-                              "",
-                              "// clear hand-off values so later folders and runs cannot pick them up",
-                              "[\"trminv_emp_number\", \"trminv_last_name\"].forEach(key => pm.environment.unset(key));"
-                            ]
-                          },
-                          "listen": "test"
-                        }
-                      ],
-                      "request": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "value": "application/json",
-                            "key": "Content-Type"
-                          }
-                        ],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees/{{trminv_emp_number}}/termination-record",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees",
-                            "{{trminv_emp_number}}",
-                            "termination-record"
-                          ]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                },
-                {
-                  "name": "terminate-employee-that-does-not-exist",
-                  "item": [
-                    {
-                      "name": "PIM-185 terminate employee with an employee number that does not exist",
-                      "event": [
-                        {
-                          "listen": "prerequest",
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "if (cell(\"trm_empNumber\").trim() === \"\") {",
-                              "    throw new Error(\"Test data error: trm_empNumber is blank in the CSV row\");",
-                              "}",
-                              "// a valid body: only the employee number of the row is wrong",
-                              "pm.variables.set(\"requestBody\", JSON.stringify({",
-                              "    reason: Number(cell(\"trm_reason\")), date: cell(\"trm_date\"), time: cell(\"trm_time\"), timezone: cell(\"trm_timezone\")",
-                              "}));"
-                            ]
-                          }
-                        },
-                        {
-                          "listen": "test",
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "const scenario = cell(\"scenario\");",
-                              "",
-                              "pm.test(`Termination for this employee number is rejected (${scenario})`, function () {",
-                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
-                              "});",
-                              "",
-                              "// these errors are plain text, not JSON",
-                              "pm.test(`Error body explains the rejection (${scenario})`, function () {",
-                              "    pm.expect(pm.response.text().trim(), \"response body\").to.eql(cell(\"expectedBody\"));",
-                              "});"
-                            ]
-                          }
-                        }
-                      ],
-                      "request": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "key": "Content-Type",
-                            "value": "application/json"
-                          }
-                        ],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees/{{trm_empNumber}}/termination-record",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees",
-                            "{{trm_empNumber}}",
-                            "termination-record"
-                          ]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                },
-                {
-                  "name": "terminate-employee-without-valid-token",
-                  "item": [
-                    {
-                      "name": "PIM-186 terminate employee without a valid token",
-                      "event": [
-                        {
-                          "listen": "prerequest",
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// a blank cell means no Authorization header at all",
-                              "if (cell(\"authorizationHeader\") === \"\") {",
-                              "    pm.request.headers.remove(\"Authorization\");",
-                              "}",
-                              "// the employee number is not used, so a wrongly accepted request cannot terminate anyone",
-                              "// a valid body: only the employee number of the row is wrong",
-                              "pm.variables.set(\"requestBody\", JSON.stringify({",
-                              "    reason: Number(cell(\"trm_reason\")), date: cell(\"trm_date\"), time: cell(\"trm_time\"), timezone: cell(\"trm_timezone\")",
-                              "}));"
-                            ],
-                            "type": "text/javascript"
-                          }
-                        },
-                        {
-                          "listen": "test",
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "let errorBody = {};",
-                              "try {",
-                              "    errorBody = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below fail with the field name",
-                              "}",
-                              "const scenario = cell(\"scenario\");",
-                              "",
-                              "pm.test(`Request is rejected as unauthorized (${scenario})`, function () {",
-                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
-                              "});",
-                              "",
-                              "// without a token the body is [], so that row checks the status and the absence of data only",
-                              "if (cell(\"expectedError\") !== \"\") {",
-                              "    pm.test(`Error says why the token is rejected (${scenario})`, function () {",
-                              "        pm.expect(norm(errorBody.error), \"error\").to.eql(cell(\"expectedError\"));",
-                              "        pm.expect(norm(errorBody.error_description), \"error_description\").to.eql(cell(\"expectedErrorDescription\"));",
-                              "    });",
-                              "}",
-                              "",
-                              "pm.test(`No termination record is returned (${scenario})`, function () {",
-                              "    pm.expect(errorBody.data, \"data\").to.be.undefined;",
-                              "});"
-                            ],
-                            "type": "text/javascript"
-                          }
-                        }
-                      ],
-                      "request": {
-                        "auth": {
-                          "type": "noauth"
-                        },
-                        "method": "POST",
-                        "header": [
-                          {
-                            "value": "application/json",
-                            "key": "Content-Type"
-                          },
-                          {
-                            "value": "{{authorizationHeader}}",
-                            "key": "Authorization"
-                          }
-                        ],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees/{{trm_empNumber}}/termination-record",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees",
-                            "{{trm_empNumber}}",
-                            "termination-record"
-                          ]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                },
-                {
-                  "name": "get-termination-record-with-invalid-parameters",
-                  "item": [
-                    {
-                      "name": "PIM-199 get termination record with invalid parameters",
-                      "event": [
-                        {
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "if (cell(\"get_empNumber\").trim() === \"\") {",
-                              "    throw new Error(\"Test data error: get_empNumber is blank in the CSV row\");",
-                              "}",
-                              "// get_query holds key=value pairs separated by \"&\" (blank = none); values are sent as written",
-                              "if (cell(\"get_query\") !== \"\") {",
-                              "    cell(\"get_query\").split(\"&\").forEach(pair => {",
-                              "        const at = pair.indexOf(\"=\");",
-                              "        if (at < 1) {",
-                              "            throw new Error(`Test data error: \"${pair}\" in get_query is not key=value`);",
-                              "        }",
-                              "        pm.request.url.addQueryParams([{ key: pair.slice(0, at), value: pair.slice(at + 1) }]);",
-                              "    });",
-                              "}"
-                            ],
-                            "type": "text/javascript"
-                          },
-                          "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "const scenario = cell(\"scenario\");",
-                              "",
-                              "pm.test(`Request is rejected (${scenario})`, function () {",
-                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
-                              "});",
-                              "",
-                              "// these errors are plain text, not JSON",
-                              "pm.test(`Error body explains the rejection (${scenario})`, function () {",
-                              "    pm.expect(pm.response.text().trim(), \"response body\").to.eql(cell(\"expectedBody\"));",
-                              "});"
-                            ],
-                            "type": "text/javascript"
-                          },
-                          "listen": "test"
-                        }
-                      ],
-                      "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees/{{get_empNumber}}/termination-record",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees",
-                            "{{get_empNumber}}",
-                            "termination-record"
-                          ]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                },
-                {
-                  "name": "get-termination-record-without-valid-token",
-                  "item": [
-                    {
-                      "name": "PIM-200 get termination record without a valid token",
-                      "event": [
-                        {
-                          "listen": "prerequest",
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// a blank cell means no Authorization header at all",
-                              "if (cell(\"authorizationHeader\") === \"\") {",
-                              "    pm.request.headers.remove(\"Authorization\");",
-                              "}",
-                              "if (cell(\"get_empNumber\").trim() === \"\") {",
-                              "    throw new Error(\"Test data error: get_empNumber is blank in the CSV row\");",
-                              "}"
-                            ],
-                            "type": "text/javascript"
-                          }
-                        },
-                        {
-                          "listen": "test",
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "let errorBody = {};",
-                              "try {",
-                              "    errorBody = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below fail with the field name",
-                              "}",
-                              "const scenario = cell(\"scenario\");",
-                              "",
-                              "pm.test(`Request is rejected as unauthorized (${scenario})`, function () {",
-                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
-                              "});",
-                              "",
-                              "// without a token the body is [], so that row checks the status and the absence of data only",
-                              "if (cell(\"expectedError\") !== \"\") {",
-                              "    pm.test(`Error says why the token is rejected (${scenario})`, function () {",
-                              "        pm.expect(norm(errorBody.error), \"error\").to.eql(cell(\"expectedError\"));",
-                              "        pm.expect(norm(errorBody.error_description), \"error_description\").to.eql(cell(\"expectedErrorDescription\"));",
-                              "    });",
-                              "}",
-                              "",
-                              "pm.test(`No termination record is returned (${scenario})`, function () {",
-                              "    pm.expect(errorBody.data, \"data\").to.be.undefined;",
-                              "});"
-                            ],
-                            "type": "text/javascript"
-                          }
-                        }
-                      ],
-                      "request": {
-                        "auth": {
-                          "type": "noauth"
-                        },
-                        "method": "GET",
-                        "header": [
-                          {
-                            "value": "{{authorizationHeader}}",
-                            "key": "Authorization"
-                          }
-                        ],
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees/{{get_empNumber}}/termination-record",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees",
-                            "{{get_empNumber}}",
-                            "termination-record"
-                          ]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "name": "Get-Employee-Details",
-              "item": [
-                {
-                  "name": "get-employee-details-with-invalid-request",
-                  "item": [
-                    {
-                      "name": "PIM-233 add employee for the invalid get employee details requests",
-                      "event": [
-                        {
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// the employee serves every row of the CSV: it is created in the first iteration only",
-                              "if (pm.info.iteration > 0) {",
-                              "    pm.execution.skipRequest();",
-                              "} else {",
-                              "    // clear values left over from earlier folders or earlier runs",
-                              "    [\"gedinv_emp_number\"].forEach(key => pm.environment.unset(key));",
-                              "",
-                              "    [\"firstName\", \"lastName\", \"employeeIdPrefix\", \"locationId\", \"joinedDate\"].forEach(key => {",
-                              "        if (cell(key).trim() === \"\") {",
-                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
-                              "        }",
-                              "    });",
-                              "    const employee = {",
-                              "        firstName: cell(\"firstName\"),",
-                              "        middleName: \"\",",
-                              "        lastName: cell(\"lastName\"),",
-                              "        employeeId: `${cell(\"employeeIdPrefix\")}-${Date.now().toString().slice(-6)}`,",
-                              "        locationId: cell(\"locationId\"),",
-                              "        joinedDate: cell(\"joinedDate\")",
-                              "    };",
-                              "    pm.variables.set(\"requestBody\", JSON.stringify(employee));",
-                              "}"
-                            ]
-                          },
-                          "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "let responseData = {};",
-                              "try {",
-                              "    responseData = (pm.response.json() || {}).data || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below report it",
-                              "}",
-                              "",
-                              "pm.test(\"Employee for the invalid requests is created\", function () {",
-                              "    pm.response.to.have.status(201);",
-                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
-                              "});",
-                              "",
-                              "// side effect: consumed by PIM-234 and PIM-235",
-                              "if (pm.response.code === 201 && responseData.empNumber) {",
-                              "    pm.environment.set(\"gedinv_emp_number\", norm(responseData.empNumber));",
-                              "}"
-                            ]
-                          },
-                          "listen": "test"
-                        }
-                      ],
-                      "request": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "key": "Content-Type",
-                            "value": "application/json"
-                          }
-                        ],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees"
-                          ]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "PIM-234 get employee details with an invalid employee number or query parameter",
-                      "event": [
-                        {
-                          "listen": "prerequest",
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "if (!pm.environment.get(\"gedinv_emp_number\")) {",
-                              "    throw new Error(\"Precondition failed: gedinv_emp_number not set by PIM-233\");",
-                              "}",
-                              "// a blank ged_empNumber means the folder's own (valid) employee: only the query of the row is wrong",
-                              "pm.variables.set(\"gedinv_target_emp_number\", cell(\"ged_empNumber\") === \"\" ? pm.environment.get(\"gedinv_emp_number\") : cell(\"ged_empNumber\"));",
-                              "",
-                              "// ged_query holds key=value pairs separated by \"&\"; values are sent as written (an empty value is sent as key=)",
-                              "const query = cell(\"ged_query\");",
-                              "if (query !== \"\") {",
-                              "    query.split(\"&\").forEach(pair => {",
-                              "        const at = pair.indexOf(\"=\");",
-                              "        if (at < 1) {",
-                              "            throw new Error(`Test data error: \"${pair}\" in ged_query is not key=value`);",
-                              "        }",
-                              "        pm.request.url.addQueryParams([{ key: pair.slice(0, at), value: pair.slice(at + 1) }]);",
-                              "    });",
-                              "}"
-                            ],
-                            "type": "text/javascript"
-                          }
-                        },
-                        {
-                          "listen": "test",
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "let errorBody = {};",
-                              "try {",
-                              "    errorBody = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the field checks below fail with the field name",
-                              "}",
-                              "const defect = cell(\"ged_knownDefect\") === \"\" ? \"\" : ` [known defect ${cell(\"ged_knownDefect\")}]`;",
-                              "const scenario = cell(\"scenario\");",
-                              "",
-                              "pm.test(`Invalid request is rejected (${scenario})${defect}`, function () {",
-                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
-                              "});",
-                              "",
-                              "if (cell(\"expectedBody\") !== \"\") {",
-                              "    // these errors are plain text, not JSON",
-                              "    pm.test(`Error body explains the rejection (${scenario})${defect}`, function () {",
-                              "        pm.expect(pm.response.text().trim(), \"response body\").to.eql(cell(\"expectedBody\"));",
-                              "    });",
-                              "} else {",
-                              "    pm.test(`Error says the data is invalid (${scenario})${defect}`, function () {",
-                              "        pm.expect(norm(errorBody.title), \"title\").to.eql(cell(\"expectedTitle\"));",
-                              "    });",
-                              "    // the details echo the query, so only the expected rule line is checked",
-                              "    if (cell(\"expectedDetails\") !== \"\") {",
-                              "        pm.test(`Error explains the invalid value (${scenario})${defect}`, function () {",
-                              "            pm.expect(norm(errorBody.details), \"details\").to.include(cell(\"expectedDetails\"));",
-                              "        });",
-                              "    }",
-                              "}",
-                              "",
-                              "pm.test(`No employee data is returned (${scenario})${defect}`, function () {",
-                              "    pm.expect(errorBody.data, \"data\").to.be.undefined;",
-                              "});"
-                            ],
-                            "type": "text/javascript"
-                          }
-                        }
-                      ],
-                      "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees/{{gedinv_target_emp_number}}",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees",
-                            "{{gedinv_target_emp_number}}"
-                          ]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "PIM-235 terminate employee created by PIM-233",
-                      "event": [
-                        {
-                          "listen": "prerequest",
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// the employee serves every row, so it is terminated after the last iteration only",
-                              "if (pm.info.iteration < pm.info.iterationCount - 1) {",
-                              "    pm.execution.skipRequest();",
-                              "} else {",
-                              "    if (!pm.environment.get(\"gedinv_emp_number\")) {",
-                              "        throw new Error(\"Precondition failed: gedinv_emp_number not set by PIM-233\");",
-                              "    }",
-                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
-                              "        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
-                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
-                              "    }));",
-                              "}"
-                            ],
-                            "type": "text/javascript"
-                          }
-                        },
-                        {
-                          "listen": "test",
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "let responseData = {};",
-                              "try {",
-                              "    responseData = (pm.response.json() || {}).data || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below report it",
-                              "}",
-                              "",
-                              "pm.test(\"Employee created by PIM-233 is terminated\", function () {",
-                              "    pm.response.to.have.status(201);",
-                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(pm.environment.get(\"gedinv_emp_number\"));",
-                              "});",
-                              "",
-                              "// clear hand-off values so later folders and runs cannot pick them up",
-                              "pm.environment.unset(\"gedinv_emp_number\");"
-                            ],
-                            "type": "text/javascript"
-                          }
-                        }
-                      ],
-                      "request": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "value": "application/json",
-                            "key": "Content-Type"
-                          }
-                        ],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees/{{gedinv_emp_number}}/termination-record",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees",
-                            "{{gedinv_emp_number}}",
-                            "termination-record"
-                          ]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                },
-                {
-                  "name": "get-employee-details-without-valid-token",
-                  "item": [
-                    {
-                      "name": "PIM-236 find an existing employee for the token checks",
-                      "event": [
-                        {
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "// read-only: any employee the admin can see; nothing is created for the token checks",
-                              "pm.environment.unset(\"gedauth_emp_number\");"
-                            ]
-                          },
-                          "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "let rows = [];",
-                              "try {",
-                              "    rows = (pm.response.json() || {}).data || [];",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below report it",
-                              "}",
-                              "",
-                              "pm.test(\"An existing employee is found\", function () {",
-                              "    pm.response.to.have.status(200);",
-                              "    pm.expect(rows, \"employees\").to.be.an(\"array\").with.lengthOf(1);",
-                              "    pm.expect(norm((rows[0] || {}).empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
-                              "});",
-                              "",
-                              "// side effect: consumed by PIM-237",
-                              "if (pm.response.code === 200 && rows.length === 1) {",
-                              "    pm.environment.set(\"gedauth_emp_number\", norm(rows[0].empNumber));",
-                              "}"
-                            ]
-                          },
-                          "listen": "test"
-                        }
-                      ],
-                      "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees?page[limit]=1",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees"
-                          ],
-                          "query": [
-                            {
-                              "value": "1",
-                              "key": "page[limit]"
-                            }
-                          ]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "PIM-237 get employee details without a valid token",
-                      "event": [
-                        {
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "if (!pm.environment.get(\"gedauth_emp_number\")) {",
-                              "    throw new Error(\"Precondition failed: gedauth_emp_number not set by PIM-236\");",
-                              "}",
-                              "// a blank cell means no Authorization header at all",
-                              "if (cell(\"authorizationHeader\") === \"\") {",
-                              "    pm.request.headers.remove(\"Authorization\");",
-                              "}",
-                              "// a blank ged_empNumber means the existing employee found by PIM-236",
-                              "pm.variables.set(\"gedauth_target_emp_number\", cell(\"ged_empNumber\") === \"\" ? pm.environment.get(\"gedauth_emp_number\") : cell(\"ged_empNumber\"));",
-                              "const query = cell(\"ged_query\");",
-                              "if (query !== \"\") {",
-                              "    query.split(\"&\").forEach(pair => {",
-                              "        const at = pair.indexOf(\"=\");",
-                              "        if (at < 1) {",
-                              "            throw new Error(`Test data error: \"${pair}\" in ged_query is not key=value`);",
-                              "        }",
-                              "        pm.request.url.addQueryParams([{ key: pair.slice(0, at), value: pair.slice(at + 1) }]);",
-                              "    });",
-                              "}"
-                            ]
-                          },
-                          "listen": "prerequest"
-                        },
-                        {
-                          "script": {
-                            "type": "text/javascript",
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "",
-                              "let errorBody = {};",
-                              "try {",
-                              "    errorBody = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the checks below fail with the field name",
-                              "}",
-                              "const scenario = cell(\"scenario\");",
-                              "",
-                              "pm.test(`Request is rejected as unauthorized (${scenario})`, function () {",
-                              "    pm.response.to.have.status(Number(pm.iterationData.get(\"expectedStatus\")));",
-                              "});",
-                              "",
-                              "// without a token the body is [], so those rows check the status and the absence of data only",
-                              "if (cell(\"expectedError\") !== \"\") {",
-                              "    pm.test(`Error says why the token is rejected (${scenario})`, function () {",
-                              "        pm.expect(norm(errorBody.error), \"error\").to.eql(cell(\"expectedError\"));",
-                              "        pm.expect(norm(errorBody.error_description), \"error_description\").to.eql(cell(\"expectedErrorDescription\"));",
-                              "    });",
-                              "}",
-                              "",
-                              "pm.test(`No employee data is returned (${scenario})`, function () {",
-                              "    pm.expect(errorBody.data, \"data\").to.be.undefined;",
-                              "});"
-                            ]
-                          },
-                          "listen": "test"
-                        }
-                      ],
-                      "request": {
-                        "auth": {
-                          "type": "noauth"
-                        },
-                        "method": "GET",
-                        "header": [
-                          {
-                            "value": "{{authorizationHeader}}",
-                            "key": "Authorization"
-                          }
-                        ],
-                        "url": {
-                          "raw": "{{baseURL}}/api/employees/{{gedauth_target_emp_number}}",
-                          "host": [
-                            "{{baseURL}}"
-                          ],
-                          "path": [
-                            "api",
-                            "employees",
-                            "{{gedauth_target_emp_number}}"
-                          ]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                }
-              ]
+          "name": "New Request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
             }
-          ]
+          },
+          "response": []
         },
         {
           "name": "New Request",
@@ -50728,6 +48917,25 @@
             }
           ]
         },
+        "url": {
+          "raw": "{{baseURL}}/api/recruitment/candidates",
+          "host": [
+            "{{baseURL}}"
+          ],
+          "path": [
+            "api",
+            "recruitment",
+            "candidates"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": [],
         "url": {
           "raw": "{{baseURL}}/api/recruitment/candidates",
           "host": [
@@ -50971,7 +49179,7 @@
     },
     {
       "key": "candidateAddSchema",
-      "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"required\": [\"data\", \"success\", \"messages\"],\n  \"properties\": {\n    \"success\": { \"const\": true },\n    \"messages\": {\n      \"type\": \"object\",\n      \"required\": [\"success\"],\n      \"properties\": { \"s }\n    },\n    \"data\": {\n      \"type\": \"object\",\n      \"required\": [\"id\",ddleName\", \"lastName\",\n\"email\", \"contactNo\",\n                   \"candon\", \"dateOfApplication\",\n\"attachmentId\", \"isHired\n                   \"keywhiringManagerEmpNum\",\"updatedAt\", \"deletedAt\",\n                   \"purg, \"profilePic\",\n\"candidateStages\", \"stat\n                   \"perm\n      \"properties\": {\n        \"id\": { \"type\": 0-9]*$\" },\n        \"fullName\": { \"t\n        \"firstName\": { \"\n        \"middleName\": {\n        \"lastName\": { \"t\n        \"email\": { \"type\": \"string\" },\n        \"contactNo\": { \"\n        \"candidateStage\"\n        \"modeOfApplicati\n        \"dateOfApplicatitern\":\n\"^\\\\d{4}-\\\\d{2}-\\\\d{2}$\"\n        \"attachmentId\": },\n        \"isHired\": { \"ty\n        \"keywords\": { \"t\n        \"addedPersonEmpNteger\", \"null\"] },\n        \"hiringManagerEmpNum\": { \"type\": [\"string\", \"null\"] },\n        \"updatedAt\": { \"\n        \"deletedAt\": { \"\n        \"purgedAt\": { \"t\n        \"vacancyId\": { \"\n        \"vacancy\": {\n          \"type\": \"object\",\n          \"required\": [\"tatus\"],\n          \"properties\":\n            \"vacancyId\": },\n            \"name\": { \"t\n            \"vacancyStatll\"] }\n          }\n        },\n        \"profilePic\": {\n        \"candidateStages\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"required\": , \"level\", \"type\",\n\"isInterview\", \"isTest\"]\n          }\n        },\n        \"preboardingEmpl \"null\"] },\n        \"status\": { \"typ\n        \"permittedToAddAn\" }\n      }\n    }\n  }\n}"
+      "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"required\": [\"data\", \"success\", \"messages\"],\n  \"properties\": {\n    \"success\": { \"const\": true },\n    \"messages\": {\n      \"type\": \"object\",\n      \"required\": [\"success\"],\n      \"properties\": { \"success\": { \"type\": \"string\" } }\n    },\n    \"data\": {\n      \"type\": \"object\",\n      \"required\": [\"id\", \"fullName\", \"firstName\", \"middleName\", \"lastName\",\n                   \"email\", \"contactNo\", \"candidateStage\", \"modeOfApplication\", \"dateOfApplication\",\n                   \"attachmentId\", \"isHired\", \"keywords\", \"addedPersonEmpNum\", \"hiringManagerEmpNum\",\n                   \"updatedAt\", \"deletedAt\", \"purgedAt\", \"vacancyId\", \"vacancy\", \"profilePic\",\n                   \"candidateStages\", \"preboardingEmployeeId\", \"status\", \"permittedToAddAsEmployee\"],\n      \"properties\": {\n        \"id\": { \"type\": \"string\", \"pattern\": \"^[0-9]+$\" },\n        \"fullName\": { \"type\": \"string\" },\n        \"firstName\": { \"type\": \"string\" },\n        \"middleName\": { \"type\": \"string\" },\n        \"lastName\": { \"type\": \"string\" },\n        \"email\": { \"type\": \"string\" },\n        \"contactNo\": { \"type\": [\"string\", \"null\"] },\n        \"candidateStage\": { \"type\": \"string\" },\n        \"modeOfApplication\": { \"type\": \"string\" },\n        \"dateOfApplication\": { \"type\": \"string\", \"pattern\": \"^\\\\d{4}-\\\\d{2}-\\\\d{2}$\" },\n        \"attachmentId\": { \"type\": [\"string\", \"null\"] },\n        \"isHired\": { \"type\": \"boolean\" },\n        \"keywords\": { \"type\": [\"string\", \"null\"] },\n        \"addedPersonEmpNum\": { \"type\": [\"string\", \"integer\", \"null\"] },\n        \"hiringManagerEmpNum\": { \"type\": [\"string\", \"null\"] },\n        \"updatedAt\": { \"type\": [\"string\", \"null\"] },\n        \"deletedAt\": { \"type\": [\"string\", \"null\"] },\n        \"purgedAt\": { \"type\": [\"string\", \"null\"] },\n        \"vacancyId\": { \"type\": [\"string\", \"null\"] },\n        \"vacancy\": {\n          \"type\": \"object\",\n          \"required\": [\"vacancyId\", \"name\", \"vacancyStatus\"],\n          \"properties\": {\n            \"vacancyId\": { \"type\": [\"string\", \"null\"] },\n            \"name\": { \"type\": [\"string\", \"null\"] },\n            \"vacancyStatus\": { \"type\": [\"string\", \"null\"] }\n          }\n        },\n        \"profilePic\": { \"type\": [\"object\", \"string\", \"null\"] },\n        \"candidateStages\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"required\": [\"id\", \"typeId\", \"eventTitle\", \"level\", \"type\", \"isInterview\", \"isTest\"]\n          }\n        },\n        \"preboardingEmployeeId\": { \"type\": [\"string\", \"null\"] },\n        \"status\": { \"type\": \"string\" },\n        \"permittedToAddAsEmployee\": { \"type\": \"boolean\" }\n      }\n    }\n  }\n}"
     },
     {
       "key": "salaryComponentListSchema",
