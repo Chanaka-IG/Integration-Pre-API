@@ -6863,6 +6863,509 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Employee-Attachments",
+              "item": [
+                {
+                  "name": "add-employee-attachment-for-created-employee",
+                  "item": [
+                    {
+                      "name": "PIM-238 add employee for attachments",
+                      "event": [
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the employee serves every row of the CSV: it is created in the first iteration only",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    // a run that stopped before its last iteration leaves the employee active: terminate it, but only",
+                              "    // if the record still carries this folder's name (never touch other employees)",
+                              "    const leftover = JSON.parse(pm.environment.get(\"att_fixture\") || \"{}\");",
+                              "    if (leftover.empNumber) {",
+                              "        const auth = { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` };",
+                              "        pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/employees/${leftover.empNumber}`, method: \"GET\", header: auth }, (err, res) => {",
+                              "            const data = (!err && res.code === 200) ? (res.json() || {}).data || {} : {};",
+                              "            if (data.firstName === leftover.firstName && data.termination_id === null) {",
+                              "                pm.sendRequest({",
+                              "                    url: `${pm.environment.get(\"baseURL\")}/api/employees/${leftover.empNumber}/termination-record`,",
+                              "                    method: \"POST\",",
+                              "                    header: { ...auth, \"Content-Type\": \"application/json\" },",
+                              "                    body: { mode: \"raw\", raw: JSON.stringify({",
+                              "                        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "                        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "                    }) }",
+                              "                }, () => {});",
+                              "            }",
+                              "        });",
+                              "    }",
+                              "",
+                              "    // clear values left over from earlier folders or earlier runs",
+                              "    [\"att_fixture\", \"att_emp_number\"].forEach(key => pm.environment.unset(key));",
+                              "",
+                              "    [\"firstName\", \"lastName\", \"employeeIdPrefix\", \"locationId\", \"joinedDate\"].forEach(key => {",
+                              "        if (cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    const stamp = Date.now().toString().slice(-6);",
+                              "    const employee = {",
+                              "        firstName: `${cell(\"firstName\")}${stamp}`,",
+                              "        lastName: cell(\"lastName\"),",
+                              "        employeeId: `${cell(\"employeeIdPrefix\")}-${stamp}`,",
+                              "        locationId: cell(\"locationId\"),",
+                              "        joinedDate: cell(\"joinedDate\")",
+                              "    };",
+                              "    pm.variables.set(\"fixtureEmployee\", JSON.stringify(employee));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(employee));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"fixtureEmployee\") || \"{}\");",
+                              "",
+                              "pm.test(\"Employee is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
+                              "    pm.expect(norm(responseData.employeeId), \"employeeId\").to.eql(sent.employeeId);",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-239 to PIM-241",
+                              "if (/^[0-9]+$/.test(norm(responseData.empNumber))) {",
+                              "    pm.environment.set(\"att_emp_number\", responseData.empNumber);",
+                              "    pm.environment.set(\"att_fixture\", JSON.stringify({ empNumber: responseData.empNumber, firstName: sent.firstName }));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-239 add attachment to employee created by PIM-238",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "// \"{x*N}\" in the CSV stands for the character x repeated N times (long values stay readable in the CSV)",
+                              "const expand = s => s.replace(/\\{(.)\\*([0-9]+)\\}/g, (m, ch, n) => ch.repeat(Number(n)));",
+                              "",
+                              "if (!pm.environment.get(\"att_emp_number\")) {",
+                              "    throw new Error(\"Precondition failed: att_emp_number not set by PIM-238\");",
+                              "}",
+                              "// clear values left over from the previous iteration",
+                              "pm.environment.unset(\"att_saved_records\");",
+                              "",
+                              "[\"att_screen\", \"att_fileName\", \"att_base64\", \"att_expectedStatus\"].forEach(key => {",
+                              "    if (cell(key).trim() === \"\") {",
+                              "        throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "    }",
+                              "});",
+                              "const file = { filename: expand(cell(\"att_fileName\")), base64: cell(\"att_base64\") };",
+                              "if (cell(\"att_fileType\") !== \"\") {",
+                              "    file.filetype = cell(\"att_fileType\");",
+                              "}",
+                              "const body = { screen: cell(\"att_screen\") };",
+                              "// \"{omit}\" leaves the optional description out of the body",
+                              "if (cell(\"att_description\") !== \"{omit}\") {",
+                              "    body.description = expand(cell(\"att_description\"));",
+                              "}",
+                              "body.filename = file;",
+                              "if (cell(\"att_extraKeys\") !== \"\") {",
+                              "    Object.assign(body, JSON.parse(cell(\"att_extraKeys\")));",
+                              "}",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));",
+                              "",
+                              "// the API version is chosen with the Accept header",
+                              "if (cell(\"att_apiVersion\") !== \"\") {",
+                              "    pm.request.headers.upsert({ key: \"Accept\", value: `application/json; version=${cell(\"att_apiVersion\")}` });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "// \"{x*N}\" in the CSV stands for the character x repeated N times (long values stay readable in the CSV)",
+                              "const expand = s => s.replace(/\\{(.)\\*([0-9]+)\\}/g, (m, ch, n) => ch.repeat(Number(n)));",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"requestBody\") || \"{}\");",
+                              "const knownDefect = cell(\"att_knownDefect\");",
+                              "const suffix = knownDefect ? ` [known defect ${knownDefect}]` : \"\";",
+                              "const saved = [];",
+                              "",
+                              "pm.test(`Attachment is added to the employee created by PIM-238${suffix}`, function () {",
+                              "    pm.response.to.have.status(Number(cell(\"att_expectedStatus\")));",
+                              "    pm.expect(norm(responseData.attach_id), \"attach_id\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "if (/^[0-9]+$/.test(norm(responseData.attach_id))) {",
+                              "    saved.push(responseData);",
+                              "",
+                              "    pm.test(\"Response matches the employee attachment schema\", function () {",
+                              "        const raw = pm.collectionVariables.get(\"employeeAttachmentPostSchema\");",
+                              "        pm.expect(raw, \"employeeAttachmentPostSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "        pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "    });",
+                              "",
+                              "    pm.test(\"Attachment is linked to the employee in the URL\", function () {",
+                              "        pm.expect(norm(responseData.emp_number), \"emp_number\").to.eql(pm.environment.get(\"att_emp_number\"));",
+                              "    });",
+                              "",
+                              "    pm.test(\"Attachment details match what was sent\", function () {",
+                              "        pm.expect(responseData.description, \"description\").to.eql(sent.description === undefined ? null : sent.description);",
+                              "        pm.expect(norm(responseData.screen), \"screen\").to.eql(sent.screen);",
+                              "        pm.expect(norm(responseData.filename), \"filename\").to.eql(expand(cell(\"att_expectedFileName\")));",
+                              "        pm.expect(norm(responseData.file_type), \"file_type\").to.eql(cell(\"att_expectedFileType\"));",
+                              "        pm.expect(norm(responseData.size), \"size\").to.eql(cell(\"att_expectedSize\"));",
+                              "    });",
+                              "",
+                              "    pm.test(\"Attachment records who added it and when\", function () {",
+                              "        pm.expect(norm(responseData.attached_by_name), \"attached_by_name\").to.not.eql(\"\");",
+                              "        pm.expect(norm(responseData.attached_time), \"attached_time\").to.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$/);",
+                              "    });",
+                              "",
+                              "    pm.test(\"Success message is returned\", function () {",
+                              "        pm.expect(norm((response.messages || {}).success), \"messages.success\").to.eql(cell(\"att_successMessage\"));",
+                              "    });",
+                              "}",
+                              "",
+                              "// side effect: consumed by PIM-240 (read-back and cleanup)",
+                              "pm.environment.set(\"att_saved_records\", JSON.stringify(saved));",
+                              "",
+                              "if (cell(\"att_postTwice\") === \"true\" && saved.length === 1) {",
+                              "    pm.sendRequest({",
+                              "        url: `${pm.environment.get(\"baseURL\")}/api/employees/${pm.environment.get(\"att_emp_number\")}/employeeAttachments`,",
+                              "        method: \"POST\",",
+                              "        header: { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },",
+                              "        body: { mode: \"raw\", raw: pm.variables.get(\"requestBody\") }",
+                              "    }, (err, res) => {",
+                              "        let second = {};",
+                              "        try {",
+                              "            second = (res.json() || {}).data || {};",
+                              "        } catch (e) {",
+                              "            // not JSON: the check below reports it",
+                              "        }",
+                              "        pm.test(\"Posting the same attachment again adds a second attachment with a new attach_id\", function () {",
+                              "            pm.expect(err, \"request error\").to.be.null;",
+                              "            pm.expect(res && res.code, \"status of the second POST\").to.eql(Number(cell(\"att_expectedStatus\")));",
+                              "            pm.expect(norm(second.attach_id), \"second attach_id\").to.match(/^[0-9]+$/);",
+                              "            pm.expect(norm(second.attach_id), \"second attach_id\").to.not.eql(norm(saved[0].attach_id));",
+                              "        });",
+                              "        if (/^[0-9]+$/.test(norm(second.attach_id))) {",
+                              "            saved.push(second);",
+                              "            // side effect: consumed by PIM-240",
+                              "            pm.environment.set(\"att_saved_records\", JSON.stringify(saved));",
+                              "        }",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{att_emp_number}}/employeeAttachments",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{att_emp_number}}",
+                            "employeeAttachments"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-240 get and delete attachment added by PIM-239",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "const saved = JSON.parse(pm.environment.get(\"att_saved_records\") || \"[]\");",
+                              "if (saved.length === 0 && cell(\"att_knownDefect\") !== \"\") {",
+                              "    // known-defect row: PIM-239 added nothing, so there is nothing to read or delete",
+                              "    pm.execution.skipRequest();",
+                              "} else if (saved.length === 0) {",
+                              "    throw new Error(\"Precondition failed: att_saved_records not set by PIM-239\");",
+                              "} else if (cell(\"att_checkContent\") === \"true\") {",
+                              "    // binary files cannot be returned with their content (422 by design), so only text files ask for it",
+                              "    pm.request.url.addQueryParams([{ key: \"withFileContent\", value: \"true\" }]);",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const saved = JSON.parse(pm.environment.get(\"att_saved_records\") || \"[]\");",
+                              "const listed = Array.isArray(response.data) ? response.data : [];",
+                              "",
+                              "pm.test(\"Attachments of the screen are returned\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "    pm.expect(response.data, \"data\").to.be.an(\"array\");",
+                              "});",
+                              "",
+                              "saved.forEach(record => {",
+                              "    const found = listed.find(item => norm(item.attach_id) === norm(record.attach_id));",
+                              "    pm.test(`Attachment ${record.attach_id} added by PIM-239 is listed with the saved values`, function () {",
+                              "        pm.expect(found, `attachment ${record.attach_id}`).to.be.an(\"object\");",
+                              "        if (found) {",
+                              "            [\"emp_number\", \"size\", \"description\", \"filename\", \"file_type\", \"screen\", \"attached_time\", \"attached_by_name\", \"attached_by\"].forEach(key => {",
+                              "                pm.expect(found[key], key).to.eql(record[key]);",
+                              "            });",
+                              "        }",
+                              "    });",
+                              "    if (found && cell(\"att_checkContent\") === \"true\") {",
+                              "        pm.test(`Stored content of attachment ${record.attach_id} equals the file sent`, function () {",
+                              "            const sentContent = CryptoJS.enc.Base64.parse(cell(\"att_base64\")).toString(CryptoJS.enc.Utf8);",
+                              "            pm.expect(found.attachment, \"attachment\").to.eql(sentContent);",
+                              "        });",
+                              "    }",
+                              "});",
+                              "",
+                              "// teardown: delete the attachments added by PIM-239 and confirm they are gone. Sent with pm.sendRequest",
+                              "// because the 204 response has no Content-Type, which the collection-level content-type test rejects",
+                              "const ids = saved.map(record => norm(record.attach_id));",
+                              "const auth = { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` };",
+                              "const attachmentsUrl = `${pm.environment.get(\"baseURL\")}/api/employees/${pm.environment.get(\"att_emp_number\")}/employeeAttachments`;",
+                              "pm.sendRequest({",
+                              "    url: attachmentsUrl,",
+                              "    method: \"DELETE\",",
+                              "    header: { ...auth, \"Content-Type\": \"application/json\" },",
+                              "    body: { mode: \"raw\", raw: JSON.stringify({ data: ids }) }",
+                              "}, (err, res) => {",
+                              "    pm.test(\"Attachments added by PIM-239 are deleted\", function () {",
+                              "        pm.expect(err, \"delete request error\").to.be.null;",
+                              "        pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "    });",
+                              "    pm.sendRequest({ url: `${attachmentsUrl}/${cell(\"att_screen\")}`, method: \"GET\", header: auth }, (err2, res2) => {",
+                              "        let after = null;",
+                              "        try {",
+                              "            after = (res2.json() || {}).data;",
+                              "        } catch (e) {",
+                              "            // not JSON: the check below reports it",
+                              "        }",
+                              "        pm.test(\"Deleted attachments are no longer listed\", function () {",
+                              "            pm.expect(err2, \"read-back request error\").to.be.null;",
+                              "            pm.expect(after, \"data of the read-back\").to.be.an(\"array\");",
+                              "            pm.expect((after || []).filter(item => ids.includes(norm(item.attach_id))).length, \"attachments still listed\").to.eql(0);",
+                              "        });",
+                              "    });",
+                              "});",
+                              "",
+                              "pm.environment.unset(\"att_saved_records\");"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{att_emp_number}}/employeeAttachments/{{att_screen}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{att_emp_number}}",
+                            "employeeAttachments",
+                            "{{att_screen}}"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-241 terminate employee created by PIM-238",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the employee serves every row, so it is terminated after the last iteration only",
+                              "if (pm.info.iteration < pm.info.iterationCount - 1) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"att_emp_number\")) {",
+                              "        throw new Error(\"Precondition failed: att_emp_number not set by PIM-238\");",
+                              "    }",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "    }));",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Employee created by PIM-238 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(pm.environment.get(\"att_emp_number\"));",
+                              "    pm.expect(responseData.terminateinfuture, \"terminateinfuture\").to.eql(false);",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders and runs cannot pick them up",
+                              "[\"att_fixture\", \"att_emp_number\", \"att_saved_records\"].forEach(key => pm.environment.unset(key));"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{att_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{att_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ],
           "description": "All the test cases related PIM APIs will be included here"
@@ -48842,6 +49345,517 @@
           ]
         },
         {
+          "name": "PIM",
+          "item": [
+            {
+              "name": "Employee-Attachments",
+              "item": [
+                {
+                  "name": "add-employee-attachment-with-invalid-request",
+                  "item": [
+                    {
+                      "name": "PIM-242 add employee for invalid attachment requests",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the employee serves every row of the CSV: it is created in the first iteration only",
+                              "if (pm.info.iteration > 0) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    // a run that stopped before its last iteration leaves the employee active: terminate it, but only",
+                              "    // if the record still carries this folder's name (never touch other employees)",
+                              "    const leftover = JSON.parse(pm.environment.get(\"attinv_fixture\") || \"{}\");",
+                              "    if (leftover.empNumber) {",
+                              "        const auth = { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` };",
+                              "        pm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/employees/${leftover.empNumber}`, method: \"GET\", header: auth }, (err, res) => {",
+                              "            const data = (!err && res.code === 200) ? (res.json() || {}).data || {} : {};",
+                              "            if (data.firstName === leftover.firstName && data.termination_id === null) {",
+                              "                pm.sendRequest({",
+                              "                    url: `${pm.environment.get(\"baseURL\")}/api/employees/${leftover.empNumber}/termination-record`,",
+                              "                    method: \"POST\",",
+                              "                    header: { ...auth, \"Content-Type\": \"application/json\" },",
+                              "                    body: { mode: \"raw\", raw: JSON.stringify({",
+                              "                        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "                        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "                    }) }",
+                              "                }, () => {});",
+                              "            }",
+                              "        });",
+                              "    }",
+                              "",
+                              "    // clear values left over from earlier folders or earlier runs",
+                              "    [\"attinv_fixture\", \"attinv_emp_number\"].forEach(key => pm.environment.unset(key));",
+                              "",
+                              "    [\"firstName\", \"lastName\", \"employeeIdPrefix\", \"locationId\", \"joinedDate\"].forEach(key => {",
+                              "        if (cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    const stamp = Date.now().toString().slice(-6);",
+                              "    const employee = {",
+                              "        firstName: `${cell(\"firstName\")}${stamp}`,",
+                              "        lastName: cell(\"lastName\"),",
+                              "        employeeId: `${cell(\"employeeIdPrefix\")}-${stamp}`,",
+                              "        locationId: cell(\"locationId\"),",
+                              "        joinedDate: cell(\"joinedDate\")",
+                              "    };",
+                              "    pm.variables.set(\"fixtureEmployee\", JSON.stringify(employee));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(employee));",
+                              "}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"fixtureEmployee\") || \"{}\");",
+                              "",
+                              "pm.test(\"Employee is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
+                              "    pm.expect(norm(responseData.employeeId), \"employeeId\").to.eql(sent.employeeId);",
+                              "});",
+                              "",
+                              "// side effect: consumed by PIM-243 to PIM-245",
+                              "if (/^[0-9]+$/.test(norm(responseData.empNumber))) {",
+                              "    pm.environment.set(\"attinv_emp_number\", responseData.empNumber);",
+                              "    pm.environment.set(\"attinv_fixture\", JSON.stringify({ empNumber: responseData.empNumber, firstName: sent.firstName }));",
+                              "}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-243 add attachment with invalid request",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "// \"{x*N}\" in the CSV stands for the character x repeated N times (long values stay readable in the CSV)",
+                              "const expand = s => s.replace(/\\{(.)\\*([0-9]+)\\}/g, (m, ch, n) => ch.repeat(Number(n)));",
+                              "",
+                              "const fixtureEmp = pm.environment.get(\"attinv_emp_number\");",
+                              "if (!fixtureEmp) {",
+                              "    throw new Error(\"Precondition failed: attinv_emp_number not set by PIM-242\");",
+                              "}",
+                              "if (cell(\"expectedStatus\").trim() === \"\") {",
+                              "    throw new Error(\"Test data error: expectedStatus is blank in the CSV row\");",
+                              "}",
+                              "// a blank attinv_empNumber cell targets the employee created by PIM-242",
+                              "pm.variables.set(\"attinv_target_emp\", cell(\"attinv_empNumber\") === \"\" ? fixtureEmp : cell(\"attinv_empNumber\"));",
+                              "// the body is sent as written in the CSV, so malformed and empty bodies are possible",
+                              "pm.variables.set(\"requestBody\", expand(cell(\"attinv_body\")));"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let response = null;",
+                              "try {",
+                              "    response = pm.response.json();",
+                              "} catch (e) {",
+                              "    // plain-text error bodies are checked with expectedText",
+                              "}",
+                              "const knownDefect = cell(\"attinv_knownDefect\");",
+                              "const suffix = knownDefect ? ` [known defect ${knownDefect}]` : \"\";",
+                              "const target = pm.variables.get(\"attinv_target_emp\");",
+                              "",
+                              "pm.test(`Invalid request is rejected with status ${cell(\"expectedStatus\")}${suffix}`, function () {",
+                              "    pm.response.to.have.status(Number(cell(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "if (cell(\"expectedMessage\") !== \"\") {",
+                              "    pm.test(`Error body explains the rejection${suffix}`, function () {",
+                              "        pm.expect(response, \"JSON error body\").to.be.an(\"object\");",
+                              "        pm.expect(norm((response || {}).message), \"message\").to.eql(cell(\"expectedMessage\"));",
+                              "        const general = (((response || {}).errors || {}).general) || [];",
+                              "        pm.expect(norm(general[0]), \"errors.general[0]\").to.eql(cell(\"expectedError\"));",
+                              "    });",
+                              "}",
+                              "",
+                              "if (cell(\"expectedText\") !== \"\") {",
+                              "    pm.test(\"Error text explains the rejection\", function () {",
+                              "        pm.expect(pm.response.text(), \"response body\").to.eql(cell(\"expectedText\"));",
+                              "    });",
+                              "}",
+                              "",
+                              "const created = norm((((response && !Array.isArray(response)) ? response : {}).data || {}).attach_id);",
+                              "pm.test(\"No attachment is created\", function () {",
+                              "    pm.expect(created, \"attach_id of an attachment created by an invalid request\").to.eql(\"\");",
+                              "});",
+                              "",
+                              "// teardown: remove an attachment the request should not have created (only on this folder's employee)",
+                              "if (created !== \"\" && target === pm.environment.get(\"attinv_emp_number\")) {",
+                              "    pm.sendRequest({",
+                              "        url: `${pm.environment.get(\"baseURL\")}/api/employees/${target}/employeeAttachments`,",
+                              "        method: \"DELETE\",",
+                              "        header: { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },",
+                              "        body: { mode: \"raw\", raw: JSON.stringify({ data: [created] }) }",
+                              "    }, (err, res) => {",
+                              "        pm.test(\"Attachment created by the rejected request is cleaned up\", function () {",
+                              "            pm.expect(err, \"delete request error\").to.be.null;",
+                              "            pm.expect(res && res.code, \"delete status\").to.eql(204);",
+                              "        });",
+                              "    });",
+                              "}"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "value": "application/json",
+                            "key": "Content-Type"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{attinv_target_emp}}/employeeAttachments",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{attinv_target_emp}}",
+                            "employeeAttachments"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-244 verify invalid requests saved no attachment for employee created by PIM-242",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// checked once, after every invalid request of the CSV has been sent",
+                              "if (pm.info.iteration < pm.info.iterationCount - 1) {",
+                              "    pm.execution.skipRequest();",
+                              "} else if (!pm.environment.get(\"attinv_emp_number\")) {",
+                              "    throw new Error(\"Precondition failed: attinv_emp_number not set by PIM-242\");",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"No attachment was saved for the employee created by PIM-242\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "    pm.expect(response.data, \"data\").to.be.an(\"array\");",
+                              "    pm.expect((response.data || []).length, \"attachments on the qualifications screen\").to.eql(0);",
+                              "});"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{attinv_emp_number}}/employeeAttachments/qualifications",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{attinv_emp_number}}",
+                            "employeeAttachments",
+                            "qualifications"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIM-245 terminate employee created by PIM-242",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "// the employee serves every row, so it is terminated after the last iteration only",
+                              "if (pm.info.iteration < pm.info.iterationCount - 1) {",
+                              "    pm.execution.skipRequest();",
+                              "} else {",
+                              "    if (!pm.environment.get(\"attinv_emp_number\")) {",
+                              "        throw new Error(\"Precondition failed: attinv_emp_number not set by PIM-242\");",
+                              "    }",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "    }));",
+                              "}"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Employee created by PIM-242 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(pm.environment.get(\"attinv_emp_number\"));",
+                              "    pm.expect(responseData.terminateinfuture, \"terminateinfuture\").to.eql(false);",
+                              "});",
+                              "",
+                              "// clear hand-off values so later folders and runs cannot pick them up",
+                              "[\"attinv_fixture\", \"attinv_emp_number\"].forEach(key => pm.environment.unset(key));"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{attinv_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{attinv_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "add-employee-attachment-without-valid-token",
+                  "item": [
+                    {
+                      "name": "PIM-246 add attachment without valid token",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "[\"attauth_empNumber\", \"att_screen\", \"att_fileName\", \"att_base64\", \"expectedStatus\"].forEach(key => {",
+                              "    if (cell(key).trim() === \"\") {",
+                              "        throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "    }",
+                              "});",
+                              "// the request has no auth of its own; a CSV value is sent as the Authorization header as is",
+                              "if (cell(\"authorizationHeader\") !== \"\") {",
+                              "    pm.request.headers.upsert({ key: \"Authorization\", value: cell(\"authorizationHeader\") });",
+                              "}",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "    screen: cell(\"att_screen\"),",
+                              "    description: \"Unauthorized request\",",
+                              "    filename: { filename: cell(\"att_fileName\"), base64: cell(\"att_base64\") }",
+                              "}));"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "",
+                              "let response = null;",
+                              "try {",
+                              "    response = pm.response.json();",
+                              "} catch (e) {",
+                              "    // not JSON: the checks below report it",
+                              "}",
+                              "",
+                              "pm.test(\"Request is rejected as unauthorized\", function () {",
+                              "    pm.response.to.have.status(Number(cell(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "if (cell(\"expectedError\") !== \"\") {",
+                              "    pm.test(\"Error explains the token problem\", function () {",
+                              "        pm.expect(norm((response || {}).error), \"error\").to.eql(cell(\"expectedError\"));",
+                              "        pm.expect(norm((response || {}).error_description), \"error_description\").to.eql(cell(\"expectedErrorDescription\"));",
+                              "    });",
+                              "}",
+                              "",
+                              "if (cell(\"expectedBody\") !== \"\") {",
+                              "    pm.test(\"Response body is as documented\", function () {",
+                              "        pm.expect(pm.response.text(), \"response body\").to.eql(cell(\"expectedBody\"));",
+                              "    });",
+                              "}",
+                              "",
+                              "pm.test(\"No attachment is created\", function () {",
+                              "    const data = (response && !Array.isArray(response)) ? (response.data || {}) : {};",
+                              "    pm.expect(norm(data.attach_id), \"attach_id of an attachment created without a valid token\").to.eql(\"\");",
+                              "});"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{attauth_empNumber}}/employeeAttachments",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{attauth_empNumber}}",
+                            "employeeAttachments"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
           "name": "New Request",
           "request": {
             "method": "GET",
@@ -49250,6 +50264,10 @@
     {
       "key": "workScheduleListSchema",
       "value": "{\"type\": \"object\", \"required\": [\"data\", \"meta\"], \"properties\": {\"data\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"name\", \"work_schedule_type_id\", \"is_default\", \"definition\", \"created_through\", \"deletable\", \"editable\", \"WorkScheduleType\", \"created_at\", \"updated_at\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"name\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 255}, \"work_schedule_type_id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"is_default\": {\"type\": \"boolean\"}, \"definition\": {\"type\": \"string\", \"minLength\": 1}, \"created_through\": {\"type\": \"boolean\"}, \"deletable\": {\"type\": \"boolean\"}, \"editable\": {\"type\": \"boolean\"}, \"WorkScheduleType\": {\"type\": \"object\", \"required\": [\"id\", \"name\", \"description\"], \"properties\": {\"id\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}, \"name\": {\"type\": \"string\", \"enum\": [\"fixed\", \"flexible_daily_hours\", \"flexible_weekly_hours\"]}, \"description\": {\"type\": \"string\", \"minLength\": 1}}}, \"created_at\": {\"type\": [\"string\", \"null\"], \"pattern\": \"^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$\"}, \"updated_at\": {\"type\": [\"string\", \"null\"], \"pattern\": \"^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$\"}}}}, \"meta\": {\"type\": \"object\", \"required\": [\"total\", \"permittedIds\", \"permittedToSetCountryDefaultWhenAdding\", \"idsInUse\"], \"properties\": {\"total\": {\"type\": \"integer\", \"minimum\": 0}, \"permittedIds\": {\"type\": \"object\", \"required\": [\"update\", \"delete\", \"setCountryDefault\", \"viewCountryDefault\"], \"properties\": {\"update\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}, \"delete\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}, \"setCountryDefault\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}, \"viewCountryDefault\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}}}, \"permittedToSetCountryDefaultWhenAdding\": {\"type\": \"boolean\"}, \"idsInUse\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^[0-9]+$\"}}}}}}"
+    },
+    {
+      "key": "employeeAttachmentPostSchema",
+      "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"required\":[\"data\",\"messages\"],\"properties\":{\"data\":{\"type\":\"object\",\"required\":[\"emp_number\",\"attach_id\",\"size\",\"description\",\"filename\",\"file_type\",\"attached_time\",\"attached_by_name\",\"attached_by\",\"screen\"],\"properties\":{\"emp_number\":{\"type\":\"string\",\"pattern\":\"^[0-9]+$\"},\"attach_id\":{\"type\":\"string\",\"pattern\":\"^[0-9]+$\"},\"size\":{\"type\":\"string\",\"pattern\":\"^[0-9]+$\"},\"description\":{\"type\":[\"string\",\"null\"]},\"filename\":{\"type\":\"string\"},\"file_type\":{\"type\":\"string\"},\"attached_time\":{\"type\":\"string\",\"pattern\":\"^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$\"},\"attached_by_name\":{\"type\":\"string\"},\"attached_by\":{\"type\":[\"string\",\"integer\",\"null\"]},\"screen\":{\"type\":\"string\"}}},\"messages\":{\"type\":\"object\",\"required\":[\"success\"],\"properties\":{\"success\":{\"type\":\"string\"}}}}}"
     }
   ]
 }

@@ -1,0 +1,3 @@
+"scenario","authorizationHeader","attauth_empNumber","att_screen","att_fileName","att_base64","expectedStatus","expectedError","expectedErrorDescription","expectedBody"
+"no token","","99999999","qualifications","no-token.txt","SGVsbG8gYXR0YWNobWVudAo=",401,"","","[]"
+"invalid bearer token","Bearer invalid-token-for-api-test","99999999","qualifications","invalid-token.txt","SGVsbG8gYXR0YWNobWVudAo=",401,"invalid_token","The access token provided is invalid",""
