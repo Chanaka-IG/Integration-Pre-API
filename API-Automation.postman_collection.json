@@ -28445,7 +28445,7 @@
                   "name": "add-candidate",
                   "item": [
                     {
-                      "name": "RECRUITMENT-056 add hiring manager employee for the vacancy name list",
+                      "name": "RECRUITMENT-071 add hiring manager employee for the vacancy name list",
                       "event": [
                         {
                           "listen": "prerequest",
@@ -28492,14 +28492,14 @@
                       "response": []
                     },
                     {
-                      "name": "RECRUITMENT-057 add a vacancy for candidate hire",
+                      "name": "RECRUITMENT-072 add a vacancy for candidate hire",
                       "event": [
                         {
                           "listen": "prerequest",
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst hiringManagerID = pm.environment.get(\"vacancy_hm_emp_number_candi\") || \"\";\nconst hmID = Array.isArray(hiringManagerID) ? hiringManagerID : [hiringManagerID];\n\n[\"vacancyFixtureForCandi\",\"vacancyIDforCandi\"].forEach(key => pm.collectionVariables.unset(key))\n\nif (!hiringManagerID) {\n    throw new Error(\"Precondition failed!!. Hiring manager ID has not been set\")\n}\n\n//validate csv file values are nor empty\n[\"vac_name\",\"vac_location\",\"vac_jobTitle\"].forEach(key => {\n      if (cell(key).trim() ==\"\"){\n        throw new Error(`Precondition failed!!. ${key} is empty in the CSV`)\n    }\n})\n\nconst name = `VAC-${Date.now().toString().slice(-6)} ${cell(\"vac_name\")}`;\nconst body = {\n    vacancyName: name,\n    location: Number(cell(\"vac_location\")),\n    jobTitle: Number(cell(\"vac_jobTitle\")),\n    hiringManager: [Number(hiringManagerID)],\n    resumeRequired: cell(\"vac_resumeRequired\"),\n    requestConsent: cell(\"vac_requestConsent\")\n};\n\n// side effect: checked by RECRUITMENT-003 to RECRUITMENT-005\npm.environment.set(\"vacancy_expected\", JSON.stringify({\n    vacancyName: name,\n    locationId: cell(\"vac_location\"),\n    jobTitleCode: cell(\"vac_jobTitle\"),\n    hiringManager: hmID,\n    isResumeRequired: cell(\"vac_resumeRequired\"),\n    requestConsent: cell(\"vac_requestConsent\"),\n    status: cell(\"vac_expectedStatus\")\n}));\npm.variables.set(\"requestBody\", JSON.stringify(body));"
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst hiringManagerID = pm.environment.get(\"vacancy_hm_emp_number_candi\") || \"\";\nconst hmID = Array.isArray(hiringManagerID) ? hiringManagerID : [hiringManagerID];\n\nif (pm.info.iteration > 0 ){\n    pm.execution.skipRequest();\n}\n\nif (!hiringManagerID) {\n    throw new Error(\"Precondition failed!!. Hiring manager ID has not been set\")\n}\n\n//validate csv file values are nor empty\n[\"vac_name\",\"vac_location\",\"vac_jobTitle\"].forEach(key => {\n      if (cell(key).trim() ==\"\"){\n        throw new Error(`Precondition failed!!. ${key} is empty in the CSV`)\n    }\n})\n\nconst name = `VAC-${Date.now().toString().slice(-6)} ${cell(\"vac_name\")}`;\nconst body = {\n    vacancyName: name,\n    location: Number(cell(\"vac_location\")),\n    jobTitle: Number(cell(\"vac_jobTitle\")),\n    hiringManager: [Number(hiringManagerID)],\n    resumeRequired: cell(\"vac_resumeRequired\"),\n    requestConsent: cell(\"vac_requestConsent\")\n};\n\n// side effect: checked by RECRUITMENT-003 to RECRUITMENT-005\npm.environment.set(\"vacancy_expected\", JSON.stringify({\n    vacancyName: name,\n    locationId: cell(\"vac_location\"),\n    jobTitleCode: cell(\"vac_jobTitle\"),\n    hiringManager: hmID,\n    isResumeRequired: cell(\"vac_resumeRequired\"),\n    requestConsent: cell(\"vac_requestConsent\"),\n    status: cell(\"vac_expectedStatus\")\n}));\npm.variables.set(\"requestBody\", JSON.stringify(body));"
                             ]
                           }
                         },
@@ -28508,7 +28508,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nconst response = pm.response.json() || {};\nconst responseData = response.data || {};\nconst responseArray = Array.isArray(responseData) ? responseData: [responseData];\nconst expected = JSON.parse(pm.environment.get(\"vacancy_expected\") || \"{}\");\nconst expectedArray = Array.isArray(expected) ? expected: [expected];\nconst scenario = pm.iterationData.get(\"scenario\");\nlet vacancyIDs = pm.environment.get(\"candidateIDs\") || [];\nlet vacancyFixtureForCandi = {};\n\npm.test(\"Status code validation\", function () {\n    pm.response.to.have.status(201);\n})\n\npm.test(\"Vacancy created successfully with sent data\", function () {\n\n [\"vacancyName\",\"location\",\"jobTitle\"].forEach(key => {\n     pm.expect(responseArray[key]).to.eql(expectedArray[key]);\n })\n})\n\n\nif (norm(responseData.vacancyId) !== \"\") {\n    vacancyFixtureForCandi = {\n    \"vacancyId\": norm(responseData.vacancyId),\n    \"title\": norm(responseData.title),\n    \"name\": norm(responseData.vacancyName)\n    } \n}\nif (norm(responseData.vacancyId) !== \"\") {\n    vacancyIDs.push(responseData.vacancyId);\n    console.log(\"IDs before push\", vacancyIDs)\n    pm.environment.set(\"vacancyIDs\", JSON.stringify(vacancyIDs));\n    pm.environment.set(\"vacancy_id_For_candi\", String(responseData.vacancyId));\n    pm.environment.set(\"vacancy_fixture_for_candi\", JSON.stringify(vacancyFixtureForCandi));\n}"
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nconst response = pm.response.json() || {};\nconst responseData = response.data || {};\nconst responseArray = Array.isArray(responseData) ? responseData: [responseData];\nconst expected = JSON.parse(pm.environment.get(\"vacancy_expected\") || \"{}\");\nconst expectedArray = Array.isArray(expected) ? expected: [expected];\nconst scenario = pm.iterationData.get(\"scenario\");\nlet vacancyIDs = pm.environment.get(\"candidateIDs\") || [];\nlet vacancyFixtureForCandi = {};\n\npm.test(\"Status code validation\", function () {\n    pm.response.to.have.status(201);\n})\n\npm.test(\"Vacancy created successfully with sent data\", function () {\n\n [\"vacancyName\",\"location\",\"jobTitle\"].forEach(key => {\n     pm.expect(responseArray[key]).to.eql(expectedArray[key]);\n })\n})\n\n\nif (norm(responseData.vacancyId) !== \"\") {\n    vacancyFixtureForCandi = {\n    \"vacancyId\": norm(responseData.vacancyId),\n    \"title\": norm(responseData.title),\n    \"name\": norm(responseData.vacancyName)\n    } \n}\nif (norm(responseData.vacancyId) !== \"\") {\n    vacancyIDs.push(responseData.vacancyId);\n    pm.environment.set(\"vacancyIDs\", JSON.stringify(vacancyIDs));\n    pm.environment.set(\"vacancy_id_For_candi\", String(responseData.vacancyId));\n    pm.environment.set(\"vacancy_fixture_for_candi\", JSON.stringify(vacancyFixtureForCandi));\n}"
                             ]
                           }
                         }
@@ -28540,7 +28540,7 @@
                       "response": []
                     },
                     {
-                      "name": "RECRUITMENT-058 add candidate",
+                      "name": "RECRUITMENT-073 add candidate",
                       "event": [
                         {
                           "listen": "prerequest",
@@ -28649,7 +28649,7 @@
                       "response": []
                     },
                     {
-                      "name": "RECRUITMENT-058 Get candidate list after add",
+                      "name": "RECRUITMENT-074 Get candidate list after add",
                       "event": [
                         {
                           "listen": "prerequest",
@@ -28688,26 +28688,14 @@
                       "response": []
                     },
                     {
-                      "name": "RECRUITEMENT-059 Delete candidate created by RECRUITMENT-058",
+                      "name": "RECRUITEMENT-075 Delete candidate created by RECRUITMENT-073",
                       "event": [
                         {
                           "listen": "prerequest",
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const ids = JSON.parse(pm.environment.get(\"candidate_ids\") || \"null\");",
-                              "",
-                              "if (pm.info.iteration !== pm.info.iterationCount - 1) {",
-                              "    pm.execution.skipRequest();",
-                              "    return;",
-                              "}",
-                              "",
-                              "if (!Array.isArray(ids) || ids.length === 0) {",
-                              "    throw new Error(\"Candidate IDs have not set from the previous test\");",
-                              "}",
-                              "",
-                              "pm.variables.set(\"requestBody\", JSON.stringify({ ids }));"
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst ids = JSON.parse(pm.environment.get(\"candidate_ids\") || \"null\");\n\nif (pm.info.iteration !== pm.info.iterationCount - 1) {\n    pm.execution.skipRequest();\n    return;\n}\n\nif (!Array.isArray(ids) || ids.length === 0) {\n    throw new Error(\"Candidate IDs have not set from the previous test\");\n}\n\npm.variables.set(\"requestBody\", JSON.stringify({ ids }));"
                             ]
                           }
                         },
@@ -28716,29 +28704,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const candidateIds = JSON.parse(pm.environment.get(\"candidate_ids\") || \"[]\").map(norm);",
-                              "",
-                              "pm.test(\"Validate the response status code is 204\", () => {",
-                              "    pm.response.to.have.status(204);",
-                              "});",
-                              "",
-                              "// GET must not carry a Content-Type header (the API rejects it with \"JSON Encoding error\")",
-                              "pm.sendRequest({",
-                              "    url: `${pm.environment.get(\"baseURL\")}/api/recruitment/candidates?` + candidateIds.map(id => `filter[candidateIdList][]=${id}`).join(\"&\"),",
-                              "    method: \"GET\",",
-                              "    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
-                              "}, (err, response) => {",
-                              "    pm.test(\"Validate after deleting the candidate, not listed in the list anymore\", function () {",
-                              "        pm.expect(err, \"GET candidates error\").to.be.null;",
-                              "        pm.expect(response.code, \"GET candidates status\").to.eql(200);",
-                              "        const listed = (response.json().data || []).map(c => norm(c.id));",
-                              "        const stillListed = listed.filter(id => candidateIds.includes(id));",
-                              "        pm.expect(stillListed, \"deleted candidate ids still listed\").to.be.empty;",
-                              "    });",
-                              "});",
-                              "",
-                              "[\"candidate_ids\", \"candidate_ID\", \"candidate_expected\"].forEach(key => pm.environment.unset(key));"
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst candidateIds = JSON.parse(pm.environment.get(\"candidate_ids\") || \"[]\").map(norm);\n\npm.test(\"Validate the response status code is 204\", () => {\n    pm.response.to.have.status(204);\n});\n\n// GET must not carry a Content-Type header (the API rejects it with \"JSON Encoding error\")\npm.sendRequest({\n    url: `${pm.environment.get(\"baseURL\")}/api/recruitment/candidates?` + candidateIds.map(id => `filter[candidateIdList][]=${id}`).join(\"&\"),\n    method: \"GET\",\n    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }\n}, (err, response) => {\n    pm.test(\"Validate after deleting the candidate, not listed in the list anymore\", function () {\n        pm.expect(err, \"GET candidates error\").to.be.null;\n        pm.expect(response.code, \"GET candidates status\").to.eql(200);\n        const listed = (response.json().data || []).map(c => norm(c.id));\n        const stillListed = listed.filter(id => candidateIds.includes(id));\n        pm.expect(stillListed, \"deleted candidate ids still listed\").to.be.empty;\n    });\n});\n\n[\"candidate_ids\", \"candidate_ID\", \"candidate_expected\"].forEach(key => pm.environment.unset(key));"
                             ]
                           }
                         }
@@ -28747,8 +28713,8 @@
                         "method": "DELETE",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
                         "body": {
@@ -28775,63 +28741,25 @@
                       "response": []
                     },
                     {
-                      "name": "RECRUITEMENT-060 Delete vacancy created by RECRUITMENT-057",
+                      "name": "RECRUITEMENT-076 Delete vacancy created by RECRUITMENT-074",
                       "event": [
                         {
+                          "listen": "prerequest",
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "",
-                              "if (pm.info.iteration !== pm.info.iterationCount - 1) {",
-                              "    pm.execution.skipRequest();",
-                              "    return;",
-                              "}",
-                              "",
-                              "// vacancy created by RECRUITMENT-057 (fixture) plus any ids collected in vacancyIDs",
-                              "const fixture = JSON.parse(pm.environment.get(\"vacancy_fixture_for_candi\") || \"{}\");",
-                              "const collected = JSON.parse(pm.environment.get(\"vacancyIDs\") || \"[]\");",
-                              "const ids = [...new Set([fixture.vacancyId, ...collected].map(norm).filter(id => id !== \"\"))].map(Number);",
-                              "",
-                              "if (ids.length === 0) {",
-                              "    throw new Error(\"Precondition failed: vacancy_fixture_for_candi / vacancyIDs not set by RECRUITMENT-057\");",
-                              "}",
-                              "",
-                              "pm.variables.set(\"vacancyIdsToDelete\", JSON.stringify(ids));",
-                              "pm.variables.set(\"requestBody\", JSON.stringify({ ids }));"
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\n\nif (pm.info.iteration !== pm.info.iterationCount - 1) {\n    pm.execution.skipRequest();\n    return;\n}\n\n// vacancy created by RECRUITMENT-057 (fixture) plus any ids collected in vacancyIDs\nconst fixture = JSON.parse(pm.environment.get(\"vacancy_fixture_for_candi\") || \"{}\");\nconst collected = JSON.parse(pm.environment.get(\"vacancyIDs\") || \"[]\");\nconst ids = [...new Set([fixture.vacancyId, ...collected].map(norm).filter(id => id !== \"\"))].map(Number);\n\nif (ids.length === 0) {\n    throw new Error(\"Precondition failed: vacancy_fixture_for_candi / vacancyIDs not set by RECRUITMENT-057\");\n}\n\npm.variables.set(\"vacancyIdsToDelete\", JSON.stringify(ids));\npm.variables.set(\"requestBody\", JSON.stringify({ ids }));"
                             ]
-                          },
-                          "listen": "prerequest"
+                          }
                         },
                         {
+                          "listen": "test",
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const vacancyIds = JSON.parse(pm.variables.get(\"vacancyIdsToDelete\") || \"[]\").map(norm);",
-                              "",
-                              "pm.test(\"Validate the response status code is 204\", () => {",
-                              "    pm.response.to.have.status(204);",
-                              "});",
-                              "",
-                              "// GET must not carry a Content-Type header (the API rejects it with \"JSON Encoding error\")",
-                              "vacancyIds.forEach(id => {",
-                              "    pm.sendRequest({",
-                              "        url: `${pm.environment.get(\"baseURL\")}/api/recruitment/vacancies/${id}`,",
-                              "        method: \"GET\",",
-                              "        header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
-                              "    }, (err, response) => {",
-                              "        pm.test(`Deleted vacancy ${id} can no longer be fetched`, function () {",
-                              "            pm.expect(err, \"GET vacancy error\").to.be.null;",
-                              "            pm.expect(response.code, \"GET vacancy status\").to.eql(404);",
-                              "        });",
-                              "    });",
-                              "});",
-                              "",
-                              "[\"vacancyIDs\", \"vacancy_id_For_candi\", \"vacancy_fixture_for_candi\", \"vacancy_expected\"].forEach(key => pm.environment.unset(key));"
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst vacancyIds = JSON.parse(pm.variables.get(\"vacancyIdsToDelete\") || \"[]\").map(norm);\n\npm.test(\"Validate the response status code is 204\", () => {\n    pm.response.to.have.status(204);\n});\n\n// GET must not carry a Content-Type header (the API rejects it with \"JSON Encoding error\")\nvacancyIds.forEach(id => {\n    pm.sendRequest({\n        url: `${pm.environment.get(\"baseURL\")}/api/recruitment/vacancies/${id}`,\n        method: \"GET\",\n        header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }\n    }, (err, response) => {\n        pm.test(`Deleted vacancy ${id} can no longer be fetched`, function () {\n            pm.expect(err, \"GET vacancy error\").to.be.null;\n            pm.expect(response.code, \"GET vacancy status\").to.eql(404);\n        });\n    });\n});\n\n[\"vacancyIDs\", \"vacancy_id_For_candi\", \"vacancy_fixture_for_candi\", \"vacancy_expected\"].forEach(key => pm.environment.unset(key));"
                             ]
-                          },
-                          "listen": "test"
+                          }
                         }
                       ],
                       "request": {
@@ -50602,7 +50530,300 @@
             },
             {
               "name": "Candidates",
-              "item": []
+              "item": [
+                {
+                  "name": "add-candidate-with-invalid-data",
+                  "item": [
+                    {
+                      "name": "RECRUITMENT-071 add hiring manager employee for the invalid data test",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const hmexistingforCandidate = pm.environment.get(\"vacancy_hm_emp_number_candi\");\n\nif (pm.info.iteration > 0 ){\n        pm.execution.skipRequest();\n}\n\nelse {\n    if (hmexistingforCandidate){\n        pm.sendRequest({\n            url : `${pm.environment.get(\"baseURL\")}/api/employees/${hmexistingforCandidate}/termination-record`,\n            method: \"POST\",\n            header : { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },\n            body: { mode : \"raw\", raw : JSON.stringify({\n                date : pm.iterationData.get (\"terminationDate\"),\n                flaged : String(pm.iterationData.get (\"flagValue\")),\n                note : String(pm.iterationData.get (\"terminationNote\")),\n                reason : String(pm.iterationData.get (\"terminationReason\")),\n                time : pm.iterationData.get (\"time\"),\n                timezone : pm.iterationData.get (\"timezone\"),\n            })}\n        }, (err,res) => {\n\n            pm.test(\"Termination API - no request error\", function () {\n                pm.expect(err).to.equal(null);\n            });\n\n            if (err) {\n                console.error(\"Termination request error:\", err);\n                return;\n            }\n\n            pm.test (\"Validate the success response upon termination\", function () {\n                pm.expect(res.code).to.be.oneOf([200,201,204]);\n            })\n        })\n    }\n\n    // clear the hand-offs of an earlier run, so RECRUITMENT-057 creates a new vacancy for the new hiring manager\n    [\"vacancy_hm_emp_number_invalid_candi\", \"vacancy_id_For_candi\", \"vacancy_fixture_for_candi\", \"candidate_ids\"].forEach(key => pm.environment.unset(key))\n\n    pm.variables.set(\"employeePath\", \"\");\n    pm.variables.set(\"employeeId\", `VACHM-${Date.now().toString().slice(-6)}`);\n}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const responseData = (pm.response.json() || {}).data || {};\n\nif (pm.request.method == \"GET\"){\n    pm.test(\"Hisirng manager is still active\", function () {\n        pm.response.to.have.status(200);\n        pm.expect(String(responseData.empNumber), \"Employee number should be present\").to.eql(String(pm.environment.get(\"vacancy_hm_emp_number_candi\")));\n        pm.expect(responseData.termination_id, \"termination_id\").to.be.null;\n    })\n}\nelse {\n    pm.test(\"Employee created successfully\", function () {\n        pm.response.to.have.status(201);\n    })\n    pm.test (\"Employee number exist\", function () {\n        pm.expect(String(responseData.empNumber || \"\"), \"Employee number\").to.match(/^[0-9]+$/);\n    })\n\n    if (responseData.empNumber){\n        pm.environment.set(\"vacancy_hm_emp_number_invalid_candi\", String(responseData.empNumber));\n    }\n}\n\n"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "RECRUITMENT-072 add a vacancy for invalid candidate data test",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst hiringManagerID = pm.environment.get(\"vacancy_hm_emp_number_invalid_candi\") || \"\";\nconst hmID = Array.isArray(hiringManagerID) ? hiringManagerID : [hiringManagerID];\n\nif (pm.info.iteration > 0){\n    pm.execution.skipRequest();\n}\n\nif (!hiringManagerID) {\n    throw new Error(\"Precondition failed!!. Hiring manager ID has not been set\")\n}\n\n//validate csv file values are nor empty\n[\"vac_name\",\"vac_location\",\"vac_jobTitle\"].forEach(key => {\n      if (cell(key).trim() ==\"\"){\n        throw new Error(`Precondition failed!!. ${key} is empty in the CSV`)\n    }\n})\n\nconst name = `VAC-${Date.now().toString().slice(-6)} ${cell(\"vac_name\")}`;\nconst body = {\n    vacancyName: name,\n    location: Number(cell(\"vac_location\")),\n    jobTitle: Number(cell(\"vac_jobTitle\")),\n    hiringManager: [Number(hiringManagerID)],\n    resumeRequired: cell(\"vac_resumeRequired\"),\n    requestConsent: cell(\"vac_requestConsent\")\n};\n\n// side effect: checked by RECRUITMENT-003 to RECRUITMENT-005\npm.environment.set(\"vacancy_expected\", JSON.stringify({\n    vacancyName: name,\n    locationId: cell(\"vac_location\"),\n    jobTitleCode: cell(\"vac_jobTitle\"),\n    hiringManager: hmID,\n    isResumeRequired: cell(\"vac_resumeRequired\"),\n    requestConsent: cell(\"vac_requestConsent\"),\n    status: cell(\"vac_expectedStatus\")\n}));\npm.variables.set(\"requestBody\", JSON.stringify(body));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nconst response = pm.response.json() || {};\nconst responseData = response.data || {};\nconst responseArray = Array.isArray(responseData) ? responseData: [responseData];\nconst expected = JSON.parse(pm.environment.get(\"vacancy_expected\") || \"{}\");\nconst expectedArray = Array.isArray(expected) ? expected: [expected];\nconst scenario = pm.iterationData.get(\"scenario\");\nlet vacancyIDs = pm.environment.get(\"candidateIDs\") || [];\nlet vacancyFixtureForCandi = {};\n\npm.test(\"Status code validation\", function () {\n    pm.response.to.have.status(201);\n})\n\npm.test(\"Vacancy created successfully with sent data\", function () {\n\n [\"vacancyName\",\"location\",\"jobTitle\"].forEach(key => {\n     pm.expect(responseArray[key]).to.eql(expectedArray[key]);\n })\n})\n\n\nif (norm(responseData.vacancyId) !== \"\") {\n    vacancyFixtureForCandi = {\n    \"vacancyId\": norm(responseData.vacancyId),\n    \"title\": norm(responseData.title),\n    \"name\": norm(responseData.vacancyName)\n    } \n}\nif (norm(responseData.vacancyId) !== \"\") {\n    vacancyIDs.push(responseData.vacancyId);\n    console.log(\"IDs before push\", vacancyIDs)\n    pm.environment.set(\"vacancyIDs\", JSON.stringify(vacancyIDs));\n    pm.environment.set(\"vacancy_id_For_candi\", String(responseData.vacancyId));\n    pm.environment.set(\"vacancy_fixture_for_candi\", JSON.stringify(vacancyFixtureForCandi));\n}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/vacancies",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "vacancies"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "RECRUITMENT-077 add candidate with iinvalid data",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nlet vacID;\nconst template = JSON.parse(cell(\"cand_body\"));\nconst vacancyFixture = pm.environment.get(\"vacancy_fixture_for_candi\");\nif (!vacancyFixture){\n    throw new Error(\"Precondition failed: vacancy_fixture_for_candi is not set by RECRUITMENT-057\");\n}\nconst vacancyID = JSON.parse(vacancyFixture).vacancyId;\n\n// Remove empty properties\nObject.keys(template).forEach(key => {\n    if (\n        template[key] === \"\" ||\n        template[key] === null ||\n        template[key] === undefined\n    ) {\n        delete template[key];\n    }\n});\n\n// Convert back to JSON\nconst finalBody = JSON.stringify(template);\n\n\nif (finalBody.includes(\"{vacancy}\")) {\n    vacID = vacancyID;\n    pm.variables.set(\"requestBody\", JSON.stringify(finalBody.split(\"{vacancy}\").join(vacID)));\n\n}\nelse {\n    pm.variables.set(\"requestBody\", JSON.stringify(finalBody));\n}\n\n// baseline of existing ids, so the test can find any vacancy this request creates\npm.sendRequest({ url: `${pm.environment.get(\"baseURL\")}/api/recruitment/candidates`, method: \"GET\", header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` } }, (err, res) => {\n    const ids = err ? [] : (((res.json() || {}).data) || []).map(r => String(r.vacancyId));\n    // side effect: read by the test script of this request\n    pm.variables.set(\"candidates_baseline_ids\", JSON.stringify(ids));\n});\n"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nlet response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // not JSON: the checks below report it\n}\nconst responseData = response.data || {};\nconst scenario = cell(\"scenario\");\n\npm.test (`Validate the response code for (${scenario})`, function () {\n    pm.response.to.have.status(cell(\"expectedStatus\"));\n})\n\npm.test (`Validate the response title for (${scenario})`, function () {\n    pm.expect(responseData.title).to.eql(cell(\"expectedTitle\"));\n})\n\npm.test (`Validate the response details for (${scenario})`, function () {\n    pm.expect(responseData.title).to.includes(cell(\"expectedDetails\"));\n})\n\n//use for validate in 058\nif (norm(responseData.id)) {\n    pm.environment.set(\"candidate_ID\",responseData.id);\n}\n\n\n// side effect: candidate ids of this run, for cleanup\nif (norm(responseData.id)) {\n    const ids = JSON.parse(pm.environment.get(\"candidate_ids\") || \"[]\");\n    ids.push(String(responseData.id));\n    pm.environment.set(\"candidate_ids\", JSON.stringify(ids));\n}"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/candidates",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "candidates"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "RECRUITEMENT-059 Delete candidate created by RECRUITMENT-058",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst ids = JSON.parse(pm.environment.get(\"candidate_ids\") || \"null\");\n\nif (pm.info.iteration !== pm.info.iterationCount - 1) {\n    pm.execution.skipRequest();\n    return;\n}\n\nif (!Array.isArray(ids) || ids.length === 0) {\n    if (debug){\n        console.log(\"Candidate IDs have not set from the previous test. So skipping\")\n    }\n    pm.execution.skipRequest();\n}\n\npm.variables.set(\"requestBody\", JSON.stringify({ ids }));"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst candidateIds = JSON.parse(pm.environment.get(\"candidate_ids\") || \"[]\").map(norm);\n\npm.test(\"Validate the response status code is 204\", () => {\n    pm.response.to.have.status(204);\n});\n\n// GET must not carry a Content-Type header (the API rejects it with \"JSON Encoding error\")\npm.sendRequest({\n    url: `${pm.environment.get(\"baseURL\")}/api/recruitment/candidates?` + candidateIds.map(id => `filter[candidateIdList][]=${id}`).join(\"&\"),\n    method: \"GET\",\n    header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }\n}, (err, response) => {\n    pm.test(\"Validate after deleting the candidate, not listed in the list anymore\", function () {\n        pm.expect(err, \"GET candidates error\").to.be.null;\n        pm.expect(response.code, \"GET candidates status\").to.eql(200);\n        const listed = (response.json().data || []).map(c => norm(c.id));\n        const stillListed = listed.filter(id => candidateIds.includes(id));\n        pm.expect(stillListed, \"deleted candidate ids still listed\").to.be.empty;\n    });\n});\n\n[\"candidate_ids\", \"candidate_ID\", \"candidate_expected\"].forEach(key => pm.environment.unset(key));"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/candidates",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "candidates"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "RECRUITEMENT-060 Delete vacancy created by RECRUITMENT-057",
+                      "event": [
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "",
+                              "if (pm.info.iteration !== pm.info.iterationCount - 1) {",
+                              "    pm.execution.skipRequest();",
+                              "    return;",
+                              "}",
+                              "",
+                              "// vacancy created by RECRUITMENT-057 (fixture) plus any ids collected in vacancyIDs",
+                              "const fixture = JSON.parse(pm.environment.get(\"vacancy_fixture_for_candi\") || \"{}\");",
+                              "const collected = JSON.parse(pm.environment.get(\"vacancyIDs\") || \"[]\");",
+                              "const ids = [...new Set([fixture.vacancyId, ...collected].map(norm).filter(id => id !== \"\"))].map(Number);",
+                              "",
+                              "if (ids.length === 0) {",
+                              "    throw new Error(\"Precondition failed: vacancy_fixture_for_candi / vacancyIDs not set by RECRUITMENT-057\");",
+                              "}",
+                              "",
+                              "pm.variables.set(\"vacancyIdsToDelete\", JSON.stringify(ids));",
+                              "pm.variables.set(\"requestBody\", JSON.stringify({ ids }));"
+                            ]
+                          },
+                          "listen": "prerequest"
+                        },
+                        {
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const vacancyIds = JSON.parse(pm.variables.get(\"vacancyIdsToDelete\") || \"[]\").map(norm);",
+                              "",
+                              "pm.test(\"Validate the response status code is 204\", () => {",
+                              "    pm.response.to.have.status(204);",
+                              "});",
+                              "",
+                              "// GET must not carry a Content-Type header (the API rejects it with \"JSON Encoding error\")",
+                              "vacancyIds.forEach(id => {",
+                              "    pm.sendRequest({",
+                              "        url: `${pm.environment.get(\"baseURL\")}/api/recruitment/vacancies/${id}`,",
+                              "        method: \"GET\",",
+                              "        header: { \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` }",
+                              "    }, (err, response) => {",
+                              "        pm.test(`Deleted vacancy ${id} can no longer be fetched`, function () {",
+                              "            pm.expect(err, \"GET vacancy error\").to.be.null;",
+                              "            pm.expect(response.code, \"GET vacancy status\").to.eql(404);",
+                              "        });",
+                              "    });",
+                              "});",
+                              "",
+                              "[\"vacancyIDs\", \"vacancy_id_For_candi\", \"vacancy_fixture_for_candi\", \"vacancy_expected\"].forEach(key => pm.environment.unset(key));"
+                            ]
+                          },
+                          "listen": "test"
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/recruitment/vacancies",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "recruitment",
+                            "vacancies"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -53036,7 +53257,7 @@
             },
             {
               "key": "vacancy",
-              "value": "310",
+              "value": "356",
               "type": "text"
             },
             {
@@ -53049,7 +53270,8 @@
               "type": "file",
               "src": [
                 "/home/administrator/Downloads/Biometri Device Integration - Sync Status Report (2).pdf"
-              ]
+              ],
+              "disabled": true
             },
             {
               "key": "email",
