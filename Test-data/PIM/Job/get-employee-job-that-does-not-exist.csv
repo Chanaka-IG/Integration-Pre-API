@@ -1,0 +1,4 @@
+"scenario","job_empNumber","job_query","job_expectedStatus","job_expectedText","firstName","middleName","lastName","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","otherLastName","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"unknown employee number","999999999",,404,"Job Record not found for Employee 999999999","Job",,"Not Found",110,"2024-01-15","false","false","Other Employee","2026-01-31",1,"PIM API test teardown",1,"00:00","Asia/Kolkata"
+"unknown historyId","{EMP}","historyId=999999999",404,"Job History not found for historyId 999999999",,,,,,,,,,,,,,
+"historyId of another employee's job record","{EMP}","historyId={OTHER_RECORD_ID}",404,"Job History not found for historyId {OTHER_RECORD_ID}",,,,,,,,,,,,,,

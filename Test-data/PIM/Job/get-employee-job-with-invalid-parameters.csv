@@ -1,0 +1,14 @@
+"scenario","job_empNumber","job_query","job_expectedStatus","job_expectedTitle","job_expectedDetails","firstName","middleName","lastName","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"historyId is zero","{EMP}","historyId=0",400,"Invalid data","historyId must not be empty||historyId must be positive","Job",,"Invalid Query",110,"2024-01-15","false","false","2026-01-31",1,"PIM API test teardown",1,"00:00","Asia/Kolkata"
+"historyId is not an integer","{EMP}","historyId=abc",400,"Invalid data","historyId must be an integer number",,,,,,,,,,,,,
+"historyId is empty","{EMP}","historyId=",400,"Invalid data","historyId must not be empty",,,,,,,,,,,,,
+"asOf has an invalid month","{EMP}","asOf=2025-13-01",400,"Invalid data","asOf must be a valid date in the format ""2005-12-30""",,,,,,,,,,,,,
+"asOf in DD-MM-YYYY format","{EMP}","asOf=01-03-2025",400,"Invalid data","asOf must be a valid date in the format ""2005-12-30""",,,,,,,,,,,,,
+"asOf is empty","{EMP}","asOf=",400,"Invalid data","asOf must be a valid date in the format ""2005-12-30""",,,,,,,,,,,,,
+"historyId and asOf together","{EMP}","historyId=1&asOf=2024-06-01",400,"Invalid data","Must not have keys `{ ""asOf"" }`",,,,,,,,,,,,,
+"include with an unknown relation","{EMP}","include=Bogus",400,"Invalid data","include must be valid",,,,,,,,,,,,,
+"include with whitespace","{EMP}","include=WorkSchedule, Bogus",400,"Invalid data","include must not contain whitespace",,,,,,,,,,,,,
+"include in lower case","{EMP}","include=workschedule",400,"Invalid data","include must be valid",,,,,,,,,,,,,
+"include is empty","{EMP}","include=",400,"Invalid data","include must be valid",,,,,,,,,,,,,
+"unknown query key","{EMP}","foo=bar",400,"Invalid data","Must not have keys `{ ""foo"" }`",,,,,,,,,,,,,
+"employee number is zero","0",,400,"Invalid data","emp_number must be positive",,,,,,,,,,,,,

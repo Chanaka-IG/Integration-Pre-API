@@ -1,0 +1,7 @@
+"scenario","os_rootId","os_parentName","os_childName","os_method","os_methodOverride","os_body","expectedStatus","expectedBody"
+"create with POST","1","Method Parent","Method Child","POST","","{""name"":""ORGSTR-API-TEST"",""parent_id"":""{P}""}",400,"unsupported resource request"
+"move with POST and a PATCH method override","1","Method Parent","Method Child","POST","PATCH","{""subunitId"":""{C}"",""parent"":""{ROOT}"",""position"":0}",400,"unsupported resource request"
+"move with PUT","1","Method Parent","Method Child","PUT","","{""subunitId"":""{C}"",""parent"":""{ROOT}"",""position"":0}",400,"unsupported resource request"
+"delete with DELETE","1","Method Parent","Method Child","DELETE","","{""data"":[""{C}""]}",400,"unsupported resource request"
+"OPTIONS request","1","Method Parent","Method Child","OPTIONS","","",400,"unsupported resource request"
+"HEAD request","1","Method Parent","Method Child","HEAD","","",400,""

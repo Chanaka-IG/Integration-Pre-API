@@ -1,0 +1,6 @@
+"scenario","os_path","os_accept","expectedStatus","expectedBodyType","expectedMessage"
+"trailing slash","api/organizationStructure/","",404,"json","API Endpoint Not Found"
+"single-record path","api/organizationStructure/1","",404,"json","API Endpoint Not Found"
+"lower-case path","api/organizationstructure","",404,"json","API Endpoint Not Found"
+"api version 2","api/organizationStructure","application/json;version=2",404,"text","Resource Not Found"
+"api version 99","api/organizationStructure","application/json;version=99",404,"text","Resource Not Found"
