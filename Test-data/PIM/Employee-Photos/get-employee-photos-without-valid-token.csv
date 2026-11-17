@@ -1,0 +1,3 @@
+"scenario","photo_query","authorizationHeader","expectedStatus","expectedError","expectedErrorDescription"
+"no Authorization header","filter[id][]=999999999",,401,,
+"invalid bearer token","filter[id][]=999999999","Bearer invalid-token-for-api-test",401,"invalid_token","The access token provided is invalid"
