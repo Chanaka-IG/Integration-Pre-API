@@ -1,0 +1,4 @@
+"scenario","jobtok_empNumber","jobtok_body","authorizationHeader","expectedStatus","expectedError","expectedErrorDescription"
+"no Authorization header","999999999","{""comment"":""token test""}",,401,,
+"invalid bearer token","999999999","{""comment"":""token test""}","Bearer invalid-token-for-api-test",401,"invalid_token","The access token provided is invalid"
+"bearer scheme without a token","999999999","{""comment"":""token test""}","Bearer",401,"invalid_request","Malformed auth header"

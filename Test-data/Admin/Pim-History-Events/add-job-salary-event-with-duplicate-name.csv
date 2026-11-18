@@ -1,0 +1,2 @@
+"scenario","phep_name","phep_types","phep_activeDuplicateMode","phep_deletedDuplicateMode","expectedStatus","expectedTitle","expectedDetails"
+"own event name","Duplicate Event","1","punctuationAndSpaces","exact",400,"Invalid data","name must be unique"
