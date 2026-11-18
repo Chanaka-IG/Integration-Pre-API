@@ -1,0 +1,3 @@
+"scenario","phe_pathSuffix","expectedStatus","phe_expectedMessage"
+"unknown sub-path","/x",404,"API Endpoint Not Found"
+"trailing slash","/",404,"API Endpoint Not Found"

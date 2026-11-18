@@ -1,0 +1,4 @@
+"scenario","phep_name","phep_types","phep_expectedTypeNames","phep_absentTypes","phep_successMessage"
+"job event","Job Event","1","Job","2","Successfully Saved"
+"salary event","Salary Event","2","Salary","1","Successfully Saved"
+"job and salary event","Job and Salary Event","1|2","Job|Salary","","Successfully Saved"

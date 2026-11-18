@@ -1,0 +1,5 @@
+"scenario","phep_existingName","phep_name","phep_types","expectedStatus","expectedTitle","expectedDetails","phep_knownDefect"
+"name of a seeded event","Joined","Joined","1",400,"Invalid data","name must be unique",""
+"name of a seeded event in another case","Joined","jOINED","2",400,"Invalid data","name must be unique",""
+"name of a hidden event","Employment Terminated","Employment Terminated","1",400,"Invalid data","name must be unique",""
+"name of a hidden event with other punctuation and spaces","Employment Terminated","Employment-Terminated!","1",400,"Invalid data","name must be unique",""
