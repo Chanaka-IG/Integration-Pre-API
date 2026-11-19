@@ -1,0 +1,3 @@
+"scenario","authorizationHeader","cp_candidatePath","cp_body","cp_expectedStatus","expectedError","expectedErrorDescription"
+"no Authorization header","","1","{""firstName"":""Token"",""lastName"":""Check"",""email"":""token.check@example.com""}",401,"",""
+"invalid bearer token","Bearer invalid-token-0000","1","{""firstName"":""Token"",""lastName"":""Check"",""email"":""token.check@example.com""}",401,"invalid_token","The access token provided is invalid"

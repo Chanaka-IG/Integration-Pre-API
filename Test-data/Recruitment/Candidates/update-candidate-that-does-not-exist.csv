@@ -1,0 +1,3 @@
+"scenario","cp_scope","cp_initial","cp_candidatePath","cp_body","cp_query","cp_resumeText","cp_expectedStatus","cp_knownDefect"
+"candidate that was deleted","S38","{""firstName"":""Gone{uniq}"",""lastName"":""CNF{uniq}"",""email"":""gone.{uniq}@example.com""}","{deletedId}","{""firstName"":""Gone{uniq}"",""lastName"":""CNF{uniq}"",""email"":""gone.{uniq}@example.com""}","","",404,"D3"
+"candidate id that was never used","S37","","999999999","{""firstName"":""Gone{uniq}"",""lastName"":""CNF{uniq}"",""email"":""gone.{uniq}@example.com""}","","",404,"D3"

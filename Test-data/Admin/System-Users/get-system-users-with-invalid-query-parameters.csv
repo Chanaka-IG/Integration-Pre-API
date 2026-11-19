@@ -1,0 +1,24 @@
+"scenario","neg_query","expectedStatus","neg_expectedMessage","neg_expectedError","neg_expectedTotal"
+"predefined user _ohrmSysAdmin_ is not listed","filter[uname]=_ohrmSysAdmin_&filter[status]=all",200,"","",0
+"predefined user ohrm_api_user is not listed","filter[uname]=ohrm_api_user&filter[status]=all",200,"","",0
+"predefined user ohrm_upgrader_user is not listed","filter[uname]=ohrm_upgrader_user&filter[status]=all",200,"","",0
+"predefined user System is not listed","filter[uname]=System&filter[status]=all",200,"","",0
+"employee id that does not exist","filter[employeeId]=99999999&filter[status]=all&page[limit]=50",200,"","",0
+"employee id that is not a number","filter[employeeId]=xxxyyyzzz&filter[status]=all&page[limit]=50",200,"","",0
+"ESS role that is not a number","filter[essrole]=text&page[limit]=50",422,"Unprocessable Entity","essRole [""text"" is not a number.]",""
+"supervisor role that is not a number","filter[supervisorrole]=text&page[limit]=50",422,"Unprocessable Entity","supervisorRole [""text"" is not a number.]",""
+"admin role that is not a number","filter[adminrole]=text&page[limit]=50",422,"Unprocessable Entity","adminRole [""text"" is not a number.]",""
+"location that is not a number","filter[location]=text&page[limit]=50",422,"Unprocessable Entity","location [Invalid.]",""
+"location list with a trailing comma","filter[location]=1,&page[limit]=50",422,"Unprocessable Entity","location [Invalid.]",""
+"negative location","filter[location]=-1&page[limit]=50",422,"Unprocessable Entity","location [Invalid.]",""
+"status that is not 0 or 1","filter[status]=2&page[limit]=50",422,"Unprocessable Entity","status [invalid, 2]",""
+"status that is text","filter[status]=text&page[limit]=50",422,"Unprocessable Entity","status [invalid, text]",""
+"includeDeleted that is not a boolean","filter[includeDeleted]=test&page[limit]=50",422,"Unprocessable Entity","includeDeleted [Invalid.]",""
+"order field that is not supported","orderField=test&page[limit]=50",422,"Unprocessable Entity","sortField [invalid, test]",""
+"order field NULL","orderField=NULL&page[limit]=50",422,"Unprocessable Entity","sortField [invalid, NULL]",""
+"order direction that is not supported","orderField=user_name&orderBy=test&page[limit]=50",422,"Unprocessable Entity","sortOrder [invalid, test]",""
+"order direction NULL","orderField=user_name&orderBy=NULL&page[limit]=50",422,"Unprocessable Entity","sortOrder [invalid, NULL]",""
+"page limit that is not a number","page[limit]=test",422,"Unprocessable Entity","limit [""test"" is not a number.]",""
+"page offset that is not a number","page[limit]=50&page[offset]=test",422,"Unprocessable Entity","offset [""test"" is not a number.]",""
+"include list with a trailing comma","include=Employee,&page[limit]=50",422,"Unprocessable Entity","include [Invalid.]",""
+"include name with a space","include=Emp loyee&page[limit]=50",422,"Unprocessable Entity","include [Invalid.]",""
