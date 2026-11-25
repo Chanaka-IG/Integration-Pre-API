@@ -31846,6 +31846,54 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Customizable-PIM-Tabs",
+              "item": [
+                {
+                  "name": "get-customizable-pim-tabs",
+                  "item": [
+                    {
+                      "name": "ADMIN-562 get customizable PIM tabs and check every tab against the list rules",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\n// every expected value comes from the CSV row: fail loudly on a blank cell\n[\"expectedStatus\", \"cpt_menuCategory\", \"cpt_activeStatus\", \"cpt_customTabUisref\", \"cpt_urlExtrasPrefix\",\n    \"cpt_flagValues\", \"cpt_deletableValues\", \"cpt_expectedDefaultTabs\"].forEach(key => {\n    if (cell(key).trim() === \"\") {\n        throw new Error(`Test data error: ${key} is blank in the CSV row`);\n    }\n});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\nconst list = key => cell(key).split(\";\").map(v => v.trim()).filter(v => v !== \"\");\n\nlet response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // not JSON: the status and schema checks report it\n}\n// QA data is shared and the API user can't create tabs (POST needs System Admin), so every check below is a\n// rule that each returned row must follow - no counts, names or ids of existing tabs are asserted\nconst customTabs = Array.isArray(response.data) ? response.data : [];\nconst defaultTabs = Array.isArray(response.meta) ? response.meta : [];\nconst scenario = cell(\"scenario\");\n\npm.test(`PIM tabs are returned (${scenario})`, function () {\n    pm.response.to.have.status(Number(cell(\"expectedStatus\")));\n});\n\npm.test(\"Response matches the customizable PIM tab list schema\", function () {\n    const raw = pm.collectionVariables.get(\"customizablePimTabListSchema\");\n    pm.expect(raw, \"customizablePimTabListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;\n    pm.response.to.have.jsonSchema(JSON.parse(raw));\n});\n\npm.test(\"Every tab in data is an active custom PIM tab\", function () {\n    pm.expect(response.data, \"data\").to.be.an(\"array\");\n    const flags = list(\"cpt_flagValues\");\n    const deletable = list(\"cpt_deletableValues\");\n    customTabs.forEach(tab => {\n        const id = norm(tab.id);\n        pm.expect(norm(tab.menu_category), `data[id ${id}].menu_category`).to.eql(cell(\"cpt_menuCategory\"));\n        pm.expect(norm(tab.status), `data[id ${id}].status`).to.eql(cell(\"cpt_activeStatus\"));\n        pm.expect(norm(tab.urlExtras), `data[id ${id}].urlExtras`).to.eql(`${cell(\"cpt_urlExtrasPrefix\")}${id}`);\n        pm.expect(norm(tab.uisref), `data[id ${id}].uisref`).to.eql(cell(\"cpt_customTabUisref\"));\n        pm.expect(flags, `data[id ${id}].has_multiple_records`).to.include(norm(tab.has_multiple_records));\n        pm.expect(flags, `data[id ${id}].include_attachment_section`).to.include(norm(tab.include_attachment_section));\n        pm.expect(deletable, `data[id ${id}].deletable`).to.include(norm(tab.deletable));\n    });\n});\n\npm.test(\"Every tab in meta is an active built-in PIM tab\", function () {\n    pm.expect(response.meta, \"meta\").to.be.an(\"array\");\n    defaultTabs.forEach(tab => {\n        const id = norm(tab.id);\n        pm.expect(norm(tab.menu_category), `meta[id ${id}].menu_category`).to.eql(cell(\"cpt_menuCategory\"));\n        pm.expect(norm(tab.status), `meta[id ${id}].status`).to.eql(cell(\"cpt_activeStatus\"));\n        pm.expect(tab.urlExtras, `meta[id ${id}].urlExtras`).to.be.null;\n        pm.expect(tab, `meta[id ${id}]`).to.not.have.property(\"deletable\");\n    });\n});\n\npm.test(\"meta lists each built-in PIM tab from the test data once\", function () {\n    list(\"cpt_expectedDefaultTabs\").forEach(uisref => {\n        const matches = defaultTabs.filter(tab => norm(tab.uisref) === uisref);\n        pm.expect(matches.length, `meta tabs with uisref ${uisref}`).to.eql(1);\n    });\n});\n\npm.test(\"Both tab lists are ordered by orderHint\", function () {\n    [[\"data\", customTabs], [\"meta\", defaultTabs]].forEach(([name, tabs]) => {\n        tabs.forEach((tab, i) => {\n            if (i > 0) {\n                pm.expect(Number(tab.orderHint), `${name}[${i}].orderHint (id ${norm(tab.id)}) after ${tabs[i - 1].orderHint}`)\n                    .to.be.at.least(Number(tabs[i - 1].orderHint));\n            }\n        });\n    });\n});\n\npm.test(\"Tab ids are unique and no tab is both custom and built-in\", function () {\n    const customIds = customTabs.map(tab => norm(tab.id));\n    const defaultIds = defaultTabs.map(tab => norm(tab.id));\n    pm.expect(new Set(customIds).size, \"unique ids in data\").to.eql(customIds.length);\n    pm.expect(new Set(defaultIds).size, \"unique ids in meta\").to.eql(defaultIds.length);\n    pm.expect(customIds.filter(id => defaultIds.includes(id)), \"ids in both data and meta\").to.eql([]);\n});\n\npm.test(\"Active custom tab names are unique\", function () {\n    const names = customTabs.map(tab => norm(tab.menuTitle));\n    const duplicates = names.filter((name, i) => names.indexOf(name) !== i);\n    pm.expect(duplicates, \"duplicate menuTitle values in data\").to.eql([]);\n});\n\nif (pm.variables.get(\"debug\")) {\n    console.log(`customizable PIM tabs: ${customTabs.length} custom, ${defaultTabs.length} built-in`);\n}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/customizablePimTabs",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "customizablePimTabs"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -56656,6 +56704,103 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Customizable-PIM-Tabs",
+              "item": [
+                {
+                  "name": "get-customizable-pim-tabs-without-valid-token",
+                  "item": [
+                    {
+                      "name": "ADMIN-563 get customizable PIM tabs without token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// no token on purpose: request auth is No Auth"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "let response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // not JSON: the status and schema checks report it\n}\n\npm.test(\"Request without a token is rejected\", function () {\n    pm.response.to.have.status(401);\n});\n\n// the API returns [] here (D3); assert only that no tab data comes back\npm.test(\"No PIM tabs are returned without a token\", function () {\n    pm.expect(response.data, \"data\").to.be.undefined;\n    pm.expect(response.meta, \"meta\").to.be.undefined;\n});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/customizablePimTabs",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "customizablePimTabs"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-564 get customizable PIM tabs with invalid authorization header",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "if (String(pm.iterationData.get(\"authorizationHeader\") ?? \"\").trim() === \"\") {\n    throw new Error(\"Test data error: authorizationHeader is blank in the CSV row\");\n}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nlet response = {};\ntry {\n    response = pm.response.json() || {};\n} catch (e) {\n    // not JSON: the status and schema checks report it\n}\nconst scenario = cell(\"scenario\");\n\npm.test(`Request with an invalid authorization header is rejected (${scenario})`, function () {\n    pm.response.to.have.status(Number(cell(\"expectedStatus\")));\n});\n\npm.test(`Error explains the authorization problem (${scenario})`, function () {\n    pm.expect(norm(response.error), \"error\").to.eql(cell(\"neg_expectedError\"));\n    pm.expect(norm(response.error_description), \"error_description\").to.eql(cell(\"neg_expectedErrorDescription\"));\n    pm.expect(response.data, \"data\").to.be.undefined;\n});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "{{authorizationHeader}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseURL}}/api/customizablePimTabs",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "customizablePimTabs"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -68118,6 +68263,10 @@
     {
       "key": "systemUserAvailabilitySchema",
       "value": "{\"type\":\"object\",\"required\":[\"data\"],\"properties\":{\"data\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}"
+    },
+    {
+      "key": "customizablePimTabListSchema",
+      "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"title\":\"Customizable PIM tab list (GET response)\",\"type\":\"object\",\"required\":[\"data\",\"meta\"],\"properties\":{\"data\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"id\",\"menuTitle\",\"menu_category\",\"screenId\",\"parentId\",\"level\",\"orderHint\",\"urlExtras\",\"status\",\"image_name\",\"uisref\",\"has_multiple_records\",\"include_attachment_section\",\"new_until\",\"deletable\"],\"properties\":{\"id\":{\"type\":\"string\",\"pattern\":\"^[1-9][0-9]*$\"},\"menuTitle\":{\"type\":\"string\",\"minLength\":1},\"menu_category\":{\"type\":\"string\"},\"screenId\":{\"type\":[\"string\",\"null\"]},\"parentId\":{\"type\":[\"string\",\"null\"]},\"level\":{\"type\":\"string\"},\"orderHint\":{\"type\":\"string\",\"pattern\":\"^[0-9]+$\"},\"status\":{\"type\":\"string\"},\"image_name\":{\"type\":[\"string\",\"null\"]},\"uisref\":{\"type\":[\"string\",\"null\"]},\"has_multiple_records\":{\"type\":[\"string\",\"null\"]},\"include_attachment_section\":{\"type\":[\"string\",\"null\"]},\"new_until\":{\"type\":[\"string\",\"null\"]},\"urlExtras\":{\"type\":\"string\",\"pattern\":\"^tabId=[0-9]+$\"},\"deletable\":{\"type\":\"integer\",\"enum\":[0,1]}}}},\"meta\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"id\",\"menuTitle\",\"menu_category\",\"screenId\",\"parentId\",\"level\",\"orderHint\",\"urlExtras\",\"status\",\"image_name\",\"uisref\",\"has_multiple_records\",\"include_attachment_section\",\"new_until\"],\"properties\":{\"id\":{\"type\":\"string\",\"pattern\":\"^[1-9][0-9]*$\"},\"menuTitle\":{\"type\":\"string\",\"minLength\":1},\"menu_category\":{\"type\":\"string\"},\"screenId\":{\"type\":[\"string\",\"null\"]},\"parentId\":{\"type\":[\"string\",\"null\"]},\"level\":{\"type\":\"string\"},\"orderHint\":{\"type\":\"string\",\"pattern\":\"^[0-9]+$\"},\"status\":{\"type\":\"string\"},\"image_name\":{\"type\":[\"string\",\"null\"]},\"uisref\":{\"type\":[\"string\",\"null\"]},\"has_multiple_records\":{\"type\":[\"string\",\"null\"]},\"include_attachment_section\":{\"type\":[\"string\",\"null\"]},\"new_until\":{\"type\":[\"string\",\"null\"]},\"urlExtras\":{\"type\":\"null\"}}}}}}"
     }
   ]
 }
