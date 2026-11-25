@@ -1,0 +1,4 @@
+"scenario","jh_empNumber","jh_query","jh_expectedStatus","jh_expectedTitle","jh_expectedDetails","firstName","middleName","lastName","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"unknown query key","{EMP}","foo=bar",400,"Invalid data","Must not have keys `{ ""foo"" }`","Job",,"History Invalid",110,"2024-01-15","false","false","2026-01-31",1,"PIM API test teardown",1,"00:00","Asia/Kolkata"
+"pagination keys are not supported","{EMP}","limit=1&offset=0",400,"Invalid data","Must not have keys `{ ""limit"", ""offset"" }`",,,,,,,,,,,,,
+"employee number is zero","0",,400,"Invalid data","emp_number must not be empty||emp_number must be positive",,,,,,,,,,,,,
