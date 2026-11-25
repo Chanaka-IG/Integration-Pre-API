@@ -1,0 +1,5 @@
+"scenario","jh_empNumber","authorizationHeader","expectedStatus","expectedError","expectedErrorDescription"
+"no Authorization header","999999999",,401,,
+"invalid bearer token","999999999","Bearer invalid-token-for-api-test",401,"invalid_token","The access token provided is invalid"
+"bearer without a token","999999999","Bearer",401,"invalid_request","Malformed auth header"
+"basic authentication","999999999","Basic YWRtaW46YWRtaW4=",401,"invalid_request","Malformed auth header"

@@ -1,0 +1,14 @@
+"scenario","jobhn_method","jobhn_empNumber","jobhn_pathSuffix","jobhn_body","jobhn_expectedStatus","jobhn_expectedTitle","jobhn_expectedDetails","jobhn_expectedText","jobhn_expectedPresent","jobhn_expectedAbsent","jobhn_knownDefect","firstName","middleName","lastName","locationId","joinedDate","chkLogin","autoGenerateEmployeeId","otherLastName","jobhn_fixture","jobhn_expectedTerminationEvent","serverUtcOffsetMinutes","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"history id that does not exist","DELETE","{EMP}",,"{""data"":[""999999999""]}",204,,,,"[""PROMO"",""OTHER""]",,,"Job",,"Delete Not Found",110,"2024-01-15","false","false","Other Employee","{""effective_date"":""2025-03-01"",""event_id"":""2"",""job_title_id"":""1198""}","Employment Terminated",330,"{TODAY}",1,"PIM API test teardown",1,"00:00","Asia/Kolkata"
+"history id zero","DELETE","{EMP}",,"{""data"":[0]}",204,,,,"[""PROMO"",""OTHER""]",,,,,,,,,,,,,,,,,,,
+"negative history id","DELETE","{EMP}",,"{""data"":[-1]}",204,,,,"[""PROMO"",""OTHER""]",,,,,,,,,,,,,,,,,,,
+"history id of another employee","DELETE","{EMP}",,"{""data"":[""{OTHER}""]}",204,,,,"[""PROMO"",""OTHER""]",,,,,,,,,,,,,,,,,,,
+"employee that does not exist","DELETE","999999999",,"{""data"":[""{OTHER}""]}",404,,,"Employee Not Found","[""PROMO"",""OTHER""]",,,,,,,,,,,,,,,,,,,
+"employee number zero","DELETE","0",,"{""data"":[""{OTHER}""]}",400,"Invalid data","emp_number must not be empty",,"[""PROMO"",""OTHER""]",,,,,,,,,,,,,,,,,,,
+"employee number is text","DELETE","abc",,"{""data"":[""{OTHER}""]}",400,,,"unsupported resource request","[""PROMO"",""OTHER""]",,,,,,,,,,,,,,,,,,,
+"negative employee number","DELETE","-1",,"{""data"":[""{OTHER}""]}",400,,,"unsupported resource request","[""PROMO"",""OTHER""]",,,,,,,,,,,,,,,,,,,
+"trailing slash","DELETE","{EMP}","/","{""data"":[""{PROMO}""]}",400,,,"unsupported resource request","[""PROMO"",""OTHER""]",,,,,,,,,,,,,,,,,,,
+"PUT method","PUT","{EMP}",,"{""data"":[""{PROMO}""]}",400,,,"unsupported resource request","[""PROMO"",""OTHER""]",,,,,,,,,,,,,,,,,,,
+"PATCH method","PATCH","{EMP}",,"{""data"":[""{PROMO}""]}",400,,,"unsupported resource request","[""PROMO"",""OTHER""]",,,,,,,,,,,,,,,,,,,
+"POST method","POST","{EMP}",,"{""data"":[""{PROMO}""]}",400,,,"unsupported resource request","[""PROMO"",""OTHER""]",,,,,,,,,,,,,,,,,,,
+"own, unknown and other employee ids together delete only the own record","DELETE","{EMP}",,"{""data"":[""{PROMO}"",""999999999"",""{OTHER}""]}",204,,,,"[""OTHER""]","[""PROMO""]",,,,,,,,,,,,,,,,,,
