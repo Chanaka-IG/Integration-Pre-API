@@ -1,0 +1,4 @@
+"scenario","tabId","authorizationHeader","expectedStatus","neg_expectedError","neg_expectedErrorDescription"
+"invalid bearer token","1","Bearer invalid-token-123",401,"invalid_token","The access token provided is invalid"
+"bearer scheme without a token","1","Bearer ",401,"invalid_request","Malformed auth header"
+"basic authorization scheme","1","Basic dXNlcjpwYXNz",401,"invalid_request","Malformed auth header"
