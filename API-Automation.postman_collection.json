@@ -34509,6 +34509,1520 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Employee-Custom-Tab-Custom-Field-Values",
+              "item": [
+                {
+                  "name": "get-employee-custom-tab-custom-field-values",
+                  "item": [
+                    {
+                      "name": "ADMIN-573 add employee A for the custom tab values",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "// the fixtures serve every row, so they are created in the first iteration only",
+                              "const firstIteration = pm.info.iteration === 0;",
+                              "if (!firstIteration) {",
+                              "    pm.execution.skipRequest();",
+                              "}",
+                              "if (firstIteration) {",
+                              "    // clear values left over from an earlier run",
+                              "    [\"ectcfv_fixtures\", \"ectcfv_a_emp_number\", \"ectcfv_b_emp_number\", \"ectcfv_multi_tab_id\", \"ectcfv_single_tab_id\"]",
+                              "        .forEach(key => pm.environment.unset(key));",
+                              "    pm.variables.set(\"requestBody\", \"request body was not built\");",
+                              "    [\"firstName\", \"lastNameA\", \"employeeIdPrefix\", \"locationId\", \"joinedDate\"].forEach(key => {",
+                              "        if (cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    const stamp = Date.now().toString().slice(-6);",
+                              "    const employee = {",
+                              "        firstName: cell(\"firstName\"),",
+                              "        middleName: \"\",",
+                              "        lastName: `${cell(\"lastNameA\")}${stamp}`,",
+                              "        employeeId: `${cell(\"employeeIdPrefix\")}A${stamp}`,",
+                              "        locationId: Number(cell(\"locationId\")),",
+                              "        joinedDate: cell(\"joinedDate\")",
+                              "    };",
+                              "    pm.variables.set(\"fixtureEmployee\", JSON.stringify(employee));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(employee));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"fixtureEmployee\") || \"{}\");",
+                              "",
+                              "pm.test(\"Employee A for the custom tab values is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "pm.test(\"Employee A is saved with the details sent\", function () {",
+                              "    pm.expect(norm(responseData.lastName), \"lastName\").to.eql(norm(sent.lastName));",
+                              "    pm.expect(norm(responseData.employeeId), \"employeeId\").to.eql(norm(sent.employeeId));",
+                              "    pm.expect(norm(responseData.locationId), \"locationId\").to.eql(norm(sent.locationId));",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-575 to ADMIN-581",
+                              "if (pm.response.code === 201 && responseData.empNumber) {",
+                              "    pm.environment.set(\"ectcfv_a_emp_number\", norm(responseData.empNumber));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-574 add employee B in the same location",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "// the fixtures serve every row, so they are created in the first iteration only",
+                              "const firstIteration = pm.info.iteration === 0;",
+                              "if (!firstIteration) {",
+                              "    pm.execution.skipRequest();",
+                              "}",
+                              "if (firstIteration) {",
+                              "    pm.variables.set(\"requestBody\", \"request body was not built\");",
+                              "    [\"firstName\", \"lastNameB\", \"employeeIdPrefix\", \"locationId\", \"joinedDate\"].forEach(key => {",
+                              "        if (cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    const stamp = Date.now().toString().slice(-6);",
+                              "    const employee = {",
+                              "        firstName: cell(\"firstName\"),",
+                              "        middleName: \"\",",
+                              "        lastName: `${cell(\"lastNameB\")}${stamp}`,",
+                              "        employeeId: `${cell(\"employeeIdPrefix\")}B${stamp}`,",
+                              "        locationId: Number(cell(\"locationId\")),",
+                              "        joinedDate: cell(\"joinedDate\")",
+                              "    };",
+                              "    pm.variables.set(\"fixtureEmployee\", JSON.stringify(employee));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(employee));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"fixtureEmployee\") || \"{}\");",
+                              "",
+                              "pm.test(\"Employee B for the custom tab values is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.match(/^[0-9]+$/);",
+                              "});",
+                              "",
+                              "pm.test(\"Employee B is saved with the details sent\", function () {",
+                              "    pm.expect(norm(responseData.lastName), \"lastName\").to.eql(norm(sent.lastName));",
+                              "    pm.expect(norm(responseData.employeeId), \"employeeId\").to.eql(norm(sent.employeeId));",
+                              "    pm.expect(norm(responseData.locationId), \"locationId\").to.eql(norm(sent.locationId));",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-577 and ADMIN-582",
+                              "if (pm.response.code === 201 && responseData.empNumber) {",
+                              "    pm.environment.set(\"ectcfv_b_emp_number\", norm(responseData.empNumber));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-575 add a full record for employee A on a multi-record custom tab",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "const bodyOf = (err, res) => {",
+                              "    if (err) {",
+                              "        return {};",
+                              "    }",
+                              "    try {",
+                              "        return res.json() || {};",
+                              "    } catch (e) {",
+                              "        return {};",
+                              "    }",
+                              "};",
+                              "// oracle: the active custom tabs and, per tab, the withEmpty template of this endpoint for the employee",
+                              "// (field ids, types, labels, options in admin order, display conditions). Tabs are picked by property, never by id:",
+                              "// MULTI = multi-record tab with unconditional TEXT(0), SELECT(1, 2+ options), NUMBER(2) and DATE(5) fields,",
+                              "// SINGLE = single-record tab with the same field types, LOCATED = tab without fields for the employee's location",
+                              "const loadTabs = (empNumber, done) => {",
+                              "    api(\"GET\", \"/api/customizablePimTabs\", undefined, (err, res) => {",
+                              "        const tabs = bodyOf(err, res).data || [];",
+                              "        const loaded = [];",
+                              "        if (tabs.length === 0) {",
+                              "            done(loaded);",
+                              "            return;",
+                              "        }",
+                              "        tabs.forEach(tab => {",
+                              "            api(\"GET\", `/api/employeeCustomTabCustomFieldValues?emp_number=${empNumber}&tabId=${norm(tab.id)}&withEmpty=true`, undefined, (err2, res2) => {",
+                              "                const tabData = bodyOf(err2, res2).data || {};",
+                              "                const formData = (tabData.emptyValues || {}).formData || {};",
+                              "                loaded.push({",
+                              "                    tabId: norm(tab.id),",
+                              "                    multi: norm(tab.has_multiple_records) === \"1\",",
+                              "                    emptySection: tabData.emptySection === true,",
+                              "                    count: tabData.customFieldCount === undefined ? -1 : Number(tabData.customFieldCount),",
+                              "                    fields: Object.keys(formData).map(id => ({",
+                              "                        id: id,",
+                              "                        type: norm(formData[id].type),",
+                              "                        label: norm(formData[id].lable),",
+                              "                        options: norm(formData[id].unmodifiedExtraData) === \"\" ? [] : norm(formData[id].unmodifiedExtraData).split(\",\"),",
+                              "                        conditional: norm((formData[id].customFieldDisplayCondition || {}).parentCustomFieldId) !== \"\"",
+                              "                            && typeof (formData[id].customFieldDisplayCondition || {}).parentCustomFieldId !== \"object\"",
+                              "                    }))",
+                              "                });",
+                              "                if (loaded.length === tabs.length) {",
+                              "                    loaded.sort((a, b) => Number(a.tabId) - Number(b.tabId));",
+                              "                    done(loaded);",
+                              "                }",
+                              "            });",
+                              "        });",
+                              "    });",
+                              "};",
+                              "const ROLE_TYPES = { TEXT: \"0\", SELECT: \"1\", NUMBER: \"2\", DATE: \"5\" };",
+                              "const withRoles = tab => {",
+                              "    const roles = {};",
+                              "    Object.keys(ROLE_TYPES).forEach(role => {",
+                              "        const field = tab.fields.find(f => !f.conditional && f.type === ROLE_TYPES[role]",
+                              "            && (role !== \"SELECT\" || f.options.length >= 2));",
+                              "        if (field) {",
+                              "            roles[role] = field;",
+                              "        }",
+                              "    });",
+                              "    return Object.keys(roles).length === Object.keys(ROLE_TYPES).length",
+                              "        ? { tabId: tab.tabId, count: tab.count, fieldIds: tab.fields.map(f => f.id), roles: roles }",
+                              "        : null;",
+                              "};",
+                              "const pickTabs = loaded => {",
+                              "    const multi = loaded.filter(tab => tab.multi && tab.count > 0).map(withRoles).find(tab => tab);",
+                              "    const single = loaded.filter(tab => !tab.multi && tab.count > 0).map(withRoles).find(tab => tab);",
+                              "    const located = loaded.find(tab => !tab.emptySection && tab.count === 0);",
+                              "    return { MULTI: multi || null, SINGLE: single || null, LOCATED: located ? { tabId: located.tabId, count: 0 } : null };",
+                              "};",
+                              "// the fixtures serve every row, so they are created in the first iteration only",
+                              "const firstIteration = pm.info.iteration === 0;",
+                              "if (!firstIteration) {",
+                              "    pm.execution.skipRequest();",
+                              "}",
+                              "const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "// the values of the record come from the CSV columns ectcfv_A1_<ROLE>; a SELECT value is the option position (1 = first option)",
+                              "const buildBody = tabs => {",
+                              "    const roles = tabs.MULTI.roles;",
+                              "    const values = {};",
+                              "    Object.keys(roles).forEach(role => {",
+                              "        const raw = cell(`ectcfv_A1_${role}`);",
+                              "        if (raw === \"\") {",
+                              "            return;",
+                              "        }",
+                              "        if (role === \"SELECT\") {",
+                              "            const option = roles.SELECT.options[Number(raw) - 1];",
+                              "            if (option === undefined) {",
+                              "                throw new Error(`Test data error: option ${raw} does not exist on field ${roles.SELECT.id}`);",
+                              "            }",
+                              "            values[roles.SELECT.id] = option;",
+                              "        } else {",
+                              "            values[roles[role].id] = raw;",
+                              "        }",
+                              "    });",
+                              "    if (Object.keys(values).length === 0) {",
+                              "        throw new Error(\"Test data error: no ectcfv_A1_* value in the CSV row\");",
+                              "    }",
+                              "    pm.variables.set(\"recordValues\", JSON.stringify(values));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(values));",
+                              "};",
+                              "",
+                              "if (firstIteration) {",
+                              "    pm.variables.set(\"requestBody\", \"request body was not built\");",
+                              "    fixtures.emps = { A: pm.environment.get(\"ectcfv_a_emp_number\"), B: pm.environment.get(\"ectcfv_b_emp_number\") };",
+                              "    if (!fixtures.emps.A || !fixtures.emps.B) {",
+                              "        throw new Error(\"Precondition failed: ectcfv_a_emp_number / ectcfv_b_emp_number not set by ADMIN-573 / ADMIN-574\");",
+                              "    }",
+                              "    loadTabs(fixtures.emps.A, loaded => {",
+                              "        const tabs = pickTabs(loaded);",
+                              "        const missing = Object.keys(tabs).filter(kind => !tabs[kind]);",
+                              "        if (missing.length > 0) {",
+                              "            throw new Error(`Precondition failed: no custom PIM tab on QA for ${missing.join(\", \")}`);",
+                              "        }",
+                              "        fixtures.tabs = tabs;",
+                              "        pm.environment.set(\"ectcfv_fixtures\", JSON.stringify(fixtures));",
+                              "        // side effect: the request URL uses these tab ids",
+                              "        pm.environment.set(\"ectcfv_multi_tab_id\", tabs.MULTI.tabId);",
+                              "        pm.environment.set(\"ectcfv_single_tab_id\", tabs.SINGLE.tabId);",
+                              "        buildBody(tabs);",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"recordValues\") || \"{}\");",
+                              "",
+                              "pm.test(\"The full record of employee A on the multi-record tab is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(responseData.seqNo, \"seqNo\").to.be.a(\"number\");",
+                              "});",
+                              "",
+                              "pm.test(\"The created full record of employee A on the multi-record tab holds the values sent\", function () {",
+                              "    Object.keys(sent).forEach(fieldId => {",
+                              "        pm.expect(norm(responseData[`customFieldValue_${fieldId}`]), `customFieldValue_${fieldId}`).to.eql(sent[fieldId]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-579 to ADMIN-582",
+                              "if (pm.response.code === 201 && typeof responseData.seqNo === \"number\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "    fixtures.records = fixtures.records || {};",
+                              "    fixtures.records.A1 = { emp: \"A\", tab: \"MULTI\", seq: responseData.seqNo, values: sent };",
+                              "    pm.environment.set(\"ectcfv_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employeeCustomTabCustomFieldValues/emp_number/{{ectcfv_a_emp_number}}/tabId/{{ectcfv_multi_tab_id}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employeeCustomTabCustomFieldValues",
+                            "emp_number",
+                            "{{ectcfv_a_emp_number}}",
+                            "tabId",
+                            "{{ectcfv_multi_tab_id}}"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-576 add a partial record for employee A on the multi-record custom tab",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "const bodyOf = (err, res) => {",
+                              "    if (err) {",
+                              "        return {};",
+                              "    }",
+                              "    try {",
+                              "        return res.json() || {};",
+                              "    } catch (e) {",
+                              "        return {};",
+                              "    }",
+                              "};",
+                              "// the fixtures serve every row, so they are created in the first iteration only",
+                              "const firstIteration = pm.info.iteration === 0;",
+                              "if (!firstIteration) {",
+                              "    pm.execution.skipRequest();",
+                              "}",
+                              "const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "// the values of the record come from the CSV columns ectcfv_A2_<ROLE>; a SELECT value is the option position (1 = first option)",
+                              "const buildBody = tabs => {",
+                              "    const roles = tabs.MULTI.roles;",
+                              "    const values = {};",
+                              "    Object.keys(roles).forEach(role => {",
+                              "        const raw = cell(`ectcfv_A2_${role}`);",
+                              "        if (raw === \"\") {",
+                              "            return;",
+                              "        }",
+                              "        if (role === \"SELECT\") {",
+                              "            const option = roles.SELECT.options[Number(raw) - 1];",
+                              "            if (option === undefined) {",
+                              "                throw new Error(`Test data error: option ${raw} does not exist on field ${roles.SELECT.id}`);",
+                              "            }",
+                              "            values[roles.SELECT.id] = option;",
+                              "        } else {",
+                              "            values[roles[role].id] = raw;",
+                              "        }",
+                              "    });",
+                              "    if (Object.keys(values).length === 0) {",
+                              "        throw new Error(\"Test data error: no ectcfv_A2_* value in the CSV row\");",
+                              "    }",
+                              "    pm.variables.set(\"recordValues\", JSON.stringify(values));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(values));",
+                              "};",
+                              "",
+                              "if (firstIteration) {",
+                              "    pm.variables.set(\"requestBody\", \"request body was not built\");",
+                              "    if (!fixtures.emps || !fixtures.emps.A) {",
+                              "        throw new Error(\"Precondition failed: employee A was not created by ADMIN-573 / ADMIN-574\");",
+                              "    }",
+                              "    if (!fixtures.tabs || !fixtures.tabs.MULTI) {",
+                              "        throw new Error(\"Precondition failed: the custom tabs were not picked by ADMIN-575\");",
+                              "    }",
+                              "    buildBody(fixtures.tabs);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"recordValues\") || \"{}\");",
+                              "",
+                              "pm.test(\"The partial record of employee A on the multi-record tab is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(responseData.seqNo, \"seqNo\").to.be.a(\"number\");",
+                              "});",
+                              "",
+                              "pm.test(\"The created partial record of employee A on the multi-record tab holds the values sent\", function () {",
+                              "    Object.keys(sent).forEach(fieldId => {",
+                              "        pm.expect(norm(responseData[`customFieldValue_${fieldId}`]), `customFieldValue_${fieldId}`).to.eql(sent[fieldId]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-579 to ADMIN-582",
+                              "if (pm.response.code === 201 && typeof responseData.seqNo === \"number\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "    fixtures.records = fixtures.records || {};",
+                              "    fixtures.records.A2 = { emp: \"A\", tab: \"MULTI\", seq: responseData.seqNo, values: sent };",
+                              "    pm.environment.set(\"ectcfv_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employeeCustomTabCustomFieldValues/emp_number/{{ectcfv_a_emp_number}}/tabId/{{ectcfv_multi_tab_id}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employeeCustomTabCustomFieldValues",
+                            "emp_number",
+                            "{{ectcfv_a_emp_number}}",
+                            "tabId",
+                            "{{ectcfv_multi_tab_id}}"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-577 add a record for employee B on the multi-record custom tab",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "const bodyOf = (err, res) => {",
+                              "    if (err) {",
+                              "        return {};",
+                              "    }",
+                              "    try {",
+                              "        return res.json() || {};",
+                              "    } catch (e) {",
+                              "        return {};",
+                              "    }",
+                              "};",
+                              "// the fixtures serve every row, so they are created in the first iteration only",
+                              "const firstIteration = pm.info.iteration === 0;",
+                              "if (!firstIteration) {",
+                              "    pm.execution.skipRequest();",
+                              "}",
+                              "const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "// the values of the record come from the CSV columns ectcfv_B1_<ROLE>; a SELECT value is the option position (1 = first option)",
+                              "const buildBody = tabs => {",
+                              "    const roles = tabs.MULTI.roles;",
+                              "    const values = {};",
+                              "    Object.keys(roles).forEach(role => {",
+                              "        const raw = cell(`ectcfv_B1_${role}`);",
+                              "        if (raw === \"\") {",
+                              "            return;",
+                              "        }",
+                              "        if (role === \"SELECT\") {",
+                              "            const option = roles.SELECT.options[Number(raw) - 1];",
+                              "            if (option === undefined) {",
+                              "                throw new Error(`Test data error: option ${raw} does not exist on field ${roles.SELECT.id}`);",
+                              "            }",
+                              "            values[roles.SELECT.id] = option;",
+                              "        } else {",
+                              "            values[roles[role].id] = raw;",
+                              "        }",
+                              "    });",
+                              "    if (Object.keys(values).length === 0) {",
+                              "        throw new Error(\"Test data error: no ectcfv_B1_* value in the CSV row\");",
+                              "    }",
+                              "    pm.variables.set(\"recordValues\", JSON.stringify(values));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(values));",
+                              "};",
+                              "",
+                              "if (firstIteration) {",
+                              "    pm.variables.set(\"requestBody\", \"request body was not built\");",
+                              "    if (!fixtures.emps || !fixtures.emps.B) {",
+                              "        throw new Error(\"Precondition failed: employee B was not created by ADMIN-573 / ADMIN-574\");",
+                              "    }",
+                              "    if (!fixtures.tabs || !fixtures.tabs.MULTI) {",
+                              "        throw new Error(\"Precondition failed: the custom tabs were not picked by ADMIN-575\");",
+                              "    }",
+                              "    buildBody(fixtures.tabs);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"recordValues\") || \"{}\");",
+                              "",
+                              "pm.test(\"The record of employee B on the multi-record tab is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(responseData.seqNo, \"seqNo\").to.be.a(\"number\");",
+                              "});",
+                              "",
+                              "pm.test(\"The created record of employee B on the multi-record tab holds the values sent\", function () {",
+                              "    Object.keys(sent).forEach(fieldId => {",
+                              "        pm.expect(norm(responseData[`customFieldValue_${fieldId}`]), `customFieldValue_${fieldId}`).to.eql(sent[fieldId]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-579 to ADMIN-582",
+                              "if (pm.response.code === 201 && typeof responseData.seqNo === \"number\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "    fixtures.records = fixtures.records || {};",
+                              "    fixtures.records.B1 = { emp: \"B\", tab: \"MULTI\", seq: responseData.seqNo, values: sent };",
+                              "    pm.environment.set(\"ectcfv_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employeeCustomTabCustomFieldValues/emp_number/{{ectcfv_b_emp_number}}/tabId/{{ectcfv_multi_tab_id}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employeeCustomTabCustomFieldValues",
+                            "emp_number",
+                            "{{ectcfv_b_emp_number}}",
+                            "tabId",
+                            "{{ectcfv_multi_tab_id}}"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-578 add a record for employee A on a single-record custom tab",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "const bodyOf = (err, res) => {",
+                              "    if (err) {",
+                              "        return {};",
+                              "    }",
+                              "    try {",
+                              "        return res.json() || {};",
+                              "    } catch (e) {",
+                              "        return {};",
+                              "    }",
+                              "};",
+                              "// the fixtures serve every row, so they are created in the first iteration only",
+                              "const firstIteration = pm.info.iteration === 0;",
+                              "if (!firstIteration) {",
+                              "    pm.execution.skipRequest();",
+                              "}",
+                              "const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "// the values of the record come from the CSV columns ectcfv_S1_<ROLE>; a SELECT value is the option position (1 = first option)",
+                              "const buildBody = tabs => {",
+                              "    const roles = tabs.SINGLE.roles;",
+                              "    const values = {};",
+                              "    Object.keys(roles).forEach(role => {",
+                              "        const raw = cell(`ectcfv_S1_${role}`);",
+                              "        if (raw === \"\") {",
+                              "            return;",
+                              "        }",
+                              "        if (role === \"SELECT\") {",
+                              "            const option = roles.SELECT.options[Number(raw) - 1];",
+                              "            if (option === undefined) {",
+                              "                throw new Error(`Test data error: option ${raw} does not exist on field ${roles.SELECT.id}`);",
+                              "            }",
+                              "            values[roles.SELECT.id] = option;",
+                              "        } else {",
+                              "            values[roles[role].id] = raw;",
+                              "        }",
+                              "    });",
+                              "    if (Object.keys(values).length === 0) {",
+                              "        throw new Error(\"Test data error: no ectcfv_S1_* value in the CSV row\");",
+                              "    }",
+                              "    pm.variables.set(\"recordValues\", JSON.stringify(values));",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify(values));",
+                              "};",
+                              "",
+                              "if (firstIteration) {",
+                              "    pm.variables.set(\"requestBody\", \"request body was not built\");",
+                              "    if (!fixtures.emps || !fixtures.emps.A) {",
+                              "        throw new Error(\"Precondition failed: employee A was not created by ADMIN-573 / ADMIN-574\");",
+                              "    }",
+                              "    if (!fixtures.tabs || !fixtures.tabs.SINGLE) {",
+                              "        throw new Error(\"Precondition failed: the custom tabs were not picked by ADMIN-575\");",
+                              "    }",
+                              "    buildBody(fixtures.tabs);",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "const sent = JSON.parse(pm.variables.get(\"recordValues\") || \"{}\");",
+                              "",
+                              "pm.test(\"The record of employee A on the single-record tab is created\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(responseData.seqNo, \"seqNo\").to.be.a(\"number\");",
+                              "});",
+                              "",
+                              "// a single-record tab stamps each field with its own seqNo; the save echoes only the field(s) of the last one (documented)",
+                              "pm.test(\"The created record on the single-record tab echoes values that were sent\", function () {",
+                              "    const echoed = Object.keys(responseData).filter(key => key.startsWith(\"customFieldValue_\"));",
+                              "    pm.expect(echoed.length, \"echoed customFieldValue_ keys\").to.be.above(0);",
+                              "    echoed.forEach(key => {",
+                              "        pm.expect(norm(responseData[key]), key).to.eql(sent[key.replace(\"customFieldValue_\", \"\")]);",
+                              "    });",
+                              "});",
+                              "",
+                              "// side effect: consumed by ADMIN-579 to ADMIN-582",
+                              "if (pm.response.code === 201 && typeof responseData.seqNo === \"number\") {",
+                              "    const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "    fixtures.records = fixtures.records || {};",
+                              "    fixtures.records.S1 = { emp: \"A\", tab: \"SINGLE\", seq: responseData.seqNo, values: sent };",
+                              "    pm.environment.set(\"ectcfv_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employeeCustomTabCustomFieldValues/emp_number/{{ectcfv_a_emp_number}}/tabId/{{ectcfv_single_tab_id}}",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employeeCustomTabCustomFieldValues",
+                            "emp_number",
+                            "{{ectcfv_a_emp_number}}",
+                            "tabId",
+                            "{{ectcfv_single_tab_id}}"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-579 get custom tab values with the parameters of the row",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "// <prefix>_query holds key=value pairs separated by \"&\". Tokens (in keys and values):",
+                              "// {EMP.A} {EMP.B} employees, {TAB.MULTI} {TAB.SINGLE} {TAB.LOCATED} picked tabs,",
+                              "// {FIELD.TEXT|SELECT|NUMBER|DATE} fields of the MULTI tab, {OPT.n} n-th option of its SELECT field, {SEQ.<record>} record seqNo",
+                              "const resolveTokens = (text, ctx) => text.replace(/\\{(EMP|TAB|FIELD|OPT|SEQ)\\.(\\w+)\\}/g, (match, kind, name) => {",
+                              "    let value;",
+                              "    if (kind === \"EMP\") {",
+                              "        value = (ctx.emps || {})[name];",
+                              "    } else if (kind === \"TAB\") {",
+                              "        value = ((ctx.tabs || {})[name] || {}).tabId;",
+                              "    } else if (kind === \"FIELD\") {",
+                              "        value = ((((ctx.tabs || {}).MULTI || {}).roles || {})[name] || {}).id;",
+                              "    } else if (kind === \"OPT\") {",
+                              "        value = (((((ctx.tabs || {}).MULTI || {}).roles || {}).SELECT || {}).options || [])[Number(name) - 1];",
+                              "    } else {",
+                              "        value = ((ctx.records || {})[name] || {}).seq;",
+                              "    }",
+                              "    if (value === undefined || value === null || norm(value) === \"\") {",
+                              "        throw new Error(`Precondition failed: ${match} could not be resolved`);",
+                              "    }",
+                              "    return norm(value);",
+                              "});",
+                              "const addQuery = (column, ctx) => {",
+                              "    if (cell(column) === \"\") {",
+                              "        return;",
+                              "    }",
+                              "    cell(column).split(\"&\").forEach(pair => {",
+                              "        const at = pair.indexOf(\"=\");",
+                              "        if (at < 1) {",
+                              "            throw new Error(`Test data error: \"${pair}\" in ${column} is not key=value`);",
+                              "        }",
+                              "        pm.request.url.addQueryParams([{ key: resolveTokens(pair.slice(0, at), ctx), value: resolveTokens(pair.slice(at + 1), ctx) }]);",
+                              "    });",
+                              "};",
+                              "[\"ectcfv_query\", \"ectcfv_expectStatus\"].forEach(key => {",
+                              "    if (cell(key).trim() === \"\") {",
+                              "        throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "    }",
+                              "});",
+                              "if (!fixtures.tabs || !fixtures.records || !fixtures.records.A1 || !fixtures.records.A2 || !fixtures.records.B1 || !fixtures.records.S1) {",
+                              "    throw new Error(\"Precondition failed: fixtures not created by ADMIN-573 to ADMIN-578\");",
+                              "}",
+                              "addQuery(\"ectcfv_query\", fixtures);"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "// expected records: \"A1|A2\" (multi-record rows), \"S1\" (single-record tab: one row per field) or \"\" (no rows)",
+                              "const checkRead = (label, expectedKeys, expectedCount) => {",
+                              "    const tabData = response.data || {};",
+                              "    const rows = tabData.tabValues;",
+                              "",
+                              "    pm.test(`Response matches the custom tab values schema (${label})`, function () {",
+                              "        const raw = pm.collectionVariables.get(\"employeeCustomTabCustomFieldValueListSchema\");",
+                              "        pm.expect(raw, \"employeeCustomTabCustomFieldValueListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "        pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "    });",
+                              "",
+                              "    pm.test(`The tab section and its field count are returned (${label})`, function () {",
+                              "        pm.expect(tabData.emptySection, \"data.emptySection\").to.eql(false);",
+                              "        pm.expect(tabData.customFieldCount, \"data.customFieldCount\").to.eql(expectedCount);",
+                              "    });",
+                              "",
+                              "    if (expectedKeys.length === 0) {",
+                              "        pm.test(`No records are returned (${label})`, function () {",
+                              "            pm.expect(rows, \"data.tabValues\").to.be.undefined;",
+                              "        });",
+                              "        return;",
+                              "    }",
+                              "    const records = expectedKeys.map(key => fixtures.records[key]);",
+                              "    if (records.length === 1 && records[0].tab === \"SINGLE\") {",
+                              "        const sent = records[0].values;",
+                              "        pm.test(`The single-record tab returns one row per stored field (${label})`, function () {",
+                              "            pm.expect(rows, \"data.tabValues\").to.be.an(\"array\");",
+                              "            pm.expect(rows.length, \"number of rows\").to.eql(Object.keys(sent).length);",
+                              "            const stored = {};",
+                              "            rows.forEach(row => {",
+                              "                const valueKeys = Object.keys(row).filter(key => key.startsWith(\"customFieldValue_\"));",
+                              "                pm.expect(valueKeys.length, `values in row ${row.seqNo}`).to.eql(1);",
+                              "                stored[valueKeys[0].replace(\"customFieldValue_\", \"\")] = norm(row[valueKeys[0]]);",
+                              "                pm.expect(norm(row.formData[valueKeys[0].replace(\"customFieldValue_\", \"\")].value), `formData value in row ${row.seqNo}`)",
+                              "                    .to.eql(norm(row[valueKeys[0]]));",
+                              "            });",
+                              "            pm.expect(stored, \"stored values\").to.eql(sent);",
+                              "        });",
+                              "        return;",
+                              "    }",
+                              "    pm.test(`Exactly the employee's records are returned in sequence order (${label})`, function () {",
+                              "        pm.expect(rows, \"data.tabValues\").to.be.an(\"array\");",
+                              "        pm.expect(rows.map(row => row.seqNo), \"seqNo list\").to.eql(records.map(record => record.seq).sort((a, b) => a - b));",
+                              "    });",
+                              "    const tab = fixtures.tabs.MULTI;",
+                              "    const fieldOf = id => Object.values(tab.roles).find(field => field.id === id);",
+                              "    records.forEach((record, index) => {",
+                              "        const row = (rows || []).find(candidate => candidate.seqNo === record.seq);",
+                              "        pm.test(`Record ${expectedKeys[index]} holds exactly the values that were saved (${label})`, function () {",
+                              "            pm.expect(row, `row with seqNo ${record.seq}`).to.be.an(\"object\");",
+                              "            const valueKeys = Object.keys(row).filter(key => key.startsWith(\"customFieldValue_\")).sort();",
+                              "            pm.expect(valueKeys, \"customFieldValue_ keys\").to.eql(Object.keys(record.values).map(id => `customFieldValue_${id}`).sort());",
+                              "            Object.keys(record.values).forEach(id => {",
+                              "                pm.expect(norm(row[`customFieldValue_${id}`]), `customFieldValue_${id}`).to.eql(record.values[id]);",
+                              "                pm.expect(norm((row.formData[id] || {}).value), `formData.${id}.value`).to.eql(record.values[id]);",
+                              "            });",
+                              "        });",
+                              "        if (row) {",
+                              "            pm.test(`Record ${expectedKeys[index]} describes each field like the tab definition (${label})`, function () {",
+                              "                Object.keys(record.values).forEach(id => {",
+                              "                    const entry = row.formData[id] || {};",
+                              "                    const field = fieldOf(id);",
+                              "                    pm.expect(norm(entry.customFieldId), `formData.${id}.customFieldId`).to.eql(id);",
+                              "                    pm.expect(norm(entry.sequenceNumber), `formData.${id}.sequenceNumber`).to.eql(norm(record.seq));",
+                              "                    if (field) {",
+                              "                        pm.expect(norm(entry.type), `formData.${id}.type`).to.eql(field.type);",
+                              "                        pm.expect(norm(entry.lable), `formData.${id}.lable`).to.eql(field.label);",
+                              "                    }",
+                              "                });",
+                              "            });",
+                              "        }",
+                              "    });",
+                              "};",
+                              "const expectedCountOf = text => (text === \"MULTI\" || text === \"SINGLE\") ? fixtures.tabs[text].count : Number(text);",
+                              "const defect = cell(\"ectcfv_knownDefect\") === \"\" ? \"\" : ` [known defect ${cell(\"ectcfv_knownDefect\")}]`;",
+                              "const scenario = `${cell(\"scenario\")}${defect}`;",
+                              "",
+                              "pm.test(`Custom tab values are returned (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(cell(\"ectcfv_expectStatus\")));",
+                              "});",
+                              "",
+                              "if (pm.response.code === 200 && fixtures.tabs && fixtures.records) {",
+                              "    const expectedKeys = cell(\"ectcfv_expectRecords\") === \"\" ? [] : cell(\"ectcfv_expectRecords\").split(\"|\");",
+                              "    checkRead(scenario, expectedKeys, expectedCountOf(cell(\"ectcfv_expectFieldCount\")));",
+                              "",
+                              "    const template = (response.data || {}).emptyValues;",
+                              "    if (cell(\"ectcfv_expectTemplate\") === \"yes\") {",
+                              "        pm.test(`An empty template of every tab field is returned (${scenario})`, function () {",
+                              "            pm.expect(template, \"data.emptyValues\").to.be.an(\"object\");",
+                              "            const tab = fixtures.tabs[cell(\"ectcfv_expectFieldCount\")];",
+                              "            pm.expect(Object.keys(template.formData || {}).sort(), \"emptyValues.formData keys\").to.eql(tab.fieldIds.slice().sort());",
+                              "            Object.keys(template.formData || {}).forEach(id => {",
+                              "                pm.expect(norm(template.formData[id].value), `emptyValues.formData.${id}.value`).to.eql(\"\");",
+                              "                pm.expect(norm(template.formData[id].sequenceNumber), `emptyValues.formData.${id}.sequenceNumber`).to.eql(\"\");",
+                              "            });",
+                              "        });",
+                              "        if (cell(\"ectcfv_templateClean\") === \"yes\") {",
+                              "            pm.test(`The empty template carries no record number or stored value (${scenario})`, function () {",
+                              "                pm.expect((template || {}).seqNo, \"emptyValues.seqNo\").to.be.undefined;",
+                              "                Object.keys(template || {}).filter(key => key.startsWith(\"customFieldValue_\")).forEach(key => {",
+                              "                    pm.expect(norm(template[key]), `emptyValues.${key}`).to.eql(\"\");",
+                              "                });",
+                              "            });",
+                              "        }",
+                              "    } else {",
+                              "        pm.test(`No empty template is returned (${scenario})`, function () {",
+                              "            pm.expect(template, \"data.emptyValues\").to.be.undefined;",
+                              "        });",
+                              "    }",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employeeCustomTabCustomFieldValues",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employeeCustomTabCustomFieldValues"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-580 get custom tab values after deleting a record",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "const bodyOf = (err, res) => {",
+                              "    if (err) {",
+                              "        return {};",
+                              "    }",
+                              "    try {",
+                              "        return res.json() || {};",
+                              "    } catch (e) {",
+                              "        return {};",
+                              "    }",
+                              "};",
+                              "// the fixtures serve every row, so they are removed after the last iteration only",
+                              "const lastIteration = pm.info.iteration === pm.info.iterationCount - 1;",
+                              "if (!lastIteration) {",
+                              "    pm.execution.skipRequest();",
+                              "}",
+                              "const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "if (lastIteration) {",
+                              "    if (!fixtures.tabs || !fixtures.records || !fixtures.records.A2) {",
+                              "        throw new Error(\"Precondition failed: record A2 not created by ADMIN-576\");",
+                              "    }",
+                              "    pm.request.url.addQueryParams([",
+                              "        { key: \"emp_number\", value: norm(fixtures.emps.A) },",
+                              "        { key: \"tabId\", value: norm(fixtures.tabs.MULTI.tabId) }",
+                              "    ]);",
+                              "    // delete record A2 of employee A; the GET of this request must no longer return it",
+                              "    pm.variables.set(\"deleteStatus\", \"not sent\");",
+                              "    api(\"DELETE\", \"/api/employeeCustomTabCustomFieldValues\", {",
+                              "        data: { emp_number: Number(fixtures.emps.A), tabId: Number(fixtures.tabs.MULTI.tabId), toDeleteIds: [fixtures.records.A2.seq] }",
+                              "    }, (err, res) => {",
+                              "        pm.variables.set(\"deleteStatus\", err ? \"error\" : norm(res.code));",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "// expected records: \"A1|A2\" (multi-record rows), \"S1\" (single-record tab: one row per field) or \"\" (no rows)",
+                              "const checkRead = (label, expectedKeys, expectedCount) => {",
+                              "    const tabData = response.data || {};",
+                              "    const rows = tabData.tabValues;",
+                              "",
+                              "    pm.test(`Response matches the custom tab values schema (${label})`, function () {",
+                              "        const raw = pm.collectionVariables.get(\"employeeCustomTabCustomFieldValueListSchema\");",
+                              "        pm.expect(raw, \"employeeCustomTabCustomFieldValueListSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "        pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "    });",
+                              "",
+                              "    pm.test(`The tab section and its field count are returned (${label})`, function () {",
+                              "        pm.expect(tabData.emptySection, \"data.emptySection\").to.eql(false);",
+                              "        pm.expect(tabData.customFieldCount, \"data.customFieldCount\").to.eql(expectedCount);",
+                              "    });",
+                              "",
+                              "    if (expectedKeys.length === 0) {",
+                              "        pm.test(`No records are returned (${label})`, function () {",
+                              "            pm.expect(rows, \"data.tabValues\").to.be.undefined;",
+                              "        });",
+                              "        return;",
+                              "    }",
+                              "    const records = expectedKeys.map(key => fixtures.records[key]);",
+                              "    if (records.length === 1 && records[0].tab === \"SINGLE\") {",
+                              "        const sent = records[0].values;",
+                              "        pm.test(`The single-record tab returns one row per stored field (${label})`, function () {",
+                              "            pm.expect(rows, \"data.tabValues\").to.be.an(\"array\");",
+                              "            pm.expect(rows.length, \"number of rows\").to.eql(Object.keys(sent).length);",
+                              "            const stored = {};",
+                              "            rows.forEach(row => {",
+                              "                const valueKeys = Object.keys(row).filter(key => key.startsWith(\"customFieldValue_\"));",
+                              "                pm.expect(valueKeys.length, `values in row ${row.seqNo}`).to.eql(1);",
+                              "                stored[valueKeys[0].replace(\"customFieldValue_\", \"\")] = norm(row[valueKeys[0]]);",
+                              "                pm.expect(norm(row.formData[valueKeys[0].replace(\"customFieldValue_\", \"\")].value), `formData value in row ${row.seqNo}`)",
+                              "                    .to.eql(norm(row[valueKeys[0]]));",
+                              "            });",
+                              "            pm.expect(stored, \"stored values\").to.eql(sent);",
+                              "        });",
+                              "        return;",
+                              "    }",
+                              "    pm.test(`Exactly the employee's records are returned in sequence order (${label})`, function () {",
+                              "        pm.expect(rows, \"data.tabValues\").to.be.an(\"array\");",
+                              "        pm.expect(rows.map(row => row.seqNo), \"seqNo list\").to.eql(records.map(record => record.seq).sort((a, b) => a - b));",
+                              "    });",
+                              "    const tab = fixtures.tabs.MULTI;",
+                              "    const fieldOf = id => Object.values(tab.roles).find(field => field.id === id);",
+                              "    records.forEach((record, index) => {",
+                              "        const row = (rows || []).find(candidate => candidate.seqNo === record.seq);",
+                              "        pm.test(`Record ${expectedKeys[index]} holds exactly the values that were saved (${label})`, function () {",
+                              "            pm.expect(row, `row with seqNo ${record.seq}`).to.be.an(\"object\");",
+                              "            const valueKeys = Object.keys(row).filter(key => key.startsWith(\"customFieldValue_\")).sort();",
+                              "            pm.expect(valueKeys, \"customFieldValue_ keys\").to.eql(Object.keys(record.values).map(id => `customFieldValue_${id}`).sort());",
+                              "            Object.keys(record.values).forEach(id => {",
+                              "                pm.expect(norm(row[`customFieldValue_${id}`]), `customFieldValue_${id}`).to.eql(record.values[id]);",
+                              "                pm.expect(norm((row.formData[id] || {}).value), `formData.${id}.value`).to.eql(record.values[id]);",
+                              "            });",
+                              "        });",
+                              "        if (row) {",
+                              "            pm.test(`Record ${expectedKeys[index]} describes each field like the tab definition (${label})`, function () {",
+                              "                Object.keys(record.values).forEach(id => {",
+                              "                    const entry = row.formData[id] || {};",
+                              "                    const field = fieldOf(id);",
+                              "                    pm.expect(norm(entry.customFieldId), `formData.${id}.customFieldId`).to.eql(id);",
+                              "                    pm.expect(norm(entry.sequenceNumber), `formData.${id}.sequenceNumber`).to.eql(norm(record.seq));",
+                              "                    if (field) {",
+                              "                        pm.expect(norm(entry.type), `formData.${id}.type`).to.eql(field.type);",
+                              "                        pm.expect(norm(entry.lable), `formData.${id}.lable`).to.eql(field.label);",
+                              "                    }",
+                              "                });",
+                              "            });",
+                              "        }",
+                              "    });",
+                              "};",
+                              "const expectedCountOf = text => (text === \"MULTI\" || text === \"SINGLE\") ? fixtures.tabs[text].count : Number(text);",
+                              "pm.test(\"Record A2 of employee A is deleted\", function () {",
+                              "    pm.expect(pm.variables.get(\"deleteStatus\"), \"DELETE status\").to.eql(\"204\");",
+                              "});",
+                              "",
+                              "pm.test(\"Custom tab values are returned after the delete\", function () {",
+                              "    pm.response.to.have.status(200);",
+                              "});",
+                              "",
+                              "if (pm.response.code === 200 && fixtures.tabs && fixtures.records) {",
+                              "    checkRead(\"after deleting record A2\", [\"A1\"], fixtures.tabs.MULTI.count);",
+                              "    // side effect: record A2 no longer exists, so the teardown does not delete it again",
+                              "    delete fixtures.records.A2;",
+                              "    pm.environment.set(\"ectcfv_fixtures\", JSON.stringify(fixtures));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employeeCustomTabCustomFieldValues",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employeeCustomTabCustomFieldValues"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-581 delete the records of employee A and terminate employee A",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "const bodyOf = (err, res) => {",
+                              "    if (err) {",
+                              "        return {};",
+                              "    }",
+                              "    try {",
+                              "        return res.json() || {};",
+                              "    } catch (e) {",
+                              "        return {};",
+                              "    }",
+                              "};",
+                              "// the fixtures serve every row, so they are removed after the last iteration only",
+                              "const lastIteration = pm.info.iteration === pm.info.iterationCount - 1;",
+                              "if (!lastIteration) {",
+                              "    pm.execution.skipRequest();",
+                              "}",
+                              "const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "if (lastIteration) {",
+                              "    pm.variables.set(\"requestBody\", \"request body was not built\");",
+                              "    const empNumber = pm.environment.get(\"ectcfv_a_emp_number\");",
+                              "    if (!empNumber) {",
+                              "        throw new Error(\"Precondition failed: ectcfv_a_emp_number not set by ADMIN-573\");",
+                              "    }",
+                              "    [\"terminationDate\", \"flagValue\", \"terminationNote\", \"terminationReason\", \"time\", \"timezone\"].forEach(key => {",
+                              "        if (cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "    }));",
+                              "    // delete every value record the employee holds on the picked tabs (all created by this folder),",
+                              "    // then read the tabs again so the test can confirm nothing is left",
+                              "    const tabIds = [pm.environment.get(\"ectcfv_multi_tab_id\"), pm.environment.get(\"ectcfv_single_tab_id\")].filter(id => id);",
+                              "    const remaining = {};",
+                              "    tabIds.forEach(tabId => {",
+                              "        const path = `/api/employeeCustomTabCustomFieldValues?emp_number=${empNumber}&tabId=${tabId}`;",
+                              "        api(\"GET\", path, undefined, (err, res) => {",
+                              "            const seqNos = ((bodyOf(err, res).data || {}).tabValues || []).map(row => row.seqNo);",
+                              "            const recheck = () => api(\"GET\", path, undefined, (err3, res3) => {",
+                              "                remaining[tabId] = ((bodyOf(err3, res3).data || {}).tabValues || []).length;",
+                              "                pm.variables.set(\"remainingRecords\", JSON.stringify(remaining));",
+                              "            });",
+                              "            if (seqNos.length === 0) {",
+                              "                recheck();",
+                              "                return;",
+                              "            }",
+                              "            api(\"DELETE\", \"/api/employeeCustomTabCustomFieldValues\", {",
+                              "                data: { emp_number: Number(empNumber), tabId: Number(tabId), toDeleteIds: seqNos }",
+                              "            }, () => recheck());",
+                              "        });",
+                              "    });",
+                              "    pm.variables.set(\"teardownTabs\", JSON.stringify(tabIds));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Employee A created by ADMIN-573 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(norm(pm.environment.get(\"ectcfv_a_emp_number\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No custom tab value record of employee A is left\", function () {",
+                              "    const tabIds = JSON.parse(pm.variables.get(\"teardownTabs\") || \"[]\");",
+                              "    const remaining = JSON.parse(pm.variables.get(\"remainingRecords\") || \"{}\");",
+                              "    pm.expect(tabIds.length, \"tabs checked (multi-record and single-record)\").to.eql(2);",
+                              "    tabIds.forEach(tabId => {",
+                              "        pm.expect(remaining[tabId], `records left on tab ${tabId}`).to.eql(0);",
+                              "    });",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{ectcfv_a_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{ectcfv_a_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-582 delete the records of employee B and terminate employee B",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "const bodyOf = (err, res) => {",
+                              "    if (err) {",
+                              "        return {};",
+                              "    }",
+                              "    try {",
+                              "        return res.json() || {};",
+                              "    } catch (e) {",
+                              "        return {};",
+                              "    }",
+                              "};",
+                              "// the fixtures serve every row, so they are removed after the last iteration only",
+                              "const lastIteration = pm.info.iteration === pm.info.iterationCount - 1;",
+                              "if (!lastIteration) {",
+                              "    pm.execution.skipRequest();",
+                              "}",
+                              "const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "if (lastIteration) {",
+                              "    pm.variables.set(\"requestBody\", \"request body was not built\");",
+                              "    const empNumber = pm.environment.get(\"ectcfv_b_emp_number\");",
+                              "    if (!empNumber) {",
+                              "        throw new Error(\"Precondition failed: ectcfv_b_emp_number not set by ADMIN-574\");",
+                              "    }",
+                              "    [\"terminationDate\", \"flagValue\", \"terminationNote\", \"terminationReason\", \"time\", \"timezone\"].forEach(key => {",
+                              "        if (cell(key).trim() === \"\") {",
+                              "            throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "        }",
+                              "    });",
+                              "    pm.variables.set(\"requestBody\", JSON.stringify({",
+                              "        date: cell(\"terminationDate\"), flaged: Number(cell(\"flagValue\")), note: cell(\"terminationNote\"),",
+                              "        reason: Number(cell(\"terminationReason\")), time: cell(\"time\"), timezone: cell(\"timezone\")",
+                              "    }));",
+                              "    // delete every value record the employee holds on the picked tabs (all created by this folder),",
+                              "    // then read the tabs again so the test can confirm nothing is left",
+                              "    const tabIds = [pm.environment.get(\"ectcfv_multi_tab_id\"), pm.environment.get(\"ectcfv_single_tab_id\")].filter(id => id);",
+                              "    const remaining = {};",
+                              "    tabIds.forEach(tabId => {",
+                              "        const path = `/api/employeeCustomTabCustomFieldValues?emp_number=${empNumber}&tabId=${tabId}`;",
+                              "        api(\"GET\", path, undefined, (err, res) => {",
+                              "            const seqNos = ((bodyOf(err, res).data || {}).tabValues || []).map(row => row.seqNo);",
+                              "            const recheck = () => api(\"GET\", path, undefined, (err3, res3) => {",
+                              "                remaining[tabId] = ((bodyOf(err3, res3).data || {}).tabValues || []).length;",
+                              "                pm.variables.set(\"remainingRecords\", JSON.stringify(remaining));",
+                              "            });",
+                              "            if (seqNos.length === 0) {",
+                              "                recheck();",
+                              "                return;",
+                              "            }",
+                              "            api(\"DELETE\", \"/api/employeeCustomTabCustomFieldValues\", {",
+                              "                data: { emp_number: Number(empNumber), tabId: Number(tabId), toDeleteIds: seqNos }",
+                              "            }, () => recheck());",
+                              "        });",
+                              "    });",
+                              "    pm.variables.set(\"teardownTabs\", JSON.stringify(tabIds));",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Employee B created by ADMIN-574 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(norm(pm.environment.get(\"ectcfv_b_emp_number\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No custom tab value record of employee B is left\", function () {",
+                              "    const tabIds = JSON.parse(pm.variables.get(\"teardownTabs\") || \"[]\");",
+                              "    const remaining = JSON.parse(pm.variables.get(\"remainingRecords\") || \"{}\");",
+                              "    pm.expect(tabIds.length, \"tabs checked (multi-record and single-record)\").to.eql(2);",
+                              "    tabIds.forEach(tabId => {",
+                              "        pm.expect(remaining[tabId], `records left on tab ${tabId}`).to.eql(0);",
+                              "    });",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees/{{ectcfv_b_emp_number}}/termination-record",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees",
+                            "{{ectcfv_b_emp_number}}",
+                            "termination-record"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -59722,6 +61236,361 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Employee-Custom-Tab-Custom-Field-Values",
+              "item": [
+                {
+                  "name": "get-employee-custom-tab-custom-field-values-with-invalid-parameters",
+                  "item": [
+                    {
+                      "name": "ADMIN-583 get custom tab values with an invalid parameter",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "const bodyOf = (err, res) => {",
+                              "    if (err) {",
+                              "        return {};",
+                              "    }",
+                              "    try {",
+                              "        return res.json() || {};",
+                              "    } catch (e) {",
+                              "        return {};",
+                              "    }",
+                              "};",
+                              "// oracle: the active custom tabs and, per tab, the withEmpty template of this endpoint for the employee",
+                              "// (field ids, types, labels, options in admin order, display conditions). Tabs are picked by property, never by id:",
+                              "// MULTI = multi-record tab with unconditional TEXT(0), SELECT(1, 2+ options), NUMBER(2) and DATE(5) fields,",
+                              "// SINGLE = single-record tab with the same field types, LOCATED = tab without fields for the employee's location",
+                              "const loadTabs = (empNumber, done) => {",
+                              "    api(\"GET\", \"/api/customizablePimTabs\", undefined, (err, res) => {",
+                              "        const tabs = bodyOf(err, res).data || [];",
+                              "        const loaded = [];",
+                              "        if (tabs.length === 0) {",
+                              "            done(loaded);",
+                              "            return;",
+                              "        }",
+                              "        tabs.forEach(tab => {",
+                              "            api(\"GET\", `/api/employeeCustomTabCustomFieldValues?emp_number=${empNumber}&tabId=${norm(tab.id)}&withEmpty=true`, undefined, (err2, res2) => {",
+                              "                const tabData = bodyOf(err2, res2).data || {};",
+                              "                const formData = (tabData.emptyValues || {}).formData || {};",
+                              "                loaded.push({",
+                              "                    tabId: norm(tab.id),",
+                              "                    multi: norm(tab.has_multiple_records) === \"1\",",
+                              "                    emptySection: tabData.emptySection === true,",
+                              "                    count: tabData.customFieldCount === undefined ? -1 : Number(tabData.customFieldCount),",
+                              "                    fields: Object.keys(formData).map(id => ({",
+                              "                        id: id,",
+                              "                        type: norm(formData[id].type),",
+                              "                        label: norm(formData[id].lable),",
+                              "                        options: norm(formData[id].unmodifiedExtraData) === \"\" ? [] : norm(formData[id].unmodifiedExtraData).split(\",\"),",
+                              "                        conditional: norm((formData[id].customFieldDisplayCondition || {}).parentCustomFieldId) !== \"\"",
+                              "                            && typeof (formData[id].customFieldDisplayCondition || {}).parentCustomFieldId !== \"object\"",
+                              "                    }))",
+                              "                });",
+                              "                if (loaded.length === tabs.length) {",
+                              "                    loaded.sort((a, b) => Number(a.tabId) - Number(b.tabId));",
+                              "                    done(loaded);",
+                              "                }",
+                              "            });",
+                              "        });",
+                              "    });",
+                              "};",
+                              "const ROLE_TYPES = { TEXT: \"0\", SELECT: \"1\", NUMBER: \"2\", DATE: \"5\" };",
+                              "const withRoles = tab => {",
+                              "    const roles = {};",
+                              "    Object.keys(ROLE_TYPES).forEach(role => {",
+                              "        const field = tab.fields.find(f => !f.conditional && f.type === ROLE_TYPES[role]",
+                              "            && (role !== \"SELECT\" || f.options.length >= 2));",
+                              "        if (field) {",
+                              "            roles[role] = field;",
+                              "        }",
+                              "    });",
+                              "    return Object.keys(roles).length === Object.keys(ROLE_TYPES).length",
+                              "        ? { tabId: tab.tabId, count: tab.count, fieldIds: tab.fields.map(f => f.id), roles: roles }",
+                              "        : null;",
+                              "};",
+                              "const pickTabs = loaded => {",
+                              "    const multi = loaded.filter(tab => tab.multi && tab.count > 0).map(withRoles).find(tab => tab);",
+                              "    const single = loaded.filter(tab => !tab.multi && tab.count > 0).map(withRoles).find(tab => tab);",
+                              "    const located = loaded.find(tab => !tab.emptySection && tab.count === 0);",
+                              "    return { MULTI: multi || null, SINGLE: single || null, LOCATED: located ? { tabId: located.tabId, count: 0 } : null };",
+                              "};",
+                              "// <prefix>_query holds key=value pairs separated by \"&\". Tokens (in keys and values):",
+                              "// {EMP.A} {EMP.B} employees, {TAB.MULTI} {TAB.SINGLE} {TAB.LOCATED} picked tabs,",
+                              "// {FIELD.TEXT|SELECT|NUMBER|DATE} fields of the MULTI tab, {OPT.n} n-th option of its SELECT field, {SEQ.<record>} record seqNo",
+                              "const resolveTokens = (text, ctx) => text.replace(/\\{(EMP|TAB|FIELD|OPT|SEQ)\\.(\\w+)\\}/g, (match, kind, name) => {",
+                              "    let value;",
+                              "    if (kind === \"EMP\") {",
+                              "        value = (ctx.emps || {})[name];",
+                              "    } else if (kind === \"TAB\") {",
+                              "        value = ((ctx.tabs || {})[name] || {}).tabId;",
+                              "    } else if (kind === \"FIELD\") {",
+                              "        value = ((((ctx.tabs || {}).MULTI || {}).roles || {})[name] || {}).id;",
+                              "    } else if (kind === \"OPT\") {",
+                              "        value = (((((ctx.tabs || {}).MULTI || {}).roles || {}).SELECT || {}).options || [])[Number(name) - 1];",
+                              "    } else {",
+                              "        value = ((ctx.records || {})[name] || {}).seq;",
+                              "    }",
+                              "    if (value === undefined || value === null || norm(value) === \"\") {",
+                              "        throw new Error(`Precondition failed: ${match} could not be resolved`);",
+                              "    }",
+                              "    return norm(value);",
+                              "});",
+                              "const addQuery = (column, ctx) => {",
+                              "    if (cell(column) === \"\") {",
+                              "        return;",
+                              "    }",
+                              "    cell(column).split(\"&\").forEach(pair => {",
+                              "        const at = pair.indexOf(\"=\");",
+                              "        if (at < 1) {",
+                              "            throw new Error(`Test data error: \"${pair}\" in ${column} is not key=value`);",
+                              "        }",
+                              "        pm.request.url.addQueryParams([{ key: resolveTokens(pair.slice(0, at), ctx), value: resolveTokens(pair.slice(at + 1), ctx) }]);",
+                              "    });",
+                              "};",
+                              "[\"ectcfv_query\", \"expectedStatus\"].forEach(key => {",
+                              "    if (cell(key).trim() === \"\") {",
+                              "        throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "    }",
+                              "});",
+                              "if (pm.info.iteration === 0) {",
+                              "    pm.environment.unset(\"ectcfv_neg_tabs\");",
+                              "}",
+                              "// the tabs are looked up once per run (template of an employee number that does not exist = global fields only)",
+                              "const cached = pm.environment.get(\"ectcfv_neg_tabs\");",
+                              "if (!/\\{(TAB|FIELD|OPT)\\./.test(cell(\"ectcfv_query\"))) {",
+                              "    addQuery(\"ectcfv_query\", {});",
+                              "} else if (cached) {",
+                              "    addQuery(\"ectcfv_query\", { tabs: JSON.parse(cached) });",
+                              "} else {",
+                              "    if (cell(\"ectcfv_oracleEmpNumber\").trim() === \"\") {",
+                              "        throw new Error(\"Test data error: ectcfv_oracleEmpNumber is blank in the CSV row\");",
+                              "    }",
+                              "    loadTabs(cell(\"ectcfv_oracleEmpNumber\"), loaded => {",
+                              "        const tabs = pickTabs(loaded);",
+                              "        if (!tabs.MULTI) {",
+                              "            throw new Error(\"Precondition failed: no multi-record custom PIM tab with TEXT, SELECT, NUMBER and DATE fields on QA\");",
+                              "        }",
+                              "        // side effect: reused by the next rows of this folder",
+                              "        pm.environment.set(\"ectcfv_neg_tabs\", JSON.stringify({ MULTI: tabs.MULTI }));",
+                              "        addQuery(\"ectcfv_query\", { tabs: { MULTI: tabs.MULTI } });",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const defect = cell(\"ectcfv_knownDefect\") === \"\" ? \"\" : ` [known defect ${cell(\"ectcfv_knownDefect\")}]`;",
+                              "const scenario = `${cell(\"scenario\")}${defect}`;",
+                              "const expectedStatus = Number(cell(\"expectedStatus\"));",
+                              "",
+                              "pm.test(`Parameter is handled with the documented status (${scenario})`, function () {",
+                              "    pm.response.to.have.status(expectedStatus);",
+                              "});",
+                              "",
+                              "if (expectedStatus === 400) {",
+                              "    pm.test(`Error explains the invalid parameter (${scenario})`, function () {",
+                              "        pm.expect(norm(response.title), \"title\").to.eql(\"Invalid data\");",
+                              "        pm.expect(norm(response.details), \"details\").to.include(cell(\"neg_expectedDetails\"));",
+                              "    });",
+                              "}",
+                              "if (expectedStatus === 200) {",
+                              "    pm.test(`The parameter is accepted and the tab is read (${scenario})`, function () {",
+                              "        pm.expect((response.data || {}).emptySection, \"data.emptySection\").to.eql(false);",
+                              "    });",
+                              "} else {",
+                              "    pm.test(`No custom tab values are returned (${scenario})`, function () {",
+                              "        pm.expect(response.data, \"data\").to.be.undefined;",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employeeCustomTabCustomFieldValues",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employeeCustomTabCustomFieldValues"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "get-employee-custom-tab-custom-field-values-without-valid-token",
+                  "item": [
+                    {
+                      "name": "ADMIN-584 get custom tab values without token",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// no token on purpose: request auth is No Auth",
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "// the parameters do not matter: the token is checked first",
+                              "[\"tabId\", \"emp_number\"].forEach(key => {",
+                              "    if (cell(key).trim() === \"\") {",
+                              "        throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "    }",
+                              "});",
+                              "pm.request.url.addQueryParams([{ key: \"emp_number\", value: cell(\"emp_number\") }, { key: \"tabId\", value: cell(\"tabId\") }]);"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "pm.test(\"Request without a token is rejected\", function () {",
+                              "    pm.response.to.have.status(401);",
+                              "});",
+                              "",
+                              "// the API returns [] here (D7); assert only that no tab data comes back",
+                              "pm.test(\"No custom tab values are returned without a token\", function () {",
+                              "    pm.expect(response.data, \"data\").to.be.undefined;",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employeeCustomTabCustomFieldValues",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employeeCustomTabCustomFieldValues"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "ADMIN-585 get custom tab values with invalid authorization header",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "// the parameters do not matter: the token is checked first",
+                              "[\"tabId\", \"emp_number\", \"authorizationHeader\"].forEach(key => {",
+                              "    if (cell(key).trim() === \"\") {",
+                              "        throw new Error(`Test data error: ${key} is blank in the CSV row`);",
+                              "    }",
+                              "});",
+                              "pm.request.url.addQueryParams([{ key: \"emp_number\", value: cell(\"emp_number\") }, { key: \"tabId\", value: cell(\"tabId\") }]);"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const scenario = cell(\"scenario\");",
+                              "",
+                              "pm.test(`Request with an invalid authorization header is rejected (${scenario})`, function () {",
+                              "    pm.response.to.have.status(Number(cell(\"expectedStatus\")));",
+                              "});",
+                              "",
+                              "pm.test(`Error explains the authorization problem (${scenario})`, function () {",
+                              "    pm.expect(norm(response.error), \"error\").to.eql(cell(\"neg_expectedError\"));",
+                              "    pm.expect(norm(response.error_description), \"error_description\").to.eql(cell(\"neg_expectedErrorDescription\"));",
+                              "    pm.expect(response.data, \"data\").to.be.undefined;",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "{{authorizationHeader}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employeeCustomTabCustomFieldValues",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employeeCustomTabCustomFieldValues"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -72647,6 +74516,10 @@
     {
       "key": "employeeCustomTabCustomFieldListSchema",
       "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"title\":\"Employee custom tab custom field list (GET response)\",\"type\":\"object\",\"required\":[\"data\"],\"properties\":{\"data\":{\"oneOf\":[{\"type\":\"array\",\"maxItems\":0},{\"type\":\"object\",\"required\":[\"customFieldDetails\"],\"properties\":{\"customFieldDetails\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"fieldId\",\"fieldName\",\"labelName\",\"typeDetails\",\"fieldType\"],\"properties\":{\"fieldId\":{\"type\":\"string\",\"pattern\":\"^[0-9]+$\"},\"fieldName\":{\"type\":\"string\",\"pattern\":\"^custom[0-9]+$\"},\"labelName\":{\"type\":\"string\"},\"required\":{\"type\":\"boolean\",\"enum\":[true]},\"typeDetails\":{\"type\":\"object\",\"required\":[\"type\",\"options\",\"attributes\"],\"properties\":{\"type\":{\"type\":\"string\"},\"options\":{\"type\":[\"object\",\"array\"]},\"attributes\":{\"type\":[\"object\",\"array\"]}}},\"fieldType\":{\"type\":\"string\"}}}}}}]}}}"
+    },
+    {
+      "key": "employeeCustomTabCustomFieldValueListSchema",
+      "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"required\":[\"data\"],\"properties\":{\"data\":{\"type\":\"object\",\"required\":[\"emptySection\"],\"properties\":{\"emptySection\":{\"type\":\"boolean\"},\"customFieldCount\":{\"type\":\"integer\",\"minimum\":0},\"tabValues\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"object\",\"required\":[\"seqNo\",\"customFieldId\",\"formData\"],\"properties\":{\"seqNo\":{\"type\":\"integer\"},\"customFieldId\":{\"type\":\"string\"},\"formData\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"object\",\"required\":[\"id\",\"lable\",\"customFieldId\",\"valueType\",\"sequenceNumber\",\"fieldType\",\"type\",\"unmodifiedExtraData\",\"customFieldDisplayCondition\",\"extraData\",\"value\"],\"properties\":{\"id\":{\"type\":\"string\"},\"lable\":{\"type\":\"string\"},\"customFieldId\":{\"type\":\"string\"},\"valueType\":{\"type\":\"string\"},\"sequenceNumber\":{\"type\":\"string\"},\"fieldType\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"},\"advanceTypeMap\":{\"type\":[\"object\",\"null\"]},\"unmodifiedExtraData\":{\"type\":[\"string\",\"null\"]},\"customFieldDisplayCondition\":{\"type\":\"object\"},\"extraData\":{\"type\":\"array\"},\"value\":{\"type\":[\"string\",\"number\",\"object\",\"null\"]}}}}},\"patternProperties\":{\"^customFieldValue_[0-9]+$\":{\"type\":[\"string\",\"null\"]}}}},\"emptyValues\":{\"type\":\"object\",\"required\":[\"formData\"],\"properties\":{\"formData\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"object\",\"required\":[\"id\",\"lable\",\"customFieldId\",\"valueType\",\"sequenceNumber\",\"fieldType\",\"type\",\"unmodifiedExtraData\",\"customFieldDisplayCondition\",\"extraData\",\"value\"],\"properties\":{\"id\":{\"type\":\"string\"},\"lable\":{\"type\":\"string\"},\"customFieldId\":{\"type\":\"string\"},\"valueType\":{\"type\":\"string\"},\"sequenceNumber\":{\"type\":\"string\"},\"fieldType\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"},\"advanceTypeMap\":{\"type\":[\"object\",\"null\"]},\"unmodifiedExtraData\":{\"type\":[\"string\",\"null\"]},\"customFieldDisplayCondition\":{\"type\":\"object\"},\"extraData\":{\"type\":\"array\"},\"value\":{\"type\":[\"string\",\"number\",\"object\",\"null\"]}}}}}}}}}}"
     }
   ]
 }
