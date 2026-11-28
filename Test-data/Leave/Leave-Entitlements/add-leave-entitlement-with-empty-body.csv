@@ -1,0 +1,2 @@
+"scenario","ent_rawBody","ent_contentType","expectedStatusClass","ent_knownDefect"
+"empty request body (ENT-S49)",,"application/json","4xx","D1 - QA returns 500 text/html"

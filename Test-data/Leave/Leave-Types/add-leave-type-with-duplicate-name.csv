@@ -1,0 +1,6 @@
+"scenario","lt_duplicateMode","lt_firstCountryId","lt_secondCountryId","expectedStatus","expectedTitle","expectedDetails","lt_knownDefect","lt_expectationSource"
+"name of the folder's own active leave type, same country (LT-S18)","ownActive","""8""","""8""",400,"unsupported resource request","name [unique [Active Leave Type With Same Name Exists]]",,"confirmed on QA (E47)"
+"name of the folder's own active leave type, another country (LT-S18)","ownActive","""8""","""7""",400,"unsupported resource request","name [unique [Active Leave Type With Same Name Exists]]",,"confirmed on QA (E48)"
+"name of a seeded active leave type (LT-S18)","seeded:Pay in Lieu",,"""8""",400,"unsupported resource request","name [unique [Active Leave Type With Same Name Exists]]",,"confirmed on QA (E51)"
+"name of the folder's own soft-deleted leave type (LT-S20)","ownDeleted","""8""","""8""",200,,,,"confirmed on QA (E57)"
+"own active name padded with spaces (LT-S34)","ownActivePadded","""8""","""8""",400,"unsupported resource request","name [unique [Active Leave Type With Same Name Exists]]","D5 - QA returns 200 and creates a second active type with the trimmed name","expected per source; QA returns 200 (E50)"

@@ -1,0 +1,7 @@
+"scenario","lt_name","lt_shortName","lt_operationalCountryId","lt_hourBased","lt_isShortTerm","lt_excludeInReports","lt_includeInBradford","lt_employeeNominee","expectedStatus","lt_expectedShortName","lt_expectedHourBased","lt_expectedIsShortTerm","lt_expectedExcludeInReports","lt_expectedIncludeInBradford","lt_expectedEmployeeNominee","lt_expectedCountryCode","lt_expectedShowWarning","lt_checkDefaultRules","lt_checkCountryCountPlusOne","lt_expectationSource"
+"all fields (LT-S01, S02, S26, S31, S32)","Test1","EXP","""8""","false","false","true","true","true",200,"EXP","false","false","true","true","true","KE","true","yes","yes","confirmed on QA (E15)"
+"mandatory fields only (LT-S03)","Test2",,"""8""",,,,,,200,"{NULL}","false","false","false","false","false","KE","true",,,"confirmed on QA (E16)"
+"hour-based leave type (LT-S04)","Test3",,"""8""","true",,,,,200,"{NULL}","true","false","false","false","false","KE","true",,,"confirmed on QA (E17)"
+"short-term leave type (LT-S05)","Test4",,"""8""",,"true",,,,200,"{NULL}","false","true","false","false","false","KE","false","yes",,"confirmed on QA (E18)"
+"flags as 1/0/""1"", country as a number (LT-S06)","Test5",,"8",,,"1","0","""1""",200,"{NULL}","false","false","true","false","true","KE","true",,,"confirmed on QA (E16, E19)"
+"short_name, hour_based, is_short_term sent as null (LT-S06)","Test6","{NULL}","""8""","null","null",,,,200,"{NULL}","false","false","false","false","false","KE","true",,,"confirmed on QA (E19)"

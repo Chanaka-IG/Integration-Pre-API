@@ -1,0 +1,7 @@
+"scenario","lt_body","lt_contentType","expectedStatus","expectedBody","lt_checkNothingCreatedName","lt_knownDefect"
+"all fields (LT-S21, S33)","{""name"":""{UNIQUE}"",""operational_country_id"":""8"",""short_name"":""EXP"",""hour_based"":false,""is_short_term"":false,""exclude_in_reports_if_no_entitlement"":true,""include_in_bradford_factor_report"":false,""employee_nominee_enabled"":false}","application/json",403,"Unauthorized","{UNIQUE}","D1 - 403 body is text/html"
+"mandatory fields only (LT-S21, S33)","{""name"":""{UNIQUE}"",""operational_country_id"":""8""}","application/json",403,"Unauthorized","{UNIQUE}","D1 - 403 body is text/html"
+"empty object (LT-S22)","{}","application/json",403,"Unauthorized",,"D1 - 403 body is text/html"
+"malformed JSON (LT-S22)","not json","application/json",403,"Unauthorized",,"D1 - 403 body is text/html"
+"empty body (LT-S22)",,"application/json",403,"Unauthorized",,"D1 - 403 body is text/html"
+"name of an existing active leave type (LT-S22)","{""name"":""Pay in Lieu"",""operational_country_id"":""1""}","application/json",403,"Unauthorized",,"D1 - 403 body is text/html"

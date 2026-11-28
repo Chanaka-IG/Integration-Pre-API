@@ -1,0 +1,3 @@
+"scenario","firstName","lastName","locationId","joinedDate","ent_employeeIds","ent_multipleEmployees","ent_leaveType","ent_entitlementAmount","ent_from","ent_to","ent_comment","ent_expectedLength","ent_expectedRowsPerEmployee","ent_knownDefect","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"two employees (ENT-S07)","Leave","Bulk",2,"2024-06-20","{EMP}|{EMP2}","true",17,3,"{CURRENT_FROM}","{CURRENT_TO}","Bulk entitlement","3.000000000",1,"D4 created_by_name null in GET - not asserted","{TODAY}",1,"Leave API test teardown",1,"23:55","Asia/Kolkata"
+"single employee with multipleEmployees true (ENT-S08)",,,,,"{EMP}","true",17,1.5,"{CURRENT_FROM}","{CURRENT_TO}","Bulk single","1.500000000",1,,,,,,,
