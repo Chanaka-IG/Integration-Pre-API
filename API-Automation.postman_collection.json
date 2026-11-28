@@ -10119,6 +10119,15 @@
                             "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees",
                           "host": [
@@ -10128,15 +10137,6 @@
                             "api",
                             "employees"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -10305,6 +10305,15 @@
                             "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jh_emp_number}}/job",
                           "host": [
@@ -10316,15 +10325,6 @@
                             "{{emp_jh_emp_number}}",
                             "job"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -10396,6 +10396,15 @@
                             "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jh_emp_number}}/job",
                           "host": [
@@ -10407,15 +10416,6 @@
                             "{{emp_jh_emp_number}}",
                             "job"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -10487,6 +10487,15 @@
                             "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jh_emp_number}}/job",
                           "host": [
@@ -10498,15 +10507,6 @@
                             "{{emp_jh_emp_number}}",
                             "job"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -10568,6 +10568,15 @@
                             "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{otherJoinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees",
                           "host": [
@@ -10577,15 +10586,6 @@
                             "api",
                             "employees"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{otherJoinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -10839,6 +10839,15 @@
                             "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jh_emp_number}}/job/history",
                           "host": [
@@ -10851,15 +10860,6 @@
                             "job",
                             "history"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -10948,6 +10948,15 @@
                             "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jh_emp_number}}/termination-record",
                           "host": [
@@ -10959,15 +10968,6 @@
                             "{{emp_jh_emp_number}}",
                             "termination-record"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -11075,10 +11075,19 @@
                         "method": "POST",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees",
                           "host": [
@@ -11088,15 +11097,6 @@
                             "api",
                             "employees"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -11316,10 +11316,19 @@
                         "method": "DELETE",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jobhd_emp_number}}/job/history",
                           "host": [
@@ -11332,15 +11341,6 @@
                             "job",
                             "history"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -11427,10 +11427,19 @@
                         "method": "POST",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jobhd_emp_number}}/termination-record",
                           "host": [
@@ -11442,15 +11451,6 @@
                             "{{emp_jobhd_emp_number}}",
                             "termination-record"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -11557,10 +11557,19 @@
                         "method": "POST",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees",
                           "host": [
@@ -11570,15 +11579,6 @@
                             "api",
                             "employees"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -11685,10 +11685,19 @@
                         "method": "POST",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jobht_emp_number}}/termination-record",
                           "host": [
@@ -11700,15 +11709,6 @@
                             "{{emp_jobht_emp_number}}",
                             "termination-record"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -11797,10 +11797,19 @@
                         "method": "DELETE",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jobht_emp_number}}/job/history",
                           "host": [
@@ -11813,15 +11822,6 @@
                             "job",
                             "history"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -11908,10 +11908,19 @@
                         "method": "POST",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jobht_emp_number}}/termination-record",
                           "host": [
@@ -11923,15 +11932,6 @@
                             "{{emp_jobht_emp_number}}",
                             "termination-record"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -35574,55 +35574,6 @@
                       "name": "ADMIN-580 get custom tab values after deleting a record",
                       "event": [
                         {
-                          "listen": "prerequest",
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "const api = (method, path, body, callback) => pm.sendRequest({",
-                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
-                              "    method: method,",
-                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
-                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
-                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
-                              "}, callback);",
-                              "const bodyOf = (err, res) => {",
-                              "    if (err) {",
-                              "        return {};",
-                              "    }",
-                              "    try {",
-                              "        return res.json() || {};",
-                              "    } catch (e) {",
-                              "        return {};",
-                              "    }",
-                              "};",
-                              "// the fixtures serve every row, so they are removed after the last iteration only",
-                              "const lastIteration = pm.info.iteration === pm.info.iterationCount - 1;",
-                              "if (!lastIteration) {",
-                              "    pm.execution.skipRequest();",
-                              "}",
-                              "const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
-                              "if (lastIteration) {",
-                              "    if (!fixtures.tabs || !fixtures.records || !fixtures.records.A2) {",
-                              "        throw new Error(\"Precondition failed: record A2 not created by ADMIN-576\");",
-                              "    }",
-                              "    pm.request.url.addQueryParams([",
-                              "        { key: \"emp_number\", value: norm(fixtures.emps.A) },",
-                              "        { key: \"tabId\", value: norm(fixtures.tabs.MULTI.tabId) }",
-                              "    ]);",
-                              "    // delete record A2 of employee A; the GET of this request must no longer return it",
-                              "    pm.variables.set(\"deleteStatus\", \"not sent\");",
-                              "    api(\"DELETE\", \"/api/employeeCustomTabCustomFieldValues\", {",
-                              "        data: { emp_number: Number(fixtures.emps.A), tabId: Number(fixtures.tabs.MULTI.tabId), toDeleteIds: [fixtures.records.A2.seq] }",
-                              "    }, (err, res) => {",
-                              "        pm.variables.set(\"deleteStatus\", err ? \"error\" : norm(res.code));",
-                              "    });",
-                              "}"
-                            ],
-                            "type": "text/javascript"
-                          }
-                        },
-                        {
                           "listen": "test",
                           "script": {
                             "exec": [
@@ -35726,6 +35677,55 @@
                             ],
                             "type": "text/javascript"
                           }
+                        },
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "const api = (method, path, body, callback) => pm.sendRequest({",
+                              "    url: `${pm.environment.get(\"baseURL\")}${path}`,",
+                              "    method: method,",
+                              "    header: [{ key: \"Authorization\", value: `Bearer ${pm.environment.get(\"accessToken\")}` }]",
+                              "        .concat(body === undefined ? [] : [{ key: \"Content-Type\", value: \"application/json\" }]),",
+                              "    body: body === undefined ? undefined : { mode: \"raw\", raw: JSON.stringify(body) }",
+                              "}, callback);",
+                              "const bodyOf = (err, res) => {",
+                              "    if (err) {",
+                              "        return {};",
+                              "    }",
+                              "    try {",
+                              "        return res.json() || {};",
+                              "    } catch (e) {",
+                              "        return {};",
+                              "    }",
+                              "};",
+                              "// the fixtures serve every row, so they are removed after the last iteration only",
+                              "const lastIteration = pm.info.iteration === pm.info.iterationCount - 1;",
+                              "if (!lastIteration) {",
+                              "    pm.execution.skipRequest();",
+                              "}",
+                              "const fixtures = JSON.parse(pm.environment.get(\"ectcfv_fixtures\") || \"{}\");",
+                              "if (lastIteration) {",
+                              "    if (!fixtures.tabs || !fixtures.records || !fixtures.records.A2) {",
+                              "        throw new Error(\"Precondition failed: record A2 not created by ADMIN-576\");",
+                              "    }",
+                              "    pm.request.url.addQueryParams([",
+                              "        { key: \"emp_number\", value: norm(fixtures.emps.A) },",
+                              "        { key: \"tabId\", value: norm(fixtures.tabs.MULTI.tabId) }",
+                              "    ]);",
+                              "    // delete record A2 of employee A; the GET of this request must no longer return it",
+                              "    pm.variables.set(\"deleteStatus\", \"not sent\");",
+                              "    api(\"DELETE\", \"/api/employeeCustomTabCustomFieldValues\", {",
+                              "        data: { emp_number: Number(fixtures.emps.A), tabId: Number(fixtures.tabs.MULTI.tabId), toDeleteIds: [fixtures.records.A2.seq] }",
+                              "    }, (err, res) => {",
+                              "        pm.variables.set(\"deleteStatus\", err ? \"error\" : norm(res.code));",
+                              "    });",
+                              "}"
+                            ],
+                            "type": "text/javascript"
+                          }
                         }
                       ],
                       "request": {
@@ -35747,6 +35747,37 @@
                     {
                       "name": "ADMIN-581 delete the records of employee A and terminate employee A",
                       "event": [
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Employee A created by ADMIN-573 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(norm(pm.environment.get(\"ectcfv_a_emp_number\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No custom tab value record of employee A is left\", function () {",
+                              "    const tabIds = JSON.parse(pm.variables.get(\"teardownTabs\") || \"[]\");",
+                              "    const remaining = JSON.parse(pm.variables.get(\"remainingRecords\") || \"{}\");",
+                              "    pm.expect(tabIds.length, \"tabs checked (multi-record and single-record)\").to.eql(2);",
+                              "    tabIds.forEach(tabId => {",
+                              "        pm.expect(remaining[tabId], `records left on tab ${tabId}`).to.eql(0);",
+                              "    });",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
                         {
                           "listen": "prerequest",
                           "script": {
@@ -35817,37 +35848,6 @@
                             ],
                             "type": "text/javascript"
                           }
-                        },
-                        {
-                          "listen": "test",
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "let response = {};",
-                              "try {",
-                              "    response = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the status and schema checks report it",
-                              "}",
-                              "const responseData = response.data || {};",
-                              "",
-                              "pm.test(\"Employee A created by ADMIN-573 is terminated\", function () {",
-                              "    pm.response.to.have.status(201);",
-                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(norm(pm.environment.get(\"ectcfv_a_emp_number\")));",
-                              "});",
-                              "",
-                              "pm.test(\"No custom tab value record of employee A is left\", function () {",
-                              "    const tabIds = JSON.parse(pm.variables.get(\"teardownTabs\") || \"[]\");",
-                              "    const remaining = JSON.parse(pm.variables.get(\"remainingRecords\") || \"{}\");",
-                              "    pm.expect(tabIds.length, \"tabs checked (multi-record and single-record)\").to.eql(2);",
-                              "    tabIds.forEach(tabId => {",
-                              "        pm.expect(remaining[tabId], `records left on tab ${tabId}`).to.eql(0);",
-                              "    });",
-                              "});"
-                            ],
-                            "type": "text/javascript"
-                          }
                         }
                       ],
                       "request": {
@@ -35885,6 +35885,37 @@
                     {
                       "name": "ADMIN-582 delete the records of employee B and terminate employee B",
                       "event": [
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
+                              "const cell = key => norm(pm.iterationData.get(key));",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    // not JSON: the status and schema checks report it",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(\"Employee B created by ADMIN-574 is terminated\", function () {",
+                              "    pm.response.to.have.status(201);",
+                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(norm(pm.environment.get(\"ectcfv_b_emp_number\")));",
+                              "});",
+                              "",
+                              "pm.test(\"No custom tab value record of employee B is left\", function () {",
+                              "    const tabIds = JSON.parse(pm.variables.get(\"teardownTabs\") || \"[]\");",
+                              "    const remaining = JSON.parse(pm.variables.get(\"remainingRecords\") || \"{}\");",
+                              "    pm.expect(tabIds.length, \"tabs checked (multi-record and single-record)\").to.eql(2);",
+                              "    tabIds.forEach(tabId => {",
+                              "        pm.expect(remaining[tabId], `records left on tab ${tabId}`).to.eql(0);",
+                              "    });",
+                              "});"
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
                         {
                           "listen": "prerequest",
                           "script": {
@@ -35952,37 +35983,6 @@
                               "    });",
                               "    pm.variables.set(\"teardownTabs\", JSON.stringify(tabIds));",
                               "}"
-                            ],
-                            "type": "text/javascript"
-                          }
-                        },
-                        {
-                          "listen": "test",
-                          "script": {
-                            "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);",
-                              "const cell = key => norm(pm.iterationData.get(key));",
-                              "let response = {};",
-                              "try {",
-                              "    response = pm.response.json() || {};",
-                              "} catch (e) {",
-                              "    // not JSON: the status and schema checks report it",
-                              "}",
-                              "const responseData = response.data || {};",
-                              "",
-                              "pm.test(\"Employee B created by ADMIN-574 is terminated\", function () {",
-                              "    pm.response.to.have.status(201);",
-                              "    pm.expect(norm(responseData.empNumber), \"empNumber\").to.eql(norm(pm.environment.get(\"ectcfv_b_emp_number\")));",
-                              "});",
-                              "",
-                              "pm.test(\"No custom tab value record of employee B is left\", function () {",
-                              "    const tabIds = JSON.parse(pm.variables.get(\"teardownTabs\") || \"[]\");",
-                              "    const remaining = JSON.parse(pm.variables.get(\"remainingRecords\") || \"{}\");",
-                              "    pm.expect(tabIds.length, \"tabs checked (multi-record and single-record)\").to.eql(2);",
-                              "    tabIds.forEach(tabId => {",
-                              "        pm.expect(remaining[tabId], `records left on tab ${tabId}`).to.eql(0);",
-                              "    });",
-                              "});"
                             ],
                             "type": "text/javascript"
                           }
@@ -41026,6 +41026,303 @@
                       "response": []
                     }
                   ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Leave",
+          "item": [
+            {
+              "name": "Leave Types",
+              "item": [
+                {
+                  "name": "add-leave-type",
+                  "item": [
+                    {
+                      "name": "add-leave-type",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "exec": [
+                              "// All checks run first: an error thrown after pm.sendRequest is queued is swallowed and the",
+                              "// request is still sent, so the token request is the last step of this script.",
+                              "",
+                              "// clear values left over from earlier iterations or runs",
+                              "pm.environment.unset(\"leaveTypeId\");",
+                              "",
+                              "// Leave types need an API user with leave_types create permission: this request uses its own",
+                              "// OAuth client (password grant) instead of the collection token. Client id/secret come from the",
+                              "// environment (leaveTypeClientID, leaveTypeClientSecret); never hard-code them here.",
+                              "// pm.variables resolves environment, collection and global scope.",
+                              "const ltClientId = pm.variables.get(\"leaveTypeClientID\");",
+                              "const ltClientSecret = pm.variables.get(\"leaveTypeClientSecret\");",
+                              "if (!ltClientId || !ltClientSecret) {",
+                              "    throw new Error(\"Precondition failed: set leaveTypeClientID and leaveTypeClientSecret in the QA environment\");",
+                              "}",
+                              "",
+                              "const rawCell = key => {",
+                              "    const v = pm.iterationData.get(key);",
+                              "    return (v === null || v === undefined) ? \"\" : String(v).trim();",
+                              "};",
+                              "",
+                              "if (rawCell(\"lt_operationalCountryId\") === \"\") {",
+                              "    throw new Error(\"No CSV row: run this request in the Collection Runner / Newman with Test-data/Leave/Leave-Types/add-leave-type.csv\");",
+                              "}",
+                              "",
+                              "// JSON-literal columns: \"8\" = string, 8 = number, true / false / null; blank = key not sent",
+                              "const jsonCell = key => {",
+                              "    const v = rawCell(key);",
+                              "    if (v === \"\") {",
+                              "        return undefined;",
+                              "    }",
+                              "    try {",
+                              "        return JSON.parse(v);",
+                              "    } catch (e) {",
+                              "        throw new Error(`CSV column ${key} must hold a JSON literal, got: ${v}`);",
+                              "    }",
+                              "};",
+                              "",
+                              "// plain-text columns: {NULL} = send null; blank = key not sent",
+                              "const textCell = key => {",
+                              "    const v = rawCell(key);",
+                              "    if (v === \"\") {",
+                              "        return undefined;",
+                              "    }",
+                              "    return v === \"{NULL}\" ? null : v;",
+                              "};",
+                              "",
+                              "const leaveTypeName = `LEAVE-LT-${Date.now().toString().slice(-6)} ${rawCell(\"lt_name\")}`.trim();",
+                              "",
+                              "// undefined values are dropped by JSON.stringify, so blank cells are not sent; null is sent",
+                              "const body = {",
+                              "    name: leaveTypeName,",
+                              "    short_name: textCell(\"lt_shortName\"),",
+                              "    operational_country_id: jsonCell(\"lt_operationalCountryId\"),",
+                              "    hour_based: jsonCell(\"lt_hourBased\"),",
+                              "    is_short_term: jsonCell(\"lt_isShortTerm\"),",
+                              "    exclude_in_reports_if_no_entitlement: jsonCell(\"lt_excludeInReports\"),",
+                              "    include_in_bradford_factor_report: jsonCell(\"lt_includeInBradford\"),",
+                              "    employee_nominee_enabled: jsonCell(\"lt_employeeNominee\")",
+                              "};",
+                              "",
+                              "pm.variables.set(\"requestBody\", JSON.stringify(body));",
+                              "pm.variables.set(\"leaveTypeName\", leaveTypeName);",
+                              "",
+                              "// token for this request's Bearer auth; refreshed 60s before expiry",
+                              "const ltTokenExpiry = Number(pm.environment.get(\"leaveTypeTokenExpiresAt\") || 0);",
+                              "if (!pm.environment.get(\"leaveTypeAccessToken\") || Date.now() > ltTokenExpiry - 60000) {",
+                              "    pm.sendRequest({",
+                              "        url: `${pm.environment.get(\"baseURL\")}/oauth/issueToken`,",
+                              "        method: \"POST\",",
+                              "        header: { \"Content-Type\": \"application/json\" },",
+                              "        body: {",
+                              "            mode: \"raw\",",
+                              "            raw: JSON.stringify({",
+                              "                client_id: ltClientId,",
+                              "                client_secret: ltClientSecret,",
+                              "                grant_type: \"password\",",
+                              "                username: pm.environment.get(\"userName\"),",
+                              "                password: pm.environment.get(\"password\")",
+                              "            })",
+                              "        }",
+                              "    }, (err, res) => {",
+                              "        if (err || res.code !== 200) {",
+                              "            // no usable token: the request goes out without one and fails with 401",
+                              "            pm.environment.unset(\"leaveTypeAccessToken\");",
+                              "            pm.environment.unset(\"leaveTypeTokenExpiresAt\");",
+                              "            console.error(\"Leave type token request failed\", err || res.code);",
+                              "            return;",
+                              "        }",
+                              "        const tokenBody = res.json();",
+                              "        // side effect: consumed by this request's Bearer auth ({{leaveTypeAccessToken}})",
+                              "        pm.environment.set(\"leaveTypeAccessToken\", tokenBody.access_token);",
+                              "        pm.environment.set(\"leaveTypeTokenExpiresAt\", Date.now() + tokenBody.expires_in * 1000);",
+                              "    });",
+                              "}",
+                              ""
+                            ],
+                            "type": "text/javascript"
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "const rawCell = key => {",
+                              "    const v = pm.iterationData.get(key);",
+                              "    return (v === null || v === undefined) ? \"\" : String(v).trim();",
+                              "};",
+                              "",
+                              "// expected columns: \"true\"/\"false\" = boolean, {NULL} = null, blank = not checked",
+                              "const expectedCell = key => {",
+                              "    const v = rawCell(key);",
+                              "    if (v === \"\") {",
+                              "        return undefined;",
+                              "    }",
+                              "    if (v === \"{NULL}\") {",
+                              "        return null;",
+                              "    }",
+                              "    if (v === \"true\" || v === \"false\") {",
+                              "        return v === \"true\";",
+                              "    }",
+                              "    return v;",
+                              "};",
+                              "",
+                              "if (rawCell(\"expectedStatus\") === \"\") {",
+                              "    throw new Error(\"No CSV row: expectedStatus is missing - run with Test-data/Leave/Leave-Types/add-leave-type.csv\");",
+                              "}",
+                              "const expectedStatus = Number(rawCell(\"expectedStatus\"));",
+                              "",
+                              "// error bodies can be plain text (e.g. 403 \"Unauthorized\"), so parse safely",
+                              "let response = {};",
+                              "try {",
+                              "    response = pm.response.json() || {};",
+                              "} catch (e) {",
+                              "    response = {};",
+                              "}",
+                              "const responseData = response.data || {};",
+                              "",
+                              "pm.test(`Status code is ${expectedStatus}`, function () {",
+                              "    pm.response.to.have.status(expectedStatus);",
+                              "});",
+                              "",
+                              "if (pm.response.code === 200) {",
+                              "",
+                              "    pm.test(\"Response matches the add leave type schema\", function () {",
+                              "        const raw = pm.collectionVariables.get(\"addLeaveTypeSchema\");",
+                              "        pm.expect(raw, \"addLeaveTypeSchema fixture is missing\").to.be.a(\"string\").and.not.empty;",
+                              "        pm.response.to.have.jsonSchema(JSON.parse(raw));",
+                              "    });",
+                              "",
+                              "    pm.test(\"Leave type is created\", function () {",
+                              "        pm.expect(response.success, \"success\").to.eql(true);",
+                              "        pm.expect(String(responseData.id), \"id\").to.match(/^\\d+$/);",
+                              "        pm.expect(responseData.deleted, \"deleted\").to.eql(\"0\");",
+                              "    });",
+                              "",
+                              "    pm.test(\"Leave type details match what was sent\", function () {",
+                              "        pm.expect(responseData.name, \"name\").to.eql(pm.variables.get(\"leaveTypeName\"));",
+                              "",
+                              "        const fields = {",
+                              "            short_name: \"lt_expectedShortName\",",
+                              "            hour_based: \"lt_expectedHourBased\",",
+                              "            is_short_term: \"lt_expectedIsShortTerm\",",
+                              "            exclude_in_reports_if_no_entitlement: \"lt_expectedExcludeInReports\",",
+                              "            include_in_bradford_factor_report: \"lt_expectedIncludeInBradford\",",
+                              "            employee_nominee_enabled: \"lt_expectedEmployeeNominee\"",
+                              "        };",
+                              "        Object.keys(fields).forEach(field => {",
+                              "            const expected = expectedCell(fields[field]);",
+                              "            if (expected !== undefined) {",
+                              "                pm.expect(responseData[field], field).to.eql(expected);",
+                              "            }",
+                              "        });",
+                              "    });",
+                              "",
+                              "    pm.test(\"Leave type is linked to the operational country\", function () {",
+                              "        const country = responseData.OperationalCountry || {};",
+                              "        pm.expect(country.country_code, \"OperationalCountry.country_code\").to.eql(expectedCell(\"lt_expectedCountryCode\"));",
+                              "        pm.expect(String(responseData.operational_country_id), \"operational_country_id\").to.eql(String(country.id));",
+                              "    });",
+                              "",
+                              "    // side effect: id of the created leave type, for read-back / teardown",
+                              "    if (responseData.id) {",
+                              "        pm.environment.set(\"leaveTypeId\", responseData.id);",
+                              "    }",
+                              "}",
+                              ""
+                            ],
+                            "type": "text/javascript"
+                          }
+                        }
+                      ],
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{leaveTypeAccessToken}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseURL}}/api/leaveTypes",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "leaveTypes"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Entitlements",
+              "item": [
+                {
+                  "name": "add-leave-entitlement",
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const hmexistingforCandidate = pm.environment.get(\"employee_for_entitlements\");\n\nif (pm.info.iteration > 0 ){\n        pm.execution.skipRequest();\n}\n\nelse {\n    if (hmexistingforCandidate){\n        pm.sendRequest({\n            url : `${pm.environment.get(\"baseURL\")}/api/employees/${hmexistingforCandidate}/termination-record`,\n            method: \"POST\",\n            header : { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },\n            body: { mode : \"raw\", raw : JSON.stringify({\n                date : pm.iterationData.get (\"terminationDate\"),\n                flaged : String(pm.iterationData.get (\"flagValue\")),\n                note : String(pm.iterationData.get (\"terminationNote\")),\n                reason : String(pm.iterationData.get (\"terminationReason\")),\n                time : pm.iterationData.get (\"time\"),\n                timezone : pm.iterationData.get (\"timezone\"),\n            })}\n        }, (err,res) => {\n\n            pm.test(\"Termination API - no request error\", function () {\n                pm.expect(err).to.equal(null);\n            });\n\n            if (err) {\n                console.error(\"Termination request error:\", err);\n                return;\n            }\n\n            pm.test (\"Validate the success response upon termination\", function () {\n                pm.expect(res.code).to.be.oneOf([200,201,204]);\n            })\n        })\n    }\n\n\n    pm.variables.set(\"employeeId\", `VACHM-${Date.now().toString().slice(-6)}`);\n}"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const responseData = (pm.response.json().data) || {};\n\n    if (pm.request.method == \"GET\"){\n        pm.test(\"Hisirng manager is still active\", function () {\n            pm.response.to.have.status(200);\n            pm.expect(String(responseData.empNumber), \"Employee number should be present\").to.eql(String(pm.environment.get(\"vacancy_hm_emp_number_candi\")));\n            pm.expect(responseData.termination_id, \"termination_id\").to.be.null;\n        })\n    }\n\n    else {\n\n        pm.test(\"Validate the response code\", function () {\n            pm.response.to.have.status(201);\n        })\n\n        pm.test (\"Employee number exist\", function () {\n            pm.expect(String(responseData.empNumber || \"\"), \"Employee number\").to.match(/^[0-9]+$/);\n        })\n\n        pm.environment.set(\"employee_for_entitlements\", String(responseData.empNumber));\n\n\n    }\n"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseURL}}/api/employees",
+                      "host": [
+                        "{{baseURL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "employees"
+                      ]
+                    }
+                  },
+                  "response": []
                 }
               ]
             }
@@ -65729,7 +66026,7 @@
                           "script": {
                             "type": "text/javascript",
                             "exec": [
-                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst vacancyFixture = pm.environment.get(\"vacancy_fixture_for_candi\");\nif (!vacancyFixture){\n    throw new Error(\"Precondition failed: vacancy_fixture_for_candi is not set by RECRUITMENT-057\");\n}\nconst vacancyID = JSON.parse(vacancyFixture).vacancyId;\n\nconst requestBody = JSON.stringify({\n     \"firstName\": cell(\"cand_firstName\"),\n     \"middleName\": cell(\"cand_middleName\"),\n     \"lastName\": cell(\"cand_lastName\"),\n     \"email\": cell(\"cand_email\"),\n     \"facebook\": cell(\"cand_facebook\"),\n     \"twitter\": cell(\"cand_twitter\"),\n     \"linkedin\": cell(\"cand_linkedin\"),\n     \"contactNo\": cell(\"cand_contactNo\"),\n     \"keywords\": cell(\"cand_keywords\"),\n     \"note\": cell(\"cand_note\"),\n     \"vacancy\": Number(vacancyID),\n     \"appliedDate\": cell(\"cand_appliedDate\"),\n     \"file\": {\n             \"fileName\": cell(\"cand_filePath\"),\n             \"file\": cell(\"cand_fileContent\")\n     }\n})\n\n\n\npm.variables.set(\"requestBody\", requestBody);\n"
+                              "const norm = v => (v === null || v === undefined) ? \"\" : String(v);\nconst cell = key => norm(pm.iterationData.get(key));\n\nconst vacancyFixture = pm.environment.get(\"vacancy_fixture_for_candi\");\nif (!vacancyFixture){\n    throw new Error(\"Precondition failed: vacancy_fixture_for_candi is not set by RECRUITMENT-057\");\n}\nconst vacancyID = JSON.parse(vacancyFixture).vacancyId;\n\nconst requestBody = JSON.stringify({\n     \"firstName\": cell(\"cand_firstName\"),\n     \"middleName\": cell(\"cand_middleName\"),\n     \"lastName\": cell(\"cand_lastName\"),\n     \"email\": cell(\"cand_email\"),\n     \"facebook\": cell(\"cand_facebook\"),\n     \"twitter\": cell(\"cand_twitter\"),\n     \"linkedin\": cell(\"cand_linkedin\"),\n     \"contactNo\": cell(\"cand_contactNo\"),\n     \"keywords\": cell(\"cand_keywords\"),\n     \"note\": cell(\"cand_note\"),\n     \"vacancy\": Number(vacancyID),\n     \"appliedDate\": cell(\"cand_appliedDate\"),\n     \"file\": {\n             \"fileName\": cell(\"cand_filePath\"),\n             \"file\": cell(\"cand_fileContent\")\n     }\n})\npm.variables.set(\"requestBody\", requestBody);\n"
                             ]
                           }
                         },
@@ -72461,6 +72758,15 @@
                             "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees",
                           "host": [
@@ -72470,15 +72776,6 @@
                             "api",
                             "employees"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -72622,6 +72919,15 @@
                             "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jh_inv_emp_number}}/termination-record",
                           "host": [
@@ -72633,15 +72939,6 @@
                             "{{emp_jh_inv_emp_number}}",
                             "termination-record"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -72935,10 +73232,19 @@
                         "method": "POST",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees",
                           "host": [
@@ -72948,15 +73254,6 @@
                             "api",
                             "employees"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -73059,10 +73356,19 @@
                         "method": "DELETE",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jobhi_emp_number}}/job/history",
                           "host": [
@@ -73075,15 +73381,6 @@
                             "job",
                             "history"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -73170,10 +73467,19 @@
                         "method": "POST",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jobhi_emp_number}}/termination-record",
                           "host": [
@@ -73185,15 +73491,6 @@
                             "{{emp_jobhi_emp_number}}",
                             "termination-record"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -73299,10 +73596,19 @@
                         "method": "POST",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees",
                           "host": [
@@ -73312,15 +73618,6 @@
                             "api",
                             "employees"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -73447,10 +73744,19 @@
                         "method": "POST",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees",
                           "host": [
@@ -73460,15 +73766,6 @@
                             "api",
                             "employees"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{employeeLastName}}\",\n    \"employeeId\": \"{{employeeId}}\",\n    \"locationId\": \"{{locationId}}\",\n    \"joinedDate\": \"{{joinedDate}}\",\n    \"chkLogin\": {{chkLogin}},\n    \"autoGenerateEmployeeId\": {{autoGenerateEmployeeId}}\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -73574,10 +73871,19 @@
                         "method": "DELETE",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{jobhnEmpNumber}}/job/history{{jobhnPathSuffix}}",
                           "host": [
@@ -73590,15 +73896,6 @@
                             "job",
                             "history{{jobhnPathSuffix}}"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -73699,10 +73996,19 @@
                         "method": "POST",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{emp_jobhn_emp_number}}/termination-record",
                           "host": [
@@ -73714,15 +74020,6 @@
                             "{{emp_jobhn_emp_number}}",
                             "termination-record"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -73795,10 +74092,19 @@
                         "method": "DELETE",
                         "header": [
                           {
-                            "value": "application/json",
-                            "key": "Content-Type"
+                            "key": "Content-Type",
+                            "value": "application/json"
                           }
                         ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{{requestBody}}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
                         "url": {
                           "raw": "{{baseURL}}/api/employees/{{jobhtokEmpNumber}}/job/history",
                           "host": [
@@ -73811,15 +74117,6 @@
                             "job",
                             "history"
                           ]
-                        },
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{{requestBody}}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
                         }
                       },
                       "response": []
@@ -74069,33 +74366,61 @@
           ]
         },
         {
-          "name": "New Request",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseURL}}/api/customFieldScreens",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "customFieldScreens"
+          "name": "Leave",
+          "item": [
+            {
+              "name": "Entiitlements",
+              "item": [
+                {
+                  "name": "Add-entitlements",
+                  "item": [
+                    {
+                      "name": "add-leave-entitlement",
+                      "event": [
+                        {
+                          "listen": "prerequest",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const hmexistingforCandidate = pm.environment.get(\"employee_for_entitlements\");\n\nif (pm.info.iteration > 0 ){\n        pm.execution.skipRequest();\n}\n\nelse {\n    if (hmexistingforCandidate){\n        pm.sendRequest({\n            url : `${pm.environment.get(\"baseURL\")}/api/employees/${hmexistingforCandidate}/termination-record`,\n            method: \"POST\",\n            header : { \"Content-Type\": \"application/json\", \"Authorization\": `Bearer ${pm.environment.get(\"accessToken\")}` },\n            body: { mode : \"raw\", raw : JSON.stringify({\n                date : pm.iterationData.get (\"terminationDate\"),\n                flaged : String(pm.iterationData.get (\"flagValue\")),\n                note : String(pm.iterationData.get (\"terminationNote\")),\n                reason : String(pm.iterationData.get (\"terminationReason\")),\n                time : pm.iterationData.get (\"time\"),\n                timezone : pm.iterationData.get (\"timezone\"),\n            })}\n        }, (err,res) => {\n\n            pm.test(\"Termination API - no request error\", function () {\n                pm.expect(err).to.equal(null);\n            });\n\n            if (err) {\n                console.error(\"Termination request error:\", err);\n                return;\n            }\n\n            pm.test (\"Validate the success response upon termination\", function () {\n                pm.expect(res.code).to.be.oneOf([200,201,204]);\n            })\n        })\n    }\n\n\n    pm.variables.set(\"employeeId\", `VACHM-${Date.now().toString().slice(-6)}`);\n}"
+                            ]
+                          }
+                        },
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const responseData = (pm.response.json().data) || {};\n\n    if (pm.request.method == \"GET\"){\n        pm.test(\"Hisirng manager is still active\", function () {\n            pm.response.to.have.status(200);\n            pm.expect(String(responseData.empNumber), \"Employee number should be present\").to.eql(String(pm.environment.get(\"vacancy_hm_emp_number_candi\")));\n            pm.expect(responseData.termination_id, \"termination_id\").to.be.null;\n        })\n    }\n\n    else {\n\n        pm.test(\"Validate the response code\", function () {\n            pm.response.to.have.status(201);\n        })\n\n        pm.test (\"Employee number exist\", function () {\n            pm.expect(String(responseData.empNumber || \"\"), \"Employee number\").to.match(/^[0-9]+$/);\n        })\n\n        pm.environment.set(\"employee_for_entitlements\", String(responseData.empNumber));\n\n\n    }\n"
+                            ]
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                          "raw": "{{baseURL}}/api/employees",
+                          "host": [
+                            "{{baseURL}}"
+                          ],
+                          "path": [
+                            "api",
+                            "employees"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
               ]
+            },
+            {
+              "name": "Leave Types",
+              "item": []
             }
-          },
-          "response": []
-        },
-        {
-          "name": "New Request",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": ""
-            }
-          },
-          "response": []
+          ]
         }
       ]
     },
@@ -74106,7 +74431,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"firstName\": \"Candidate\",\n  \"lastName\": \"Invalid\",\n  \"email\": \"cp@gmail.com\",\n  \"keywords\": \"__MARK__\",\n  \"vacancy\": \"442\",\n  \"file\": {\n    \"fileName\": \"resume.txt\",\n    \"fileType\": \"text/plain\",\n    \"file\": \"%%% not base64 %%%\"\n  }\n}",
+          "raw": "{\n  \"client_id\": \"testleave\",\n  \"client_secret\": \"e29aeeeec64d7d0d1fc39f36237e9b9c\",\n  \"grant_type\": \"password\",\n  \"username\": \"_ohrmSysAdmin_\",\n  \"password\": \"admin@OHRM123\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -74114,14 +74439,13 @@
           }
         },
         "url": {
-          "raw": "{{baseURL}}/api/recruitment/candidates",
+          "raw": "{{baseURL}}/oauth/issueToken",
           "host": [
             "{{baseURL}}"
           ],
           "path": [
-            "api",
-            "recruitment",
-            "candidates"
+            "oauth",
+            "issueToken"
           ]
         }
       },
@@ -74134,7 +74458,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"ids\": [\"145\"]\n}",
+          "raw": "{\n        \"name\":\"Test\",\n        \"short_name\":\"WFH\",\n         \"exclude_in_reports_if_no_entitlement\":false,\n         \"hour_based\":false,\n         \"is_short_term\":true,\n         \"include_in_bradford_factor_report\":false,\n         \"operational_country_id\":\"1\",\n         \"employee_nominee_enabled\":false\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -74142,14 +74466,13 @@
           }
         },
         "url": {
-          "raw": "{{baseURL}}/api/recruitment/candidates",
+          "raw": "{{baseURL}}/api/leaveTypes",
           "host": [
             "{{baseURL}}"
           ],
           "path": [
             "api",
-            "recruitment",
-            "candidates"
+            "leaveTypes"
           ]
         }
       },
@@ -74520,6 +74843,14 @@
     {
       "key": "employeeCustomTabCustomFieldValueListSchema",
       "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"required\":[\"data\"],\"properties\":{\"data\":{\"type\":\"object\",\"required\":[\"emptySection\"],\"properties\":{\"emptySection\":{\"type\":\"boolean\"},\"customFieldCount\":{\"type\":\"integer\",\"minimum\":0},\"tabValues\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"object\",\"required\":[\"seqNo\",\"customFieldId\",\"formData\"],\"properties\":{\"seqNo\":{\"type\":\"integer\"},\"customFieldId\":{\"type\":\"string\"},\"formData\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"object\",\"required\":[\"id\",\"lable\",\"customFieldId\",\"valueType\",\"sequenceNumber\",\"fieldType\",\"type\",\"unmodifiedExtraData\",\"customFieldDisplayCondition\",\"extraData\",\"value\"],\"properties\":{\"id\":{\"type\":\"string\"},\"lable\":{\"type\":\"string\"},\"customFieldId\":{\"type\":\"string\"},\"valueType\":{\"type\":\"string\"},\"sequenceNumber\":{\"type\":\"string\"},\"fieldType\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"},\"advanceTypeMap\":{\"type\":[\"object\",\"null\"]},\"unmodifiedExtraData\":{\"type\":[\"string\",\"null\"]},\"customFieldDisplayCondition\":{\"type\":\"object\"},\"extraData\":{\"type\":\"array\"},\"value\":{\"type\":[\"string\",\"number\",\"object\",\"null\"]}}}}},\"patternProperties\":{\"^customFieldValue_[0-9]+$\":{\"type\":[\"string\",\"null\"]}}}},\"emptyValues\":{\"type\":\"object\",\"required\":[\"formData\"],\"properties\":{\"formData\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"object\",\"required\":[\"id\",\"lable\",\"customFieldId\",\"valueType\",\"sequenceNumber\",\"fieldType\",\"type\",\"unmodifiedExtraData\",\"customFieldDisplayCondition\",\"extraData\",\"value\"],\"properties\":{\"id\":{\"type\":\"string\"},\"lable\":{\"type\":\"string\"},\"customFieldId\":{\"type\":\"string\"},\"valueType\":{\"type\":\"string\"},\"sequenceNumber\":{\"type\":\"string\"},\"fieldType\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"},\"advanceTypeMap\":{\"type\":[\"object\",\"null\"]},\"unmodifiedExtraData\":{\"type\":[\"string\",\"null\"]},\"customFieldDisplayCondition\":{\"type\":\"object\"},\"extraData\":{\"type\":\"array\"},\"value\":{\"type\":[\"string\",\"number\",\"object\",\"null\"]}}}}}}}}}}"
+    },
+    {
+      "key": "addLeaveTypeSchema",
+      "value": "{ \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Leave Type API Response\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"success\": {\n      \"type\": \"boolean\"\n    },\n    \"data\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"id\": {\n          \"type\": \"string\"\n        },\n        \"name\": {\n          \"type\": \"string\"\n        },\n        \"short_name\": {\n          \"type\": \"string\"\n        },\n        \"exclude_in_reports_if_no_entitlement\": {\n          \"type\": \"boolean\"\n        },\n        \"include_in_bradford_factor_report\": {\n          \"type\": \"boolean\"\n        },\n        \"employee_nominee_enabled\": {\n          \"type\": \"boolean\"\n        },\n        \"deletable\": {\n          \"type\": \"boolean\"\n        },\n        \"leave_rule_modifiable\": {\n          \"type\": \"boolean\"\n        },\n        \"deleted\": {\n          \"type\": \"string\"\n        },\n        \"operational_country_id\": {\n          \"type\": \"string\"\n        },\n        \"hour_based\": {\n          \"type\": \"boolean\"\n        },\n        \"is_short_term\": {\n          \"type\": \"boolean\"\n        },\n        \"leaveRules\": {\n          \"type\": \"string\"\n        },\n        \"OperationalCountry\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"id\": {\n              \"type\": \"string\"\n            },\n            \"country_code\": {\n              \"type\": \"string\"\n            },\n            \"Country\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"cou_code\": {\n                  \"type\": \"string\"\n                },\n                \"name\": {\n                  \"type\": \"string\"\n                },\n                \"cou_name\": {\n                  \"type\": \"string\"\n                },\n                \"iso3\": {\n                  \"type\": \"string\"\n                },\n                \"numcode\": {\n                  \"type\": \"string\"\n                }\n              },\n              \"required\": [\n                \"cou_code\",\n                \"name\",\n                \"cou_name\",\n                \"iso3\",\n                \"numcode\"\n              ]\n            }\n          },\n          \"required\": [\n            \"id\",\n            \"country_code\",\n            \"Country\"\n          ]\n        }\n      },\n      \"required\": [\n        \"id\",\n        \"name\",\n        \"short_name\",\n        \"exclude_in_reports_if_no_entitlement\",\n        \"include_in_bradford_factor_report\",\n        \"employee_nominee_enabled\",\n        \"deletable\",\n        \"leave_rule_modifiable\",\n        \"deleted\",\n        \"operational_country_id\",\n        \"hour_based\",\n        \"is_short_term\",\n        \"leaveRules\",\n        \"OperationalCountry\"\n      ]\n    }\n  },\n  \"required\": [\n    \"success\",\n    \"data\"\n  ]\n}\n"
+    },
+    {
+      "key": "bearer_token_15dq",
+      "secret": true
     }
   ]
 }

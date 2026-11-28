@@ -1,0 +1,2 @@
+"scenario","firstName","lastName","locationId","joinedDate","ent_leaveType","ent_firstAmount","ent_secondAmount","ent_from","ent_to","ent_comment","ent_expectedRows","ent_expectedTotal","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"same employee, leave type and period twice (ENT-S39)","Leave","Duplicate",2,"2024-06-20",17,2,3,"{CURRENT_FROM}","{CURRENT_TO}","Duplicate entitlement",2,5,"{TODAY}",1,"Leave API test teardown",1,"23:55","Asia/Kolkata"

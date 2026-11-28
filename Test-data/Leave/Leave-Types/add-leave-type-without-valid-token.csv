@@ -1,0 +1,5 @@
+"scenario","authorizationHeader","expectedStatus","expectedError","expectedErrorDescription","expectedBody"
+"no Authorization header (LT-S23)","{NONE}",401,,,"[]"
+"invalid bearer token (LT-S24)","Bearer invalid-token-for-api-test",401,"invalid_token","The access token provided is invalid",
+"bearer without a token (LT-S24)","Bearer",401,"invalid_request","Malformed auth header",
+"basic authentication (LT-S24)","Basic YWRtaW46YWRtaW4=",401,"invalid_request","Malformed auth header",

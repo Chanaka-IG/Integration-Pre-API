@@ -1,0 +1,3 @@
+"scenario","firstName","lastName","locationId","joinedDate","ent_employeeIds","ent_multipleEmployees","ent_leaveType","ent_entitlementAmount","ent_from","ent_to","expectedStatus","expectedMessage","expectedError","ent_checkNothingCreatedFor","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"employee that does not exist (ENT-S28)","Leave","Missing",2,"2024-06-20","99999999",,17,1,"{CURRENT_FROM}","{CURRENT_TO}",403,"Forbidden","Unauthorized",,"{TODAY}",1,"Leave API test teardown",1,"23:55","Asia/Kolkata"
+"several employees including one that does not exist (ENT-S28)",,,,,"{EMP}|99999999","true",17,1,"{CURRENT_FROM}","{CURRENT_TO}",403,"Forbidden","Unauthorized","{EMP}",,,,,,

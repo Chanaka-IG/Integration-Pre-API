@@ -1,0 +1,8 @@
+"scenario","firstName","lastName","locationId","joinedDate","ent_employeeId","ent_leaveType","ent_entitlementAmount","ent_from","ent_to","ent_comment","ent_adjustCarriedForward","ent_expectedRecordType","ent_expectedLength","ent_expectedNote","ent_checkOtherEmployee","bystanderLastName","terminationDate","flagValue","terminationNote","terminationReason","time","timezone"
+"all fields for the current leave period (ENT-S01, S02, S42)","Leave","Entitlement",2,"2024-06-20","{EMP}","""17""",5,"{CURRENT_FROM}","{CURRENT_TO}","Annual entitlement","false","entitlement","5.000000000","Annual entitlement","yes","Bystander","{TODAY}",1,"Leave API test teardown",1,"23:55","Asia/Kolkata"
+"mandatory fields only (ENT-S03)",,,,,"{EMP}",17,2,"{CURRENT_FROM}","{CURRENT_TO}",,,"entitlement","2.000000000",,,,,,,,,
+"leave type and amount as strings, employee id as a number (ENT-S04)",,,,,"{EMP_NUMBER}","""17""","""3.5""","{CURRENT_FROM}","{CURRENT_TO}","Value types",,"entitlement","3.500000000","Value types",,,,,,,,
+"amount with two decimal places (ENT-S05)",,,,,"{EMP}",17,1.25,"{CURRENT_FROM}","{CURRENT_TO}","Decimal amount",,"entitlement","1.250000000","Decimal amount",,,,,,,,
+"half day amount (ENT-S05)",,,,,"{EMP}",17,0.5,"{CURRENT_FROM}","{CURRENT_TO}",,,"entitlement","0.500000000",,,,,,,,,
+"next leave period (ENT-S09)",,,,,"{EMP}",17,4,"{NEXT_FROM}","{NEXT_TO}","Next period",,"entitlement","4.000000000","Next period",,,,,,,,
+"negative amount creates a leave adjustment (ENT-S06)",,,,,"{EMP}",17,-2,"{CURRENT_FROM}","{CURRENT_TO}","Adjustment",,"adjustment","-2.000000000","Adjustment",,,,,,,,
